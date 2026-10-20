@@ -96,7 +96,7 @@ fill the gaps. Automatic runs have the same two options.
 
 *Results → Revenue by gym* shows gyms × months from the Franchise Performance **Total Revenue** (run it with
 *Split by: month*): the monthly figures, average, rank for the latest full month, overall rank, change vs the
-previous month, monthly target and % achieved, with group totals at the top. The current month is shown but kept
+previous month, monthly target and % achieved, with group totals at the top, then **one table per group** like the sheet (Average, Ranking for the latest full month and Ranking by average, both within the group; Indian digit grouping; a Note column). The current month is shown but kept
 out of averages and ranks. Download CSV/XLSX in the same layout. When several sessions cover a month, the newest
 one is used, so re-running a month corrects it instead of adding to it.
 
@@ -106,7 +106,7 @@ group, and add or remove gyms (type to search). On the *Centers* list, select ce
 **monthly target** in the same list. To start from a management sheet:
 
     python manage.py import_groups 20oct.xls            # preview
-    python manage.py import_groups 20oct.xls --apply    # add the gyms to GYMS / Gym Hybrid
+    python manage.py import_groups 20oct.xls --apply    # one group per section of the sheet (GYMS, HYBRIDS, Gym Hybrid)
 
 **Customers (leads):** *Data → Customers (leads)* has one row per Kronos user id (phone numbers are the
 fallback and may be several per person), with the newest pack, end date and a lead label: active, expiring soon,

@@ -23,6 +23,7 @@ class Center(models.Model):
     center_service_id = models.IntegerField(null=True, blank=True)
     seller_id = models.CharField(max_length=64, blank=True)
     monthly_target = models.FloatField(null=True, blank=True, help_text="Revenue target per month, in rupees.")
+    note = models.CharField(max_length=200, blank=True, help_text="A free note shown beside the gym in the revenue report.")
     raw = models.JSONField(default=dict, blank=True, help_text="Full Kronos record")
     updated_at = models.DateTimeField(auto_now=True)
 

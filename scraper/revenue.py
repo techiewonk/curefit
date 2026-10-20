@@ -42,9 +42,19 @@ def _ranks(values):
     return {k: i + 1 for i, k in enumerate(ordered)}
 
 
+ALL_MONTHS, MOST_MONTHS = 0, 48
+
+
 def matrix(group="", months=12, today=None):
+    """months: how many to show ending with the current one; 0 = from the first month that has data."""
     today = today or timezone.localdate()
     current = month_of(today)
+    names = PerfMetric.objects.order_by().values_list("metric", flat=True).distinct()
+    total_metric = revenue_metrics(list(names))[0]
+    if months == ALL_MONTHS:
+        first = PerfMetric.objects.filter(metric=total_metric, metric_date__isnull=False).order_by("metric_date") \
+            .values_list("metric_date", flat=True).first() if total_metric else None
+        months = 1 if first is None else min(MOST_MONTHS, (current.year - first.year) * 12 + current.month - first.month + 1)
     shown = _months(current, months)
     complete = [m for m in shown if m < current]
     latest_month = complete[-1] if complete else None
@@ -55,8 +65,6 @@ def matrix(group="", months=12, today=None):
             .values_list("centergroup__name", "center_id"):
         members.setdefault(cid, []).append(gname)
 
-    names = PerfMetric.objects.order_by().values_list("metric", flat=True).distinct()
-    total_metric = revenue_metrics(list(names))[0]
     best = {}  # (center, month) -> (session rank, value)
     if total_metric:
         qs = PerfMetric.objects.filter(metric=total_metric, metric_date__gte=shown[0], value__isnull=False)
@@ -84,17 +92,27 @@ def matrix(group="", months=12, today=None):
         done = [values[m] for m in complete if m in values]
         latest, prev = values.get(latest_month), values.get(prev_month)
         rows.append({
-            "id": cid, "name": c.name, "groups": members.get(cid) or [UNGROUPED],
+            "id": cid, "name": c.name, "note": c.note, "groups": members.get(cid) or [UNGROUPED],
             "group": ", ".join(members.get(cid) or [UNGROUPED]), "values": values,
             "average": sum(done) / len(done) if done else None, "latest": latest,
             "mom_pct": round(100.0 * (latest - prev) / prev, 1) if latest is not None and prev else None,
             "target": c.monthly_target,
             "achievement": round(100.0 * latest / c.monthly_target, 1) if latest is not None and c.monthly_target else None})
-    rank_latest = _ranks({r["id"]: r["latest"] for r in rows})
-    rank_avg = _ranks({r["id"]: r["average"] for r in rows})
-    for r in rows:
-        r["rank_latest"], r["rank_average"] = rank_latest.get(r["id"]), rank_avg.get(r["id"])
-    rows.sort(key=lambda r: (r["rank_average"] is None, r["rank_average"] or 0, r["name"]))
+    rows.sort(key=lambda r: r["name"])
+
+    # one table per group, like the sheet; ranks are within the group (a gym in two groups ranks in each)
+    order = list(CenterGroup.objects.values_list("name", flat=True)) + [UNGROUPED]
+    sections = []
+    for name in order:
+        mine = [dict(r) for r in rows if name in r["groups"]]
+        if not mine:
+            continue
+        rank_latest = _ranks({r["id"]: r["latest"] for r in mine})
+        rank_avg = _ranks({r["id"]: r["average"] for r in mine})
+        for r in mine:
+            r["rank_latest"], r["rank_average"] = rank_latest.get(r["id"]), rank_avg.get(r["id"])
+        mine.sort(key=lambda r: (r["rank_latest"] is None, r["rank_latest"] or 0, r["name"]))
+        sections.append({"group": name, "rows": mine})
 
     group_totals = {}  # a center in two groups counts in both
     for r in rows:
@@ -116,7 +134,7 @@ def matrix(group="", months=12, today=None):
             "best": next(iter(sorted((r for r in mine if r["latest"] is not None), key=lambda r: -r["latest"])), None)})
     moving = sorted((r for r in rows if r["mom_pct"] is not None), key=lambda r: r["mom_pct"])
     return {"months": shown, "current": current, "latest_month": latest_month, "prev_month": prev_month,
-            "rows": rows, "group_totals": group_totals, "summary": summary, "has_data": bool(rows),
+            "rows": rows, "sections": sections, "group_totals": group_totals, "summary": summary, "has_data": bool(rows),
             "groups": list(CenterGroup.objects.values_list("name", flat=True)),
             "total_latest": sum(r["latest"] or 0 for r in rows),
             "total_average": sum(r["average"] or 0 for r in rows),
@@ -124,12 +142,13 @@ def matrix(group="", months=12, today=None):
 
 
 def table(data):
-    """Headers and rows for a download, laid out like the management sheet."""
+    """Headers and rows for a download: the sheet's columns, one block per group, ranks within the group."""
     months = data["months"]
-    headers = (["center_id", "gym", "group"] + [label(m) for m in months] +
+    headers = (["group", "center_id", "gym"] + [label(m) for m in months] +
                ["average", f"rank {label(data['latest_month'])}" if data["latest_month"] else "rank latest",
-                "rank average", "change_vs_prev_month_%", "monthly_target", "target_achieved_%"])
-    rows = [[r["id"], r["name"], r["group"]] + [r["values"].get(m) for m in months] +
+                "rank average", "change_vs_prev_month_%", "monthly_target", "target_achieved_%", "note"])
+    rows = [[sec["group"], r["id"], r["name"]] + [r["values"].get(m) for m in months] +
             [None if r["average"] is None else round(r["average"]), r["rank_latest"], r["rank_average"],
-             r["mom_pct"], r["target"], r["achievement"]] for r in data["rows"]]
+             r["mom_pct"], r["target"], r["achievement"], r["note"]]
+            for sec in data["sections"] for r in sec["rows"]]
     return headers, rows

@@ -233,9 +233,9 @@ class CoverageView(ConsolePage, TemplateView):
 
 def _revenue_data(request):
     try:
-        months = min(max(int(request.GET.get("months", 12)), 3), 36)
+        months = min(max(int(request.GET.get("months", 0)), 0), 48)  # 0 = all months with data
     except ValueError:
-        months = 12
+        months = 0
     return revenue.matrix(request.GET.get("group", ""), months), months
 
 
@@ -251,9 +251,11 @@ class RevenueView(ConsolePage, TemplateView):
         chart = json.dumps({"labels": [revenue.label(m) for m in data["months"]], "datasets": [
             {"label": g, "data": [round(series[m]) if series[m] else None for m in data["months"]],
              "borderColor": palette[i % len(palette)]} for i, (g, series) in enumerate(data["group_totals"].items())]})
-        rows = [{**r, "cells": [r["values"].get(m) for m in data["months"]]} for r in data["rows"]]
+        rows = data["rows"]
+        sections = [{**sec, "rows": [{**r, "cells": [r["values"].get(m) for m in data["months"]]} for r in sec["rows"]]}
+                    for sec in data["sections"]]
         return super().get_context_data(
-            data=data, rows=rows, months_back=months, group=self.request.GET.get("group", ""),
+            data=data, rows=rows, sections=sections, months_back=months, shown_months=len(data["months"]), group=self.request.GET.get("group", ""),
             labels=[revenue.label(m) for m in data["months"]], chart=chart if len(data["months"]) > 1 else None,
             latest_label=revenue.label(data["latest_month"]) if data["latest_month"] else "", **kwargs)
 

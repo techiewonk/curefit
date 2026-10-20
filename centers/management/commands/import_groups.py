@@ -15,7 +15,7 @@ from django.core.management.base import BaseCommand, CommandError
 
 from centers.models import Center, CenterGroup
 
-GROUPS = ("GYMS", "Gym Hybrid")
+MONTH = re.compile("^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*|^Column", re.I)  # right of a section name
 
 
 def norm(text):
@@ -40,22 +40,25 @@ class Command(BaseCommand):
         for c in Center.objects.all():
             names.setdefault(norm(c.name), []).append(c)
         group, found, problems = None, {}, []
+        order = []
         for row in rows:
             cell = row[0].strip() if row else ""
-            if cell in GROUPS:
+            if cell and len(row) > 1 and MONTH.match(row[1].strip()):  # a header row names the group
                 group = cell
+                order.append(cell)
             elif group and cell and cell.lower() != "month":
                 matches = names.get(norm(cell), [])
                 if len(matches) == 1:
                     found[matches[0].pk] = group
                 else:
                     problems.append(f"{cell!r}: {'no center' if not matches else f'{len(matches)} centers'} match")
-        for group_name in GROUPS:
+        order = list(dict.fromkeys(order))
+        for group_name in order:
             self.stdout.write(f"{group_name}: {sum(1 for g in found.values() if g == group_name)} gyms")
         for p in problems:
             self.stdout.write(f"  left alone - {p}")
         if apply:
-            for position, group_name in enumerate(GROUPS):
+            for position, group_name in enumerate(order):
                 group, _ = CenterGroup.objects.get_or_create(name=group_name, defaults={"position": position})
                 group.centers.add(*[k for k, g in found.items() if g == group_name])  # adds; never removes
             self.stdout.write("Saved. Add or remove gyms later under Center groups.")

@@ -38,7 +38,6 @@ class RevenueTests(FakeKronosMixin, TransactionTestCase):
         self.assertEqual(r1["values"][D(2026, 8, 1)], 3000)
         self.assertEqual(data["latest_month"], D(2026, 9, 1))
         self.assertEqual(r1["average"], (1000 + 3000 + 2400) / 3)  # October (partial) is left out
-        self.assertEqual((r1["rank_latest"], r2["rank_latest"], r1["rank_average"]), (1, 2, 1))
         self.assertEqual(r1["mom_pct"], -20.0)
         self.assertEqual(r1["achievement"], 120.0)
         self.assertEqual(set(data["group_totals"]), {"GYMS", "Gym Hybrid"})
@@ -51,6 +50,9 @@ class RevenueTests(FakeKronosMixin, TransactionTestCase):
         CenterGroup.objects.get(name="Gym Hybrid").centers.add(1)  # in two groups: counts in both
         both = revenue.matrix(months=4, today=today)
         self.assertEqual(len(both["group_totals"]), 2)
+        hybrid = next(sec for sec in both["sections"] if sec["group"] == "Gym Hybrid")
+        self.assertEqual({r["id"]: (r["rank_latest"], r["rank_average"]) for r in hybrid["rows"]},
+                         {1: (1, 1), 2: (2, 2)})  # September and average, within the group
         self.assertEqual(next(r for r in both["rows"] if r["id"] == 1)["group"], "GYMS, Gym Hybrid")
         CenterGroup.objects.get(name="Gym Hybrid").centers.remove(1, 2)
         self.assertEqual([r["id"] for r in revenue.matrix(group="Ungrouped", months=4, today=today)["rows"]], [2])
@@ -62,7 +64,7 @@ class RevenueTests(FakeKronosMixin, TransactionTestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(self.client.get("/admin/console/revenue/", {"months": "x"}).status_code, 200)
         csv = self.client.get("/admin/console/revenue/csv/")
-        self.assertTrue(csv.content.decode().startswith("center_id,gym,group,"))
+        self.assertTrue(csv.content.decode().startswith("group,center_id,gym,"))
         self.assertIn("spreadsheetml", self.client.get("/admin/console/revenue/csv/", {"format": "xlsx"})["Content-Type"])
 
     def test_empty_page_explains_what_to_run(self):
@@ -88,7 +90,7 @@ class RevenueTests(FakeKronosMixin, TransactionTestCase):
         CenterGroup.objects.all().delete()
         Center.objects.filter(pk=1).update(name="Cult Gym HSR")
         Center.objects.filter(pk=2).update(name="Cult Gym Yemlur")
-        sheet = "GYMS\tJun-24\nCult Gym HSR\t1\n\nGym Hybrid\tx\ncult gym  yemlur\t2\nCult Gym Nowhere\t3\n"
+        sheet = "GYMS\tJun-24\nCult Gym HSR\t1\n\nGym Hybrid\tColumn 1\ncult gym  yemlur\t2\nCult Gym Nowhere\t3\n"
         with tempfile.NamedTemporaryFile("w", suffix=".xls", delete=False, encoding="utf-8") as f:
             f.write(sheet)
         self.addCleanup(os.remove, f.name)
@@ -107,3 +109,40 @@ class PartialMonthTests(FakeKronosMixin, TransactionTestCase):
         PerfMetric.objects.create(session=few, center_id=1, metric_date=D(2026, 8, 1), metric=TOTAL, value=700)
         data = revenue.matrix(months=3, today=D(2026, 10, 15))
         self.assertEqual(data["rows"][0]["values"][D(2026, 8, 1)], 9000)
+
+
+class SectionTests(FakeKronosMixin, TransactionTestCase):
+    def test_ranks_are_within_each_group_and_all_months_are_shown(self):
+        s = engine.new_session("2026-05-01", "2026-08-31", [1, 2, 3, 4], ["perf"])
+        names = {"GYMS": [1, 2], "HYBRIDS": [3, 4]}
+        for i, (g, ids) in enumerate(names.items()):
+            CenterGroup.objects.create(name=g, position=i).centers.add(*ids)
+        for cid, values in {1: (500, 900), 2: (800, 100), 3: (50, 60), 4: (40, 90)}.items():
+            for month, v in zip((D(2026, 7, 1), D(2026, 8, 1)), values):
+                PerfMetric.objects.create(session=s, center_id=cid, metric_date=month, metric=TOTAL, value=v)
+        data = revenue.matrix(months=0, today=D(2026, 9, 10))
+        self.assertEqual([m.month for m in data["months"]], [7, 8, 9])  # from the first month with data
+        self.assertEqual([sec["group"] for sec in data["sections"]], ["GYMS", "HYBRIDS"])
+        ranks = {sec["group"]: {r["id"]: r["rank_latest"] for r in sec["rows"]} for sec in data["sections"]}
+        self.assertEqual(ranks, {"GYMS": {1: 1, 2: 2}, "HYBRIDS": {4: 1, 3: 2}})  # August, within each group
+        self.assertEqual([r["id"] for r in data["sections"][0]["rows"]], [1, 2])  # ordered by that rank
+        headers, rows = revenue.table(data)
+        self.assertEqual((headers[:3], len(rows)), (["group", "center_id", "gym"], 4))
+        self.assertEqual(self.client.get("/admin/console/revenue/").status_code, 200)
+
+    def test_indian_number_grouping(self):
+        from console.templatetags.formats import inr
+        self.assertEqual([inr(x) for x in (1875475, 999, 1000, 100000, 12345678.6, None, -2500000)],
+                         ["18,75,475", "999", "1,000", "1,00,000", "1,23,45,679", "", "-25,00,000"])
+
+    def test_import_recognises_a_header_with_plain_month_names(self):
+        import os
+        import tempfile
+        from django.core.management import call_command
+        Center.objects.filter(pk=3).update(name="Cult Gym Marathahalli")
+        sheet = "HYBRIDS" + chr(9) + "June" + chr(9) + "July" + chr(10) + "Cult Gym Marathahalli" + chr(9) + "1" + chr(10)
+        with tempfile.NamedTemporaryFile("w", suffix=".xls", delete=False, encoding="utf-8") as f:
+            f.write(sheet)
+        self.addCleanup(os.remove, f.name)
+        call_command("import_groups", f.name, "--apply")
+        self.assertEqual(list(CenterGroup.objects.get(name="HYBRIDS").centers.values_list("pk", flat=True)), [3])

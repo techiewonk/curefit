@@ -1,28 +1,29 @@
 {% extends "console/base.html" %}
-{% load unfold humanize %}
+{% load unfold humanize formats %}
 
 {% block page %}
 <form method="get" class="flex flex-row flex-wrap gap-3 items-end">
   <label class="mb-4 text-sm">Group
     <select name="group" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
-      <option value="">All gyms</option>
+      <option value="">All groups</option>
       {% for g in data.groups %}<option value="{{ g }}" {% if g == group %}selected{% endif %}>{{ g }}</option>{% endfor %}
       <option value="Ungrouped" {% if group == "Ungrouped" %}selected{% endif %}>Ungrouped</option>
     </select>
   </label>
   <label class="mb-4 text-sm">Months
     <select name="months" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
-      <option value="6" {% if months_back == 6 %}selected{% endif %}>6</option>
-      <option value="12" {% if months_back == 12 %}selected{% endif %}>12</option>
-      <option value="24" {% if months_back == 24 %}selected{% endif %}>24</option>
-      <option value="36" {% if months_back == 36 %}selected{% endif %}>36</option>
+      <option value="0" {% if months_back == 0 %}selected{% endif %}>All with data ({{ shown_months }})</option>
+      <option value="6" {% if months_back == 6 %}selected{% endif %}>Last 6</option>
+      <option value="12" {% if months_back == 12 %}selected{% endif %}>Last 12</option>
+      <option value="24" {% if months_back == 24 %}selected{% endif %}>Last 24</option>
     </select>
   </label>
   {% if data.has_data %}
     <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:revenue_csv' %}?group={{ group|urlencode }}&months={{ months_back }}">Download CSV</a>
     <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:revenue_csv' %}?group={{ group|urlencode }}&months={{ months_back }}&format=xlsx">Download XLSX</a>
   {% endif %}
-  <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'admin:centers_center_changelist' %}">Set groups and targets →</a>
+  <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'admin:centers_centergroup_changelist' %}">Edit groups →</a>
+  <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'admin:centers_center_changelist' %}">Targets and notes →</a>
 </form>
 
 {% if not data.has_data %}
@@ -33,8 +34,8 @@
 {% else %}
   <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
     {% component "unfold/components/card.html" with title="Gyms" %}<span class="text-2xl font-semibold">{{ rows|length }}</span>{% endcomponent %}
-    {% component "unfold/components/card.html" with title="Revenue "|add:latest_label %}<span class="text-2xl font-semibold">₹{{ data.total_latest|floatformat:0|intcomma }}</span>{% endcomponent %}
-    {% component "unfold/components/card.html" with title="Sum of monthly averages" %}<span class="text-2xl font-semibold">₹{{ data.total_average|floatformat:0|intcomma }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Revenue "|add:latest_label %}<span class="text-2xl font-semibold">₹{{ data.total_latest|inr }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Sum of monthly averages" %}<span class="text-2xl font-semibold">₹{{ data.total_average|inr }}</span>{% endcomponent %}
     {% component "unfold/components/card.html" with title="Latest full month" %}<span class="text-2xl font-semibold">{{ latest_label|default:"-" }}</span>{% endcomponent %}
   </div>
 
@@ -47,10 +48,10 @@
       {% for g in data.summary %}
         <tr><td class="font-medium"><a class="text-primary-600" href="?group={{ g.group|urlencode }}&months={{ months_back }}">{{ g.group }}</a></td>
           <td class="text-right">{{ g.gyms }}</td>
-          <td class="text-right">{% if g.latest %}₹{{ g.latest|floatformat:0|intcomma }}{% endif %}</td>
-          <td class="text-right">{% if g.average %}₹{{ g.average|floatformat:0|intcomma }}{% endif %}</td>
+          <td class="text-right">{% if g.latest %}₹{{ g.latest|inr }}{% endif %}</td>
+          <td class="text-right">{% if g.average %}₹{{ g.average|inr }}{% endif %}</td>
           <td class="text-right {% if g.mom_pct > 0 %}text-green-600{% elif g.mom_pct < 0 %}text-red-600{% endif %}">{% if g.mom_pct is not None %}{{ g.mom_pct }}%{% endif %}</td>
-          <td class="text-right">{% if g.target %}₹{{ g.target|floatformat:0|intcomma }}{% endif %}</td>
+          <td class="text-right">{% if g.target %}₹{{ g.target|inr }}{% endif %}</td>
           <td class="text-right">{% if g.achievement is not None %}{{ g.achievement }}%{% endif %}</td>
           <td class="pl-4">{{ g.best.name }}</td></tr>
       {% endfor %}
@@ -77,31 +78,35 @@
     {% endcomponent %}
   </div>
 
-  {% component "unfold/components/card.html" %}
-    <div class="max-h-[70vh] overflow-auto">
-      <table class="text-sm w-full whitespace-nowrap">
-        <thead class="sticky top-0 bg-white dark:bg-base-900"><tr>
-          <th class="text-left">Gym</th><th class="text-left">Group</th>
-          {% for l in labels %}<th class="text-right">{{ l }}</th>{% endfor %}
-          <th class="text-right">Average</th><th class="text-right">Rank {{ latest_label }}</th><th class="text-right">Rank avg</th>
-          <th class="text-right">vs prev</th><th class="text-right">Target</th><th class="text-right">Achieved</th>
-        </tr></thead>
-        <tbody>
-        {% for r in rows %}
-          <tr>
-            <td>{{ r.name }}</td><td>{{ r.group }}</td>
-            {% for v in r.cells %}<td class="text-right">{% if v is not None %}{{ v|floatformat:0|intcomma }}{% endif %}</td>{% endfor %}
-            <td class="text-right font-medium">{% if r.average %}{{ r.average|floatformat:0|intcomma }}{% endif %}</td>
-            <td class="text-right">{{ r.rank_latest|default_if_none:"" }}</td><td class="text-right">{{ r.rank_average|default_if_none:"" }}</td>
-            <td class="text-right {% if r.mom_pct > 0 %}text-green-600{% elif r.mom_pct < 0 %}text-red-600{% endif %}">{% if r.mom_pct is not None %}{{ r.mom_pct }}%{% endif %}</td>
-            <td class="text-right">{% if r.target %}{{ r.target|floatformat:0|intcomma }}{% endif %}</td>
-            <td class="text-right">{% if r.achievement is not None %}{{ r.achievement }}%{% endif %}</td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    <p class="mt-2 text-xs text-font-subtle-light dark:text-font-subtle-dark">The current month is partial: it is shown but left out of the average and rankings.</p>
-  {% endcomponent %}
+  {# one table per group, like the management sheet: months across, then Average and the two rankings (within the group) #}
+  {% for sec in sections %}
+    {% component "unfold/components/card.html" with title=sec.group %}
+      <div class="max-h-[75vh] overflow-auto">
+        <table class="text-sm w-full whitespace-nowrap">
+          <thead class="sticky top-0 z-10 bg-white dark:bg-base-900"><tr>
+            <th class="text-left sticky left-0 bg-white dark:bg-base-900">{{ sec.group }}</th>
+            {% for l in labels %}<th class="text-right">{{ l }}</th>{% endfor %}
+            <th class="text-right">Average</th><th class="text-right">Ranking {{ latest_label }}</th><th class="text-right">Ranking</th>
+            <th class="text-right">vs prev</th><th class="text-right">Target</th><th class="text-right">Achieved</th><th class="text-left pl-3">Note</th>
+          </tr></thead>
+          <tbody>
+          {% for r in sec.rows %}
+            <tr class="border-t border-base-100 dark:border-base-800">
+              <td class="sticky left-0 bg-white dark:bg-base-900 font-medium">{{ r.name }}</td>
+              {% for v in r.cells %}<td class="text-right">{{ v|inr }}</td>{% endfor %}
+              <td class="text-right font-medium">{{ r.average|inr }}</td>
+              <td class="text-right">{{ r.rank_latest|default_if_none:"" }}</td><td class="text-right">{{ r.rank_average|default_if_none:"" }}</td>
+              <td class="text-right {% if r.mom_pct > 0 %}text-green-600{% elif r.mom_pct < 0 %}text-red-600{% endif %}">{% if r.mom_pct is not None %}{{ r.mom_pct }}%{% endif %}</td>
+              <td class="text-right">{{ r.target|inr }}</td>
+              <td class="text-right">{% if r.achievement is not None %}{{ r.achievement }}%{% endif %}</td>
+              <td class="pl-3 text-font-subtle-light dark:text-font-subtle-dark">{{ r.note }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endcomponent %}
+  {% endfor %}
+  <p class="text-xs text-font-subtle-light dark:text-font-subtle-dark">The current month is partial: it is shown but left out of the average and the rankings. Rankings are within each group; a gym in two groups ranks in both.</p>
 {% endif %}
 {% endblock %}

@@ -10,9 +10,9 @@ from .models import Center, CenterGroup, CenterList, CenterSyncLog, KnownEmpty
 
 @admin.register(Center)
 class CenterAdmin(ExportModelAdmin):
-    list_display = ("center_id", "name", "code", "state_badge", "in_groups", "monthly_target", "center_type",
-                    "cluster", "in_lists")
-    list_editable = ("monthly_target",)
+    list_display = ("center_id", "name", "code", "state_badge", "in_groups", "monthly_target", "note",
+                    "center_type", "cluster", "in_lists")
+    list_editable = ("monthly_target", "note")
     list_filter = [("state", AllValuesCheckboxFilter), ("groups__name", AllValuesCheckboxFilter),
                    ("monthly_target", RangeNumericFilter), ("cluster", AllValuesCheckboxFilter),
                    ("center_type", AllValuesCheckboxFilter), ("capacity", RangeNumericFilter),
