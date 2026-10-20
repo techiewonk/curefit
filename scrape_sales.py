@@ -52,6 +52,7 @@ DELAY_MIN = 1.0          # min seconds between requests
 DELAY_MAX = 3.0          # max seconds between requests
 MAX_RETRIES = 4          # retries per failed request
 BACKOFF_BASE = 2.0       # exponential backoff base (seconds)
+ROW_CAP = 2000           # Metabase caps bare-row results here; >= this means possibly truncated
 TIMEOUT = 300            # per-request read timeout (seconds) - metabase can be slow
 
 # report definitions -- add a new dict here to scrape another dashboard
@@ -503,6 +504,7 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
 
     ok_count = fail_count = 0
     empty = []
+    capped = []
     progress = Progress(
         SpinnerColumn(),
         TextColumn("[bold]{task.fields[report]}[/bold]"),
@@ -549,6 +551,10 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                         progress.advance(task)
                         polite_sleep()
                         continue
+                    if len(rows) >= ROW_CAP:
+                        capped.append((rep_name, cid, len(rows)))
+                        log.warning("possible_truncation", report=rep_name, center_id=cid,
+                                    rows=len(rows), cap=ROW_CAP)
                     STORE[rep_name](conn, cid, name, code, start, end, rows, now)
                     conn.execute("INSERT OR REPLACE INTO scrape_log VALUES (?,?,?,?,?,?)",
                                  (rep_name, cid, start, end, len(rows), now))
@@ -563,7 +569,12 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                 progress.advance(task)
                 polite_sleep()
 
-    log.info("scrape_done", ok=ok_count, failed=fail_count, empty=len(empty))
+    log.info("scrape_done", ok=ok_count, failed=fail_count, empty=len(empty),
+             possibly_truncated=len(capped))
+    if capped:
+        console.print(f"[red]{len(capped)} results hit the {ROW_CAP}-row cap and may be "
+                      f"incomplete — re-run these centers with a shorter date range:[/red] "
+                      + ", ".join(f"{r}:{c} ({n} rows)" for r, c, n in capped))
     if empty:
         console.print(f"[yellow]{len(empty)} center/report pairs returned no rows and will be "
                       f"retried next run:[/yellow] "
