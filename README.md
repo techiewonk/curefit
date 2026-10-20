@@ -194,5 +194,5 @@ python manage.py test        # 70+ tests, no network needed
 - The server only accepts `localhost` / `127.0.0.1` and binds to 127.0.0.1. Do not expose it:
   anyone who can reach the port can use the admin.
 - `db.sqlite3` holds all data; back it up with a plain file copy while the app is stopped.
-- Reports from the earlier scripts are in `legacy_reports/` (their data was imported into the
-  database). The pre-migration database is kept as `curefit.db.pre-django`.
+- Everything from before the Django version (the old reports, the old databases) is in `old/`. Its data was
+  imported into the current database; the folder is not part of the repository and can be deleted when you no longer need it.

@@ -25,9 +25,7 @@ runs/
 .venv/
 db.sqlite3
 db.sqlite3-*
-curefit.db.*
 staticfiles/
-legacy_reports/
 .django_secret
 dj_run.*
 dj_pid.txt
@@ -36,3 +34,4 @@ test_db.sqlite3*
 *.out
 *.err
 serve_pid.txt
+old/
