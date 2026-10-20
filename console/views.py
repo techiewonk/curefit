@@ -339,7 +339,7 @@ class RevenueView(ConsolePage, TemplateView):
     """Gyms x months: revenue, average, ranking, growth and target, one table per group."""
 
     template_name = "console/revenue.html"
-    title = "Revenue by gym"
+    title = "Revenue by group"
 
     def get_context_data(self, **kwargs):
         g = self.request.GET

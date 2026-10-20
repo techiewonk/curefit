@@ -92,9 +92,9 @@ before today; its start/end filter on the pack end date. On the Run page, *Ask f
 *Results → Sales day coverage* lists every day of the 90-day window with how many centers are stored and links to
 fill the gaps. Automatic runs have the same two options.
 
-### Revenue by gym (management view)
+### Revenue by group (management view)
 
-*Results → Revenue by gym* shows gyms × months from the Franchise Performance **Total Revenue** (run it with
+*Performance → Revenue by group* shows gyms × months from the Franchise Performance **Total Revenue** (run it with
 *Split by: month*): the monthly figures, average, rank for the latest full month, overall rank, change vs the
 previous month, monthly target and % achieved, with group totals at the top, then **one table per group** like the sheet (Average, Ranking for the latest full month and Ranking by average, both within the group; Indian digit grouping; a Note column). The current month is shown but kept
 out of averages and ranks. Download CSV/XLSX in the same layout. When several sessions cover a month, the newest

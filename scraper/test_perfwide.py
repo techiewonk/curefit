@@ -145,7 +145,8 @@ class StructureAndChartTests(FakeKronosMixin, TransactionTestCase):
     def test_sidebar_order_and_standard_names(self):
         from django.conf import settings
         sections = [s["title"] for s in settings.UNFOLD["SIDEBAR"]["navigation"]]
-        self.assertEqual(sections[:3], ["Performance", "Operate", "Results"])
+        self.assertEqual(sections[:5], ["Performance", "Gym members", "Expired packs (sales)", "Operate", "Results"])
+        self.assertLess(sections.index("Results"), sections.index("Centers"))
         titles = [i["title"] for s in settings.UNFOLD["SIDEBAR"]["navigation"] for i in s["items"]]
         self.assertIn("Dashboard", titles)
         self.assertIn("Monthly metrics", titles)

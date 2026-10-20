@@ -174,21 +174,10 @@ UNFOLD = {
         "navigation": [
             {"title": "Performance", "separator": False, "items": [
                 {"title": "Dashboard", "icon": "dashboard", "link": reverse_lazy("admin:index")},
-                {"title": "Revenue by gym", "icon": "leaderboard", "link": reverse_lazy("console:revenue")},
+                {"title": "Revenue by group", "icon": "leaderboard", "link": reverse_lazy("console:revenue")},
                 {"title": "Monthly metrics", "icon": "query_stats", "link": _ADMIN("scraper_centermonth")},
                 {"title": "Analysis and compare", "icon": "insights", "link": reverse_lazy("console:perf_analysis")},
                 {"title": "Other cards", "icon": "dataset", "link": _ADMIN("scraper_cardrow")},
-            ]},
-            {"title": "Operate", "separator": True, "items": [
-                {"title": "Status", "icon": "monitor_heart", "link": reverse_lazy("console:status")},
-                {"title": "Run a scrape", "icon": "play_arrow", "link": reverse_lazy("console:run")},
-                {"title": "Live monitor", "icon": "grid_view", "link": reverse_lazy("console:monitor")},
-            ]},
-            {"title": "Results", "separator": True, "items": [
-                {"title": "Session analytics", "icon": "bar_chart", "link": reverse_lazy("console:analytics")},
-                {"title": "Compare sessions", "icon": "compare_arrows", "link": reverse_lazy("console:compare")},
-                {"title": "Sessions", "icon": "history", "link": _ADMIN("scraper_session")},
-                {"title": "Section results", "icon": "fact_check", "link": _ADMIN("scraper_sectionresult")},
             ]},
             {"title": "Gym members", "separator": True, "items": [
                 {"title": "All", "icon": "groups", "link": _ADMIN("scraper_gympack")},
@@ -200,6 +189,17 @@ UNFOLD = {
                 {"title": "Per run / session", "icon": "history", "link": _ADMIN("scraper_salesrecord")},
                 {"title": "Day coverage", "icon": "event_available", "link": _ADMIN("scraper_salescoverage")},
                 {"title": "Missing days", "icon": "event_busy", "link": reverse_lazy("console:coverage")},
+            ]},
+            {"title": "Operate", "separator": True, "items": [
+                {"title": "Status", "icon": "monitor_heart", "link": reverse_lazy("console:status")},
+                {"title": "Run a scrape", "icon": "play_arrow", "link": reverse_lazy("console:run")},
+                {"title": "Live monitor", "icon": "grid_view", "link": reverse_lazy("console:monitor")},
+            ]},
+            {"title": "Results", "separator": True, "items": [
+                {"title": "Session analytics", "icon": "bar_chart", "link": reverse_lazy("console:analytics")},
+                {"title": "Compare sessions", "icon": "compare_arrows", "link": reverse_lazy("console:compare")},
+                {"title": "Sessions", "icon": "history", "link": _ADMIN("scraper_session")},
+                {"title": "Section results", "icon": "fact_check", "link": _ADMIN("scraper_sectionresult")},
             ]},
             {"title": "Centers", "separator": True, "items": [
                 {"title": "Update from Kronos", "icon": "sync", "link": reverse_lazy("console:centers")},

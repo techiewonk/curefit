@@ -10,7 +10,7 @@
   </label>
   <span class="mb-4 py-2 text-sm">{{ center.name }} · {% if group %}group {{ group }}{% else %}no group{% endif %}</span>
   <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'admin:scraper_centermonth_changelist' %}?center__center_id__exact={{ center.pk }}">Monthly metrics table →</a>
-  <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:revenue' %}{% if group %}?group={{ group|urlencode }}{% endif %}">Revenue by gym →</a>
+  <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:revenue' %}{% if group %}?group={{ group|urlencode }}{% endif %}">Revenue by group →</a>
 </form>
 
 {% if not rows %}

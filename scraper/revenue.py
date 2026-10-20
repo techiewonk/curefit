@@ -1,4 +1,4 @@
-"""Revenue by gym and month: the management view (gyms x months, average, ranking, growth, target).
+"""Revenue by group and month: the management view (gyms x months, average, ranking, growth, target).
 
 Source: the 'Total Revenue' metric of the Franchise Performance card, split by month. Several sessions can
 cover the same month; for each center and month the newest session's numbers are used, so a re-run
