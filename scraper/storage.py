@@ -57,6 +57,24 @@ def save_section(session, center_id, report, rows, cols, seconds=None, now=None)
     record_result(session, center_id, report, SectionResult.OK, len(rows), seconds, now=now)
 
 
+def clear_rows(session, center_id, report):
+    """Forget what this session saved for a center and report (a run that starts the center over)."""
+    model, _ = _typed_rows(report, session, center_id, [], timezone.now())
+    if model is not None:
+        model.objects.filter(session=session, center_id=center_id).delete()
+    else:
+        CardRow.objects.filter(session=session, center_id=center_id, report=report).delete()
+
+
+def append_rows(session, center_id, report, rows, now=None):
+    """Add rows to what the session has for a center and report (a piece of a day-by-day fetch). Nothing is deleted."""
+    now = now or timezone.now()
+    model, objs = _typed_rows(report, session, center_id, rows, now)
+    if model is not None and objs:
+        model.objects.bulk_create(objs, batch_size=1000)
+    return len(objs or [])
+
+
 def record_result(session, center_id, report, status, row_count=0, seconds=None, error="", now=None):
     SectionResult.objects.update_or_create(
         session=session, center_id=center_id, report=report,

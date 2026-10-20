@@ -119,6 +119,19 @@ def _link_rows(rows):
         model.objects.bulk_update(objs, ["customer"], batch_size=BATCH)
 
 
+def effective_end(session):
+    """The last day this session can really have data for: its period end, but never later than the day it was run.
+
+    A session set up for a period that runs into the future (the legacy ones end in Nov / Dec) must not look newer
+    than a real run of last week, or the newer data would be ignored."""
+    return min(session.end_date, timezone.localtime(session.created_at).date())
+
+
+def _recent(r):
+    """Newest row first: the later pack end, then the later scrape, then the later row (a stable tie-break)."""
+    return (r["end"] or dt.date.min, r["ts"], r["id"])
+
+
 def _newest(rows, key):
     return max(rows, key=key) if rows else None
 
@@ -130,14 +143,14 @@ def _snapshot(session, rows):
         if r["customer"]:
             by_customer.setdefault(r["customer"], []).append(r)
     customers = {c.pk: c for c in _in(Customer.objects, "pk", by_customer)}
-    now, changed = timezone.now(), []
+    now, changed, as_of = timezone.now(), [], effective_end(session)
     for cid, mine in by_customer.items():
         c = customers[cid]
-        if c.as_of and c.as_of > session.end_date:
+        if c.as_of and c.as_of > as_of:
             continue  # this session is older than what we already know
-        pack = _newest(mine, lambda r: (r["end"] or dt.date.min, r["ts"]))
-        sales = _newest([r for r in mine if r["kind"] == "sales"], lambda r: (r["end"] or dt.date.min, r["ts"]))
-        gym = _newest([r for r in mine if r["kind"] == "gym"], lambda r: (r["end"] or dt.date.min, r["ts"]))
+        pack = _newest(mine, _recent)
+        sales = _newest([r for r in mine if r["kind"] == "sales"], _recent)
+        gym = _newest([r for r in mine if r["kind"] == "gym"], _recent)
         c.name = next((r["name"] for r in (pack, sales, gym) if r and r["name"]), c.name)
         if c.pack_end_date is None or (pack["end"] and pack["end"] >= c.pack_end_date):
             # the pack only moves forward: a short session that shows an older, expired pack must not replace it
@@ -150,7 +163,7 @@ def _snapshot(session, rows):
             c.member_status, c.new_vs_repeat = gym["status"] or c.member_status, gym["nvr"] or c.new_vs_repeat
             c.last_class_date = max(filter(None, [c.last_class_date, gym["last_class"]]), default=None)
             c.last_amount = gym["amount"] if gym["amount"] is not None else c.last_amount
-        c.as_of, c.last_session, c.updated_at = session.end_date, session, now
+        c.as_of, c.last_session, c.updated_at = as_of, session, now
         changed.append(c)
     Customer.objects.bulk_update(changed, [
         "name", "center", "pack_name", "pack_end_date", "renewed", "active_last_30d", "member_status",
@@ -171,15 +184,20 @@ def refresh_leads(today=None):
         default=Value(Customer.LAPSED)))
 
 
-def link_session(session):
+def link_session(session, refresh=True):
     """Link one session's rows to customers and update their status. Safe to repeat."""
     session = Session.objects.get(pk=session.pk)  # dates as dates, even if the caller built it from text
     rows = _rows(session)
     _resolve(rows)
     _link_rows(rows)
     n = _snapshot(session, rows)
-    refresh_leads()
+    if refresh:
+        refresh_leads()
     return n
+
+
+def _in_time_order(sessions):
+    return sorted(sessions, key=lambda s: (effective_end(s), s.created_at))
 
 
 def link_pending():
@@ -187,6 +205,17 @@ def link_pending():
     todo = set(SalesRecord.objects.filter(customer__isnull=True).values_list("session_id", flat=True).distinct())
     todo |= set(GymMember.objects.filter(customer__isnull=True).values_list("session_id", flat=True).distinct())
     done = 0
-    for session in Session.objects.filter(pk__in=todo).order_by("end_date", "created_at"):
-        done += link_session(session)
+    for session in _in_time_order(Session.objects.filter(pk__in=todo)):
+        done += link_session(session, refresh=False)
+    refresh_leads()  # once at the end, not after every session
+    return done
+
+
+def rebuild_all():
+    """Forget every status and replay all sessions oldest first (by the day they were run). For repairing old data."""
+    Customer.objects.update(as_of=None)
+    done = 0
+    for session in _in_time_order(Session.objects.all()):
+        done += link_session(session, refresh=False)
+    refresh_leads()
     return done

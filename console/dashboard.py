@@ -13,15 +13,16 @@ def home_charts():
     months, latest = data["months"], data["latest_month"]
     labels = [revenue.label(m) for m in months]
     names = list(data["group_totals"])
+    order = data["group_order"]
     trend = {"labels": labels, "datasets": [
-        {"label": g, "data": [round(v) if v else None for v in (data["group_totals"][g][m] for m in months)],
-         "borderColor": charts.colour(i), "backgroundColor": charts.colour(i)} for i, g in enumerate(names)]}
+        {"label": g, "data": [None if v is None else round(v) for v in (data["group_totals"][g][m] for m in months)],
+         "borderColor": charts.group_colour(g, order), "backgroundColor": charts.group_colour(g, order)} for g in names]}
     latest_label = revenue.label(latest) if latest else ""
     share = {"labels": names, "datasets": [{
         "label": f"Revenue {latest_label}", "data": [round(data["group_totals"][g].get(latest) or 0) for g in names],
-        "backgroundColor": [charts.colour(i) for i in range(len(names))]}]}
+        "backgroundColor": [charts.group_colour(g, order) for g in names]}]}
     per_group = []
-    for i, sec in enumerate(data["sections"]):
+    for sec in data["sections"]:
         rows = sorted((r for r in sec["rows"] if r["latest"]), key=lambda r: -r["latest"])[:15]
         if not rows:
             continue
@@ -29,7 +30,7 @@ def home_charts():
             "group": sec["group"],
             "data": json.dumps({"labels": [r["name"] for r in rows], "datasets": [{
                 "label": f"{sec['group']} - revenue {latest_label}", "data": [round(r["latest"]) for r in rows],
-                "backgroundColor": charts.colour(i)}]}),
+                "backgroundColor": charts.group_colour(sec["group"], order)}]}),
             "options": charts.options(f"{sec['group']}: gyms in {latest_label}", "Gym", "Revenue (₹)", legend=False)})
     return {
         "has_data": True, "latest_label": latest_label,

@@ -1,4 +1,6 @@
 """Per-center revenue analysis for a session (ORM version of the old build_analysis)."""
+import re
+
 from django.db.models import Count, Q, Sum
 
 from centers.models import Center
@@ -56,9 +58,20 @@ def build_analysis(session):
 
 
 def revenue_metrics(metrics):
-    """Names of the total / new / repeat revenue metrics among the perf metric names."""
-    return (find_metric(metrics, "total", "revenue") or find_metric(metrics, "1.", "total"),
-            find_metric(metrics, "new", "revenue"), find_metric(metrics, "repeat", "revenue"))
+    """Names of the total / new / repeat revenue metrics among the perf metric names.
+
+    'Total Revenue' must not be mistaken for 'Total Online Revenue' or 'Total Offline Revenue': the name is matched
+    as a whole (an optional '1.' / '1.a.' numbering, then the words), the old substring match is only a fallback.
+    """
+    names = sorted(metrics)
+
+    def exact(words):
+        pattern = re.compile(r"^[\d.a-z\s]*?" + words + r"$", re.I)
+        return next((m for m in names if pattern.match(m.strip()) and not re.search(r"online|offline", m, re.I)), None)
+
+    return (exact("total revenue") or find_metric(names, "total", "revenue") or find_metric(names, "1.", "total"),
+            exact("new revenue") or find_metric(names, "new", "revenue"),
+            exact("repeat revenue") or find_metric(names, "repeat", "revenue"))
 
 
 def trend(session):

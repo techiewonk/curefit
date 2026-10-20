@@ -4,7 +4,7 @@ A run adds packs it has not seen and updates the ones it has. The data of the ne
 (by `scraped_at`, so merging an old session late cannot undo a newer one), and a date never moves
 backwards: the later of the stored and the new date is kept.
 """
-from .customers import _in
+from .customers import _in, clean_user_id
 from .models import GymPack, GymMember, SalesPack, SalesRecord, Session
 
 BATCH = 1000
@@ -16,11 +16,13 @@ SPECS = {
         key=("center_id", "user_id", "pack_name", "pack_start_date"),  # an extension keeps the same pack
         copy=("username", "final_amount_paid", "purchase_date", "status", "offline_vs_online", "new_vs_repeat",
               "class_level"),
+        amount="final_amount_paid",
         forward=("pack_end_date", "last_class_date")),
     "sales": dict(
         master=SalesPack, rows=SalesRecord,
         key=("center_id", "user_id", "pack_name", "member_end_date"),
         copy=("name", "phone", "active_last_30d", "renewed", "revenue"),
+        amount="revenue",
         forward=()),
 }
 
@@ -33,11 +35,28 @@ def _later(old, new):
     return new if old is None or (new is not None and new > old) else old
 
 
+def _combine(lines, spec):
+    """One row from the payment lines of a pack (installments, refunds, ...): the amounts are added up and the
+    other fields come from the largest line (then the newest), so the result does not depend on row order."""
+    amount = spec["amount"]
+    primary = max(lines, key=lambda r: (r[amount] if r[amount] is not None else float("-inf"), r["scraped_at"], r["id"]))
+    row = dict(primary)
+    amounts = [r[amount] for r in lines if r[amount] is not None]
+    row[amount] = round(sum(amounts), 4) if amounts else None
+    row["scraped_at"] = max(r["scraped_at"] for r in lines)
+    for f in spec["forward"]:
+        row[f] = max((r[f] for r in lines if r[f] is not None), default=None)
+    row["customer_id"] = next((r["customer_id"] for r in lines if r["customer_id"]), None)
+    return row
+
+
 def _merge(session, spec):
     fields = tuple(dict.fromkeys(spec["key"] + spec["copy"] + spec["forward"] + ("customer_id", "scraped_at")))
-    incoming = {}
-    for row in spec["rows"].objects.filter(session=session).order_by("scraped_at").values(*fields):
-        incoming[make_key(row, spec["key"])] = row  # a later row of the same pack replaces an earlier one
+    grouped = {}
+    for row in spec["rows"].objects.filter(session=session).order_by("scraped_at", "id").values("id", *fields):
+        row["user_id"] = clean_user_id(row["user_id"]) or ""
+        grouped.setdefault(make_key(row, spec["key"]), []).append(row)
+    incoming = {key: _combine(lines, spec) for key, lines in grouped.items()}
     master = spec["master"]
     have = {m.key: m for m in _in(master.objects, "key", list(incoming))}
     new, changed = [], []
@@ -80,7 +99,7 @@ def prune_run_rows(keep):
     """
     if not keep:
         return 0
-    newest = list(Session.objects.order_by("-end_date", "-created_at").values_list("pk", flat=True)[:keep])
+    newest = list(Session.objects.order_by("-created_at").values_list("pk", flat=True)[:keep])
     old = list(Session.objects.exclude(pk__in=newest).filter(merged_into_masters=True).values_list("pk", flat=True))
     deleted = 0
     for i in range(0, len(old), 500):

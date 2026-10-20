@@ -15,11 +15,11 @@ HEARTBEAT_EVERY = 1.0
 
 def run_job(job_id):
     job = Job.objects.select_related("session").get(pk=job_id)
-    if job.state != Job.QUEUED:  # picked up twice or cancelled: nothing to do
-        return
     session, spec = job.session, job.spec
-    Job.objects.filter(pk=job.pk).update(state=Job.RUNNING, pid=os.getpid(), started_at=timezone.now(),
-                                         heartbeat=timezone.now())
+    # one atomic step: a job cancelled (or picked up twice) between the read and now is left alone
+    if not Job.objects.filter(pk=job.pk, state=Job.QUEUED).update(
+            state=Job.RUNNING, pid=os.getpid(), started_at=timezone.now(), heartbeat=timezone.now()):
+        return
     status = {"state": "running", "log": [], "cells": {}, "active": [], "done": 0, "total": 0,
               "desc": "starting…", "stop": False, "pause": False, "workers": spec.get("workers", 1)}
     finished = threading.Event()
@@ -28,14 +28,20 @@ def run_job(job_id):
         """Copy progress into the Job row and pick up Stop/Pause requests from the admin."""
         try:
             while not finished.wait(HEARTBEAT_EVERY):
-                row = Job.objects.filter(pk=job.pk).values("stop_requested", "pause_requested").first()
-                if row:
-                    status["stop"], status["pause"] = row["stop_requested"], row["pause_requested"]
-                Job.objects.filter(pk=job.pk).update(
-                    heartbeat=timezone.now(), done=status.get("done", 0), total=status.get("total", 0),
-                    desc=status.get("desc", "")[:300], log=list(status["log"])[-200:],
-                    cells=dict(status["cells"]), active=list(status["active"]),
-                    workers_now=status.get("workers", 1))
+                try:
+                    row = Job.objects.filter(pk=job.pk).values("stop_requested", "pause_requested", "state").first()
+                    if row:
+                        status["stop"], status["pause"] = row["stop_requested"], row["pause_requested"]
+                    Job.objects.filter(pk=job.pk).update(
+                        heartbeat=timezone.now(), done=status.get("done", 0), total=status.get("total", 0),
+                        desc=status.get("desc", "")[:300], log=list(status["log"])[-200:],
+                        cells=dict(status["cells"]), active=list(status["active"]),
+                        workers_now=status.get("workers", 1))
+                    if row and row["state"] == Job.INTERRUPTED:  # wrongly written off after a stall: it is alive
+                        Job.objects.filter(pk=job.pk, state=Job.INTERRUPTED).update(state=Job.RUNNING, error="")
+                        Session.objects.filter(pk=session.pk, status=Session.INTERRUPTED).update(status=Session.RUNNING)
+                except Exception:  # noqa: BLE001 - one failed write (a lock, a sleep) must not end Stop / Pause for good
+                    log.exception("heartbeat of job %s failed; trying again", job.pk)
         finally:
             connection.close()
 

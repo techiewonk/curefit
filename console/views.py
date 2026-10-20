@@ -373,9 +373,10 @@ class RevenueView(ConsolePage, TemplateView):
         g = self.request.GET
         data, months = _revenue_data(self.request)
         chart = json.dumps({"labels": [revenue.label(m) for m in data["months"]], "datasets": [
-            {"label": name, "data": [round(series[m]) if series[m] else None for m in data["months"]],
-             "borderColor": charts.colour(i), "backgroundColor": charts.colour(i)}
-            for i, (name, series) in enumerate(data["group_totals"].items())]})
+            {"label": name, "data": [None if series[m] is None else round(series[m]) for m in data["months"]],
+             "borderColor": charts.group_colour(name, data["group_order"]),
+             "backgroundColor": charts.group_colour(name, data["group_order"])}
+            for name, series in data["group_totals"].items()]})
         group_months = revenue.group_month_table(g.get("group", ""))
         recent = [m for m in data["months"] if m < data["current"]][-6:]  # the current month is partial
         sections = [{**sec, "rows": [{**r, "cells": [r["values"].get(m) for m in data["months"]],

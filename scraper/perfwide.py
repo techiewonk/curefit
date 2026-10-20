@@ -6,12 +6,15 @@ covering most of the month, then the newest. Only when a month has nothing but d
 rows added up.
 """
 import datetime as dt
+import re
+
+from django.utils import timezone
 
 from centers.models import Center, CenterGroup
 
 from .analysis import revenue_metrics
 from .models import PerfMetric, Session
-from .revenue import label, month_of, next_month
+from .months import days_in, label, month_of, next_month
 
 
 def metric_names():
@@ -24,8 +27,27 @@ def ordered_metrics(names):
     return first + [m for m in sorted(names) if m not in first]
 
 
+def _covered_days(began, ended, created, month):
+    """How many days of `month` a session's period covers, counting only up to the day it was fetched.
+
+    A session set up for a period that ends in the future (or a legacy one) cannot hold data from after the fetch."""
+    fetched_on = timezone.localtime(created).date()
+    last = min(ended, fetched_on, next_month(month) - dt.timedelta(days=1))
+    return max(0, (last - max(began, month)).days + 1)
+
+
 def month_values(since=None, until=None, center_ids=None, metrics=None):
-    """{(center_id, month): {metric: value}} for the months from `since` to `until` (first-of-month dates)."""
+    """{(center_id, month): {metric: value}} for the months from `since` to `until` (first-of-month dates).
+
+    One figure per center, metric and month, chosen like this:
+      * a session split by month gives the month's figure directly, a day or week split gives rows that are
+        combined (added up, or averaged for rates like retention);
+      * for each date the newest session's value is used, so a re-run corrects an earlier figure;
+      * between a month-split figure and the day/week rows, the one that covers more of the month wins,
+        and the month-split figure wins a tie. Coverage counts only up to the day the session was fetched, so a
+        session whose period runs into the future does not beat a newer, fuller one.
+    A week is counted in the month its first day falls in.
+    """
     qs = PerfMetric.objects.filter(metric_date__isnull=False, value__isnull=False)
     if since:
         qs = qs.filter(metric_date__gte=since)
@@ -35,20 +57,38 @@ def month_values(since=None, until=None, center_ids=None, metrics=None):
         qs = qs.filter(center_id__in=list(center_ids))
     if metrics:
         qs = qs.filter(metric__in=list(metrics))
-    sums = {}  # (center, month, metric, session) -> [value, order]
+    sums = {}  # (center, metric, date, session) -> [value, created, granularity, began, ended]
     for cid, day, metric, value, sid, gran, began, ended, created in qs.values_list(
             "center_id", "metric_date", "metric", "value", "session_id", "session__granularity",
             "session__start_date", "session__end_date", "session__created_at"):
-        month = month_of(day)
-        overlap = (min(ended, next_month(month) - dt.timedelta(days=1)) - max(began, month)).days + 1
-        entry = sums.setdefault((cid, month, metric, sid), [0.0, (gran == Session.MONTH, overlap, ended, created)])
+        entry = sums.setdefault((cid, metric, day, sid), [0.0, created, gran, began, ended])
         entry[0] += value
-    best = {}
-    for (cid, month, metric, _), (value, order) in sums.items():
-        if (cid, month, metric) not in best or order > best[(cid, month, metric)][0]:
-            best[(cid, month, metric)] = (order, value)
+    month_figure = {}  # (center, metric, month) -> (days covered, created, value)
+    per_date = {}      # (center, metric, month) -> {date: (created, value, days it stands for)}
+    for (cid, metric, day, _), (value, created, gran, began, ended) in sums.items():
+        month = month_of(day)
+        key = (cid, metric, month)
+        if gran == Session.MONTH:
+            candidate = (_covered_days(began, ended, created, month), created, value)
+            if key not in month_figure or candidate[:2] > month_figure[key][:2]:
+                month_figure[key] = candidate
+        else:
+            dates = per_date.setdefault(key, {})
+            if day not in dates or created > dates[day][0]:
+                dates[day] = (created, value, 7 if gran == Session.WEEK else 1)
     out = {}
-    for (cid, month, metric), (_, value) in best.items():
+    for key in set(month_figure) | set(per_date):
+        cid, metric, month = key
+        parts = per_date.get(key, {})
+        day_cover = min(days_in(month), sum(u for _, _, u in parts.values()))
+        day_value = None
+        if parts:
+            values = [v for _, v, _ in parts.values()]
+            day_value = sum(values) / len(values) if is_rate(metric) else sum(values)
+        if key in month_figure and (not parts or month_figure[key][0] >= day_cover):
+            value = month_figure[key][2]
+        else:
+            value = day_value
         out.setdefault((cid, month), {})[metric] = value
     return out
 
@@ -115,6 +155,9 @@ def rebuild_months(session=None):
             for k, v in fields.items():
                 setattr(row, k, v)
             changed.append(row)
+    if session is None:  # a full rebuild also drops months whose sessions were deleted
+        keep = set(values)
+        CenterMonth.objects.filter(pk__in=[c.pk for c in CenterMonth.objects.all() if (c.center_id, c.month) not in keep]).delete()
     CenterMonth.objects.bulk_create(new, batch_size=500, ignore_conflicts=True)
     CenterMonth.objects.bulk_update(
         changed, ["total_revenue", "new_revenue", "repeat_revenue", "metrics", "last_session", "updated_at"], batch_size=500)
@@ -122,17 +165,23 @@ def rebuild_months(session=None):
 
 
 # ------------------------------------------------------------------ analysis
-def _pct(new, old):
-    return round(100.0 * (new - old) / old, 1) if new is not None and old else None
+def pct(new, old):
+    """Percent change from old to new; None without a base. A negative base uses its size, so the sign is the direction."""
+    return round(100.0 * (new - old) / abs(old), 1) if new is not None and old else None
+
+
+_pct = pct
 
 
 def parse_month(text, default=None):
     """'2026-08' (a month input) or '2026-08-01' -> first of that month; default when blank or wrong."""
     try:
         parts = str(text).split("-")
-        return dt.date(int(parts[0]), int(parts[1]), 1)
+        month = dt.date(int(parts[0]), int(parts[1]), 1)
     except (ValueError, IndexError):
         return default
+    limit = dt.date.today() + dt.timedelta(days=400)
+    return month if dt.date(2000, 1, 1) <= month <= limit else default  # 0001-01 or 9999-12 are typos, not months
 
 
 def analyse(metric, group="", mode="mom", agg="sum", month=None, a=None, b=None, months_back=12, today=None):
@@ -176,7 +225,7 @@ def analyse(metric, group="", mode="mom", agg="sum", month=None, a=None, b=None,
 
     def rng(r):
         out, mm = [], r[0]
-        while mm <= r[1]:
+        while mm <= r[1] and len(out) < 120:  # ten years is plenty; a typo must not loop for ever
             out.append(mm)
             mm = next_month(mm)
         return out
@@ -215,10 +264,14 @@ def analyse(metric, group="", mode="mom", agg="sum", month=None, a=None, b=None,
             r["delta"] = None if r["now"] is None or r["before"] is None else r["now"] - r["before"]
             r["pct"] = _pct(r["now"], r["before"])
     rows.sort(key=lambda r: (r["now"] is None, -(r["now"] or 0), r["name"]))
-    done = [r["now"] for r in rows if r["now"] is not None]
-    before_done = [r["before"] for r in rows if r["before"] is not None and mode != "group"]
-    total_now = (sum(done) if agg == "sum" else sum(done) / len(done)) if done else None
-    total_before = (sum(before_done) if agg == "sum" else sum(before_done) / len(before_done)) if before_done else None
+    def total(values):
+        return None if not values else (sum(values) if agg == "sum" else sum(values) / len(values))
+
+    if mode == "group":
+        total_now, total_before = total([r["now"] for r in rows if r["now"] is not None]), None
+    else:  # the change is between the same gyms: one that has only one of the two figures would skew it
+        both = [r for r in rows if r["now"] is not None and r["before"] is not None]
+        total_now, total_before = total([r["now"] for r in both]), total([r["before"] for r in both])
     totals = []
     for i in range(len(months)):
         got = [r["cells"][i] for r in rows if r["cells"][i] is not None]
@@ -228,13 +281,14 @@ def analyse(metric, group="", mode="mom", agg="sum", month=None, a=None, b=None,
 
 
 AVERAGE = "Average per gym"
-RATE_WORDS = ("%", "rate", "rating", "ratio", "retention", "conversion", "average", "avg")
+_RATE = re.compile(r"%|per (member|user|gym|visit)|\b(rates?|ratings?|ratios?|retention|conversion|average|avg|churn|nps|"
+                   r"occupancy|arpu)\b", re.I)
 
 
 def is_rate(name):
-    """Rates and ratings are averaged across gyms, counts and money are added up."""
-    low = name.lower()
-    return any(w in low for w in RATE_WORDS)
+    """Rates and ratings are averaged across gyms, counts and money are added up. Whole words only:
+    'Corporate' and 'Registrations' are not rates."""
+    return bool(_RATE.search(name))
 
 
 def available_months():

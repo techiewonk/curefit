@@ -2,6 +2,7 @@
 import json
 import logging
 import random
+import re
 import time
 import urllib.parse
 import uuid
@@ -11,6 +12,12 @@ import requests
 from . import login
 
 log = logging.getLogger("scraper.http")
+_TOKEN_IN_URL = re.compile(r"/dashboard/[^/?\s]+")
+
+
+def scrub(text):
+    """The signed embed token is a credential: keep it out of logs, the job log, the database and the pages."""
+    return _TOKEN_IN_URL.sub("/dashboard/<token>", str(text))
 
 
 class AuthError(Exception):
@@ -37,11 +44,13 @@ def with_retry(fn, what, cfg):
             raise
         except Exception as e:
             last = e
+        if attempt + 1 >= cfg.max_retries:
+            break  # that was the last try: do not wait before giving up
         wait = cfg.backoff_base * (2 ** attempt) + random.uniform(0, 1)
-        log.warning("retry %s: %s (attempt %d/%d, waiting %.1fs)", what, last, attempt + 1,
+        log.warning("retry %s: %s (attempt %d/%d, waiting %.1fs)", what, scrub(last), attempt + 1,
                     cfg.max_retries, wait)
         time.sleep(wait)
-    raise last
+    raise last or RuntimeError(f"{what}: no attempt was made (MAX_RETRIES is {cfg.max_retries})")
 
 
 def get_token(http, rep, center_id, start, end, cfg):
@@ -84,7 +93,7 @@ def warm_up(mb, token, cfg):
         try:
             mb.get(url, headers=hdr, timeout=cfg.request_timeout).raise_for_status()
         except Exception as e:
-            log.warning("warm-up failed %s: %s", url.split("?")[0], e)
+            log.warning("warm-up failed %s: %s", scrub(url.split("?")[0]), scrub(e))
 
 
 def get_rows(mb, rep, token, start, end, cfg, granularity="month"):

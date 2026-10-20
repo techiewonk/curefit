@@ -31,8 +31,11 @@ def new_session():
 
 
 def save_session(s, extra=None):
-    SESSION_FILE.write_text(json.dumps({"cookies": requests.utils.dict_from_cookiejar(s.cookies),
-                                        "extra": extra or {}}, indent=2), encoding="utf-8")
+    """Write to a temporary file, then swap it in: a reader never sees a half-written session."""
+    temp = SESSION_FILE.with_suffix(".tmp")
+    temp.write_text(json.dumps({"cookies": requests.utils.dict_from_cookiejar(s.cookies),
+                                "extra": extra or {}}, indent=2), encoding="utf-8")
+    temp.replace(SESSION_FILE)
 
 
 def load_session():

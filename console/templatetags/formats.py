@@ -8,7 +8,10 @@ def inr(value):
     """18,75,475 - lakh / crore digit grouping, no decimals. Empty for None."""
     if value in (None, ""):
         return ""
-    n = int(round(float(value)))
+    value = float(value)
+    if abs(value) < 1000 and value != int(value):  # ratings, ratios, small deltas keep their decimals
+        return f"{value:.2f}".rstrip("0").rstrip(".")
+    n = int(round(value))
     sign, digits = ("-" if n < 0 else ""), str(abs(n))
     head, tail = digits[:-3], digits[-3:]
     groups = []

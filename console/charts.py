@@ -14,6 +14,11 @@ def colour(i):
     return PALETTE[i % len(PALETTE)]
 
 
+def group_colour(name, order):
+    """The same group gets the same colour on every chart (its place in the groups' order)."""
+    return colour(order.index(name) if name in order else len(order))
+
+
 def options(title="", x="", y="", legend=True, stacked=False, aspect=2.2):
     """JSON for the `options` argument of Unfold's chart components."""
 

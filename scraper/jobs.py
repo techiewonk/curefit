@@ -32,7 +32,8 @@ class JobError(Exception):
 
 
 def refresh_states():
-    """A job that claims to run but has no heartbeat was interrupted (runner killed/restarted)."""
+    """A job that claims to run but has no heartbeat was interrupted (runner killed/restarted); one never picked up is dropped."""
+    drop_unclaimed()
     now = timezone.now()
     for job in Job.objects.filter(state=Job.RUNNING):
         if job.heartbeat is None or now - job.heartbeat > STALE_AFTER:
@@ -91,6 +92,18 @@ def enqueue(spec, sync=False):
               "adaptive": spec.get("speed") == "adaptive", "recheck_known": bool(spec.get("recheck_known"))})
     async_task("scraper.tasks.run_job", job.id, sync=sync, task_name=f"scrape {session.session_id}")
     return job
+
+
+PICKUP_MINUTES = 10  # the runner takes a queued job within seconds; far longer means it is not running
+
+
+def drop_unclaimed():
+    """Cancel a job that has been queued so long that no job runner can be running (it would block every other run)."""
+    cutoff = timezone.now() - timedelta(minutes=PICKUP_MINUTES)
+    for job in Job.objects.filter(state=Job.QUEUED, created_at__lt=cutoff):
+        cancel(job)
+        Job.objects.filter(pk=job.pk).update(
+            error=f"Not picked up within {PICKUP_MINUTES} minutes: the job runner is not running. Start it (run.bat) and queue again.")
 
 
 def request_stop(job):

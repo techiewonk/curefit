@@ -23,9 +23,9 @@ from centers.models import Center, KnownEmpty
 
 from . import checks, conf, coverage, customers, files, kronos, login, masters, perfwide
 from .throttle import Gate
-from .models import SectionResult, Session
+from .models import SalesRecord, SectionResult, Session
 from .reports import REPORTS
-from .storage import record_result, save_section
+from .storage import append_rows, clear_rows, record_result, save_section
 
 log = logging.getLogger("scraper.engine")
 DONE_STATES = (SectionResult.OK, SectionResult.EMPTY)  # failed/slow sections are retried on resume
@@ -119,22 +119,52 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
             if state in ("failed", "slow"):
                 status["cells"][key] = state
 
+    def must_stop():
+        """Hold while paused; True when the run was stopped or aborted."""
+        while status is not None and status.get("pause") and not status.get("stop"):
+            time.sleep(1)  # paused from the admin: hold until resumed or stopped
+        if status is not None and status.get("stop"):
+            with lock:
+                flags["aborted"] = flags["stopped"] = True
+            return True
+        return flags["aborted"]
+
     def process_center(cid):
         center = centers.get(cid) or Center.objects.get_or_create(center_id=cid)[0]
         label = center.name or center.code
         tmb = requests.Session()
         tmb.cookies.set("metabase.DEVICE", str(uuid.uuid4()))
+        state = {"token": None}  # one signed token per center and dashboard, shared by its requests
+
+        def request(rep, first, last):
+            """One data request through the gate: (rows, columns, seconds the request itself took).
+
+            An embed token that is rejected after it was already in use has most likely expired: it is replaced once
+            before the answer counts as a Kronos login failure. The throttle is told how long the request took, not
+            how long it waited for a free slot."""
+            for attempt in (1, 2):
+                fresh = state["token"] is None
+                with gate.slot():
+                    began = time.monotonic()
+                    if fresh:
+                        state["token"] = kronos.get_token(http, rep, cid, start, end, cfg)
+                        kronos.warm_up(tmb, state["token"], cfg)
+                    try:
+                        rows_, cols_ = kronos.get_rows(tmb, rep, state["token"], first, last, cfg, session.granularity)
+                    except kronos.AuthError:
+                        if fresh or attempt == 2:
+                            raise
+                        state["token"] = None
+                        continue
+                    took = time.monotonic() - began
+                gate.healthy(took)
+                return rows_, cols_, took
+
         try:
             for reps in groups.values():
-                token = None
+                state["token"] = None
                 for rep_name in [r for r in reps if cid not in done[r]]:
-                    if flags["aborted"]:
-                        return
-                    while status is not None and status.get("pause") and not status.get("stop"):
-                        time.sleep(1)  # paused from the admin: hold until resumed or stopped
-                    if status is not None and status.get("stop"):
-                        with lock:
-                            flags["aborted"] = flags["stopped"] = True
+                    if must_stop():
                         return
                     st = stats[rep_name]
                     if st["skipped"]:
@@ -155,37 +185,40 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
                     try:
                         rows, cols, fetched = [], [], None
                         if rep_name == "sales" and session.sales_chunk != Session.WHOLE:
-                            # a day or a week at a time; a day with no expiries is simply empty, no retry
+                            # A day or a week at a time. Every piece is saved and its days are recorded as stored the
+                            # moment it arrives, so a stop or an error keeps everything fetched so far.
                             fetched = coverage.to_fetch(session, cid)
+                            if fetched and not session.fill_missing:
+                                clear_rows(session, cid, rep_name)  # this run starts the center over
                             for first, last in fetched:
-                                if status is not None and status.get("stop"):
-                                    with lock:
-                                        flags["aborted"] = flags["stopped"] = True
+                                if must_stop():
                                     return
-                                with gate.slot():
-                                    if token is None:
-                                        token = kronos.get_token(http, rep, cid, start, end, cfg)
-                                        kronos.warm_up(tmb, token, cfg)
-                                    part, cols_ = kronos.get_rows(tmb, rep, token, str(first), str(last), cfg)
+                                part, cols_, _ = request(rep, str(first), str(last))
+                                if not part:  # usually a day with no expiries, but Metabase can answer empty by mistake
+                                    state["token"] = None
+                                    cfg.pause()
+                                    part, cols_, _ = request(rep, str(first), str(last))
+                                if len(part) >= row_cap:
+                                    with lock:
+                                        if cid not in st["capped"]:
+                                            st["capped"].append(cid)
+                                append_rows(session, cid, rep_name, part)
+                                coverage.mark(session, cid, [(first, last)])
                                 rows += part
                                 cols = cols or cols_
                                 cfg.pause()
                         else:
                             for attempt in (1, 2):  # an empty result gets one retry on a fresh token
-                                with gate.slot():
-                                    if token is None:
-                                        token = kronos.get_token(http, rep, cid, start, end, cfg)
-                                        kronos.warm_up(tmb, token, cfg)
-                                    rows, cols = kronos.get_rows(tmb, rep, token, start, end, cfg, session.granularity)
+                                rows, cols, _ = request(rep, start, end)
                                 if rows:
                                     break
                                 log.info("empty result, retrying: %s center %s (attempt %d)", rep_name, cid, attempt)
-                                token = None
+                                state["token"] = None
                                 cfg.pause()
                         seconds = round(time.monotonic() - t0, 1)
-                        gate.healthy(seconds)
-                        if fetched == []:  # fill_missing and every day is already stored
-                            save_section(session, cid, rep_name, [], cols, seconds)
+                        saved = SalesRecord.objects.filter(session=session, center_id=cid).count() if fetched is not None else 0
+                        if fetched == []:  # fill_missing and every day is already stored: keep what is there
+                            record_result(session, cid, rep_name, SectionResult.OK, saved, seconds)
                             with lock:
                                 st["ok"] += 1
                             note(f"ok     {rep_name} · {cid} {label} · all days already stored")
@@ -197,52 +230,51 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
                             with lock:
                                 st["empty"].append(cid)
                             note(f"empty  {rep_name} · {cid} {label}")
-                            if fetched:
-                                coverage.mark(session, cid, fetched)
                         else:
-                            if len(rows) >= row_cap:
-                                with lock:
-                                    st["capped"].append(cid)
-                                log.warning("possible truncation: %s center %s has %d rows", rep_name, cid, len(rows))
-                            save_section(session, cid, rep_name, rows, cols, seconds)
+                            if fetched is None:
+                                if len(rows) >= row_cap:
+                                    with lock:
+                                        st["capped"].append(cid)
+                                    log.warning("possible truncation: %s center %s has %d rows", rep_name, cid, len(rows))
+                                save_section(session, cid, rep_name, rows, cols, seconds)
+                            else:  # the pieces are already saved
+                                record_result(session, cid, rep_name, SectionResult.OK, saved, seconds)
                             files.write_center_file(session, center, rep_name, cols, rows)
                             with lock:
                                 st["ok"] += 1
                             note(f"ok     {rep_name} · {cid} {label} · {len(rows)} rows · {seconds}s")
-                            if fetched:
-                                coverage.mark(session, cid, fetched)
                         with lock:
                             fail_streak[rep_name] = 0
                             flags["auth_failures"] = 0
                     except kronos.AuthError as e:
-                        record_result(session, cid, rep_name, SectionResult.FAILED, 0, None, str(e))
+                        record_result(session, cid, rep_name, SectionResult.FAILED, 0, None, kronos.scrub(e))
                         with lock:
                             st["failed"].append(cid)
                             flags["auth_failures"] += 1
                             if flags["auth_failures"] >= auth_limit:
                                 flags["aborted"] = True
-                        note(f"AUTH   {rep_name} · {cid} {e}")
+                        note(f"AUTH   {rep_name} · {cid} {kronos.scrub(e)}")
                         mark(cid, rep_name, "failed")
                     except kronos.SlowQuery as e:
-                        token = None
+                        state["token"] = None
                         gate.struggling()
                         record_result(session, cid, rep_name, SectionResult.SLOW, 0,
-                                      round(time.monotonic() - t0, 1), str(e))
+                                      round(time.monotonic() - t0, 1), kronos.scrub(e))
                         with lock:
                             st["slow"].append(cid)
-                        note(f"SLOW   {rep_name} · {cid} {label} · {e}")
+                        note(f"SLOW   {rep_name} · {cid} {label} · {kronos.scrub(e)}")
                         mark(cid, rep_name, "slow")
                     except Exception as e:
-                        token = None
+                        state["token"] = None
                         gate.struggling()
-                        record_result(session, cid, rep_name, SectionResult.FAILED, 0, None, str(e))
+                        record_result(session, cid, rep_name, SectionResult.FAILED, 0, None, kronos.scrub(e))
                         with lock:
                             st["failed"].append(cid)
                             fail_streak[rep_name] += 1
                             skip = fail_streak[rep_name] >= report_limit and st["ok"] == 0
                             if skip:
                                 st["skipped"] = True
-                        note(f"FAILED {rep_name} · {cid} {label} · {e}")
+                        note(f"FAILED {rep_name} · {cid} {label} · {kronos.scrub(e)}")
                         mark(cid, rep_name, "failed")
                         if skip:
                             log.error("report %s skipped: %d failures in a row, none succeeded", rep_name, report_limit)
@@ -258,16 +290,26 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
             if gate.maximum > 1:
                 connection.close()  # this worker thread's own database connection
 
+    def guarded(cid):
+        """A center that blows up (a database that stayed locked, say) stops the run instead of letting the
+        other workers carry on unnoticed; what was saved is kept and the session ends incomplete."""
+        try:
+            process_center(cid)
+        except Exception:  # noqa: BLE001
+            log.exception("center %s failed unexpectedly: stopping the run", cid)
+            with lock:
+                flags["aborted"] = True
+            note(f"ERROR  center {cid}: unexpected failure, run stopped (see the log); continue the session to finish it")
+
     if gate.maximum <= 1:
         for cid in ids:
             if flags["aborted"]:
                 break
-            process_center(cid)
+            guarded(cid)
     else:
         with ThreadPoolExecutor(max_workers=gate.maximum) as pool:
-            for fut in [pool.submit(process_center, cid) for cid in ids]:
+            for fut in [pool.submit(guarded, cid) for cid in ids]:
                 fut.result()
-
     return _finish(session, ids, reports, stats, flags, status)
 
 
@@ -277,16 +319,24 @@ def register_known_empty(session):
     Only counts when the report returned data for other centers both times: a report that is
     empty for *everyone* (the sales card on an old period) says nothing about one center.
     """
+    session = Session.objects.get(pk=session.pk)  # dates as dates, whatever the caller built the session from
+
     def has_data(s, report):
         return SectionResult.objects.filter(session=s, report=report, status=SectionResult.OK).exists()
 
+    def counts(s, report):
+        """A short period (a day, a week) or a day-by-day sales run can be empty for a gym that is not always empty."""
+        if (s.end_date - s.start_date).days < 27:
+            return False
+        return not (report == "sales" and s.sales_chunk != Session.WHOLE)
+
     for r in SectionResult.objects.filter(session=session, status=SectionResult.EMPTY).exclude(
             error__startswith="known empty"):
-        if not has_data(session, r.report):
+        if not counts(session, r.report) or not has_data(session, r.report):
             continue
         earlier = SectionResult.objects.filter(center_id=r.center_id, report=r.report,
                                                status=SectionResult.EMPTY).exclude(session=session)
-        if any(has_data(e.session, r.report) for e in earlier.select_related("session")):
+        if any(counts(e.session, r.report) and has_data(e.session, r.report) for e in earlier.select_related("session")):
             KnownEmpty.objects.get_or_create(center_id=r.center_id, report=r.report,
                                              defaults={"note": "empty in two sessions"})
 
