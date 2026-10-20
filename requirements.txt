@@ -1,7 +1,15 @@
+Django==6.1.2
+django-unfold>=0.110.0
+django-q2>=1.11.1
+django-import-export>=4.4.3
+waitress>=3.0.0
+whitenoise>=6.7.0
 requests>=2.31.0
 rich>=13.0.0
 structlog>=24.1.0
 openpyxl>=3.1.0
+# legacy FastAPI app, removed at the Django cut-over
 fastapi>=0.110.0
 uvicorn>=0.27.0
 watchfiles>=0.21.0
+httpx>=0.27.0
