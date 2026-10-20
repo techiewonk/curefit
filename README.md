@@ -235,7 +235,6 @@ runs/2026-10-20/2026-07-01_to_2026-07-31_a1b2c3/
   From the command line: `python scrape_sales.py --start ... --end ... --session a1b2c3`.
 - `curefit.db` stays the shared database; every row is tagged with its session id, and
   rows from before sessions are tagged `legacy`.
-- `dashboard.bat` has a session picker, so each run can be viewed on its own.
 
 ### Merged files (all centers in one file per report)
 
@@ -243,3 +242,20 @@ At the end of every run, `merged/` inside the session folder gets one CSV per re
 (`sales.csv`, `perf.csv`, `gym.csv`, `perf_membership.csv`, ...), each with every center's rows
 and `center_id` / `center_name` as the first columns, plus `all_reports.xlsx` with one sheet per
 report. To rebuild them for an earlier session: `python scrape_sales.py --merge a1b2c3`.
+
+---
+
+## Admin (`admin.bat`)
+
+Run `admin.bat` and open **http://localhost:8000** (this PC only). Three tabs:
+
+- **Sessions** - every run with status, per-report coverage, empty/failed/missing centers,
+  downloads of the merged files, and Continue / Merge buttons.
+- **Run** - send the OTP, enter it, pick a period and reports, then Start / Stop. If the
+  period has an unfinished session you can continue it or start a new one. Progress and a
+  live log are shown while it runs.
+- **Analytics** - the sales and perf charts for any session.
+
+Safety: it only listens on 127.0.0.1, refuses requests from other sites, and every change
+needs a token that only the page knows. Login tokens are never printed to the console.
+Run `python admin_server.py --port 9000` to use another port.

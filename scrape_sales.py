@@ -818,25 +818,33 @@ def _write_coverage(stats, path):
 
 
 def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refresh=False,
-               session=None):
+               session=None, status=None):
     """Scrape all configured reports for the centers in the CSV into one session.
 
     session=None starts a brand-new session (nothing is skipped because of older runs).
     Pass an existing session dict (see find_unfinished / find_session) to resume it: only
     the center/section pairs it has not saved yet are fetched.
+
+    only: one report name or a list of them (default: all).
+    status: optional dict the admin app reads for live progress; set status["stop"]=True to
+    stop cleanly after the current request (the session stays resumable).
     """
     csv_path = centers_csv if os.path.isabs(centers_csv) else os.path.join(HERE, centers_csv)
     db_path = db if os.path.isabs(db) else os.path.join(HERE, db)
 
     ids = read_center_ids(csv_path)
     meta = load_center_meta()
-    reports = [only] if only else list(REPORTS)
+    reports = [only] if isinstance(only, str) else list(only) if only else list(REPORTS)
 
     if session is None:
         session = new_session(start, end, ids, reports)
         resumed = False
     else:
         start, end = session["start"], session["end"]
+        # a resume finishes what that session set out to do, whatever the CSV says today
+        ids = session.get("centers") or ids
+        if not only:
+            reports = [r for r in session.get("reports", []) if r in REPORTS] or reports
         session["status"] = "running"
         _save_session(session)
         resumed = True
@@ -871,8 +879,21 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
         groups.setdefault(REPORTS[rep_name]["dashboard"], []).append(rep_name)
 
     total = sum(len([c for c in ids if c not in done[r]]) for r in reports)
+    if status is not None:
+        status.update(state="running", session=sid, folder=folder, done=0, total=total,
+                      desc="", error=None, stop=False, log=[])
     fail_streak = {r: 0 for r in reports}
-    auth_failures, aborted = 0, False
+    auth_failures, aborted, stopped = 0, False, False
+
+    def note(msg):
+        if status is not None:
+            status["log"].append(f"{time.strftime('%H:%M:%S')} {msg}")
+            del status["log"][:-200]
+
+    def advance():
+        progress.advance(task)
+        if status is not None:
+            status["done"] += 1
 
     progress = Progress(SpinnerColumn(), BarColumn(), MofNCompleteColumn(),
                         TextColumn("{task.description}"), TimeElapsedColumn(), console=console)
@@ -884,13 +905,18 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                 token = None
                 for rep_name in [r for r in reps if cid not in done[r]]:
                     st = stats[rep_name]
+                    if status is not None and status.get("stop"):
+                        aborted = stopped = True
+                        break
                     if st["skipped"]:
-                        progress.advance(task)
+                        advance()
                         continue
                     rep = REPORTS[rep_name]
                     now = time.strftime("%Y-%m-%dT%H:%M:%S")
                     progress.update(task, description=f"{rep_name} · center {cid} "
                                                       f"[dim]{name or code}[/dim]")
+                    if status is not None:
+                        status["desc"] = f"{rep_name} · center {cid} {name or code}"
                     try:
                         rows, cols = [], []
                         for attempt in (1, 2):  # an empty result gets one retry, fresh token
@@ -913,6 +939,7 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                             conn.commit()
                             log.warning("center_empty", report=rep_name, center_id=cid,
                                         center=name or code)
+                            note(f"empty  {rep_name} · {cid} {name or code}")
                         else:
                             if len(rows) >= ROW_CAP:
                                 st["capped"].append(cid)
@@ -930,6 +957,7 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                             st["ok"] += 1
                             log.info("center_ok", report=rep_name, center_id=cid,
                                      center=name or code, rows=len(rows))
+                            note(f"ok     {rep_name} · {cid} {name or code} · {len(rows)} rows")
                         fail_streak[rep_name] = 0
                         auth_failures = 0
                     except AuthError as e:
@@ -937,17 +965,19 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                         st["failed"].append(cid)
                         auth_failures += 1
                         log.error("auth_failed", report=rep_name, center_id=cid, error=str(e))
+                        note(f"AUTH   {rep_name} · {cid} {e}")
                     except Exception as e:
                         conn.rollback()
                         token = None
                         st["failed"].append(cid)
                         fail_streak[rep_name] += 1
                         log.error("center_failed", report=rep_name, center_id=cid, error=str(e))
+                        note(f"FAILED {rep_name} · {cid} {name or code} · {e}")
                         if fail_streak[rep_name] >= REPORT_FAIL_LIMIT and st["ok"] == 0:
                             st["skipped"] = True
                             log.error("report_skipped", report=rep_name,
                                       reason=f"{REPORT_FAIL_LIMIT} failures in a row, none succeeded")
-                    progress.advance(task)
+                    advance()
                     if auth_failures >= AUTH_FAIL_LIMIT:
                         aborted = True
                         break
@@ -957,7 +987,9 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
             if aborted:
                 break
 
-    if aborted:
+    if stopped:
+        console.print("[yellow]Stopped by user — continue this session later to finish.[/yellow]")
+    elif aborted:
         console.print("[bold red]Session rejected (401/403) — stopping. Log in again "
                       "(python run.py) and continue this session; saved centers are kept."
                       "[/bold red]")
@@ -1007,6 +1039,8 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
     colour = "green" if session["status"] == "complete" else "yellow"
     console.print(f"Session [magenta]{sid}[/magenta] is [{colour}]{session['status']}[/{colour}] "
                   f"→ {folder}")
+    if status is not None:
+        status.update(state="done", desc="", session_status=session["status"])
     conn.close()
     return session
 

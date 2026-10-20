@@ -41,6 +41,14 @@ REFERER = (f"{ACCOUNTS}/login/?tenant={TENANT}&namespace={NAMESPACE}"
            "&callback=https%3A%2F%2Fkronos.curefit.co%2Flogin%3Fnext%3D%2F")
 
 
+QUIET = False  # the admin app silences console output
+
+
+def _say(msg):
+    if not QUIET:
+        print(msg)
+
+
 def new_session():
     s = requests.Session()
     s.headers.update({
@@ -83,8 +91,7 @@ def send_otp(email=EMAIL):
         "callbackURL": CALLBACK_URL,
     }
     r = s.post(f"{ACCOUNTS}/login/otp/email/send", json=payload, timeout=30)
-    print(f"[send] status={r.status_code}")
-    print(f"[send] body={r.text}")
+    _say(f"[send] status={r.status_code}")
     save_session(s)
     return r
 
@@ -101,14 +108,11 @@ def validate_otp(otp, email=EMAIL):
     # don't auto-follow so we can inspect any redirect / erpToken
     r = s.post(f"{ACCOUNTS}/login/otp/email/validate", json=payload,
                allow_redirects=False, timeout=30)
-    print(f"[validate] status={r.status_code}")
-    print(f"[validate] headers={json.dumps(dict(r.headers), indent=2)}")
-    print(f"[validate] cookies={requests.utils.dict_from_cookiejar(s.cookies)}")
-    print(f"[validate] body={r.text}")
+    _say(f"[validate] status={r.status_code}")
 
     erp_token = _extract_erp_token(r, s)
     save_session(s, {"erpToken": erp_token})
-    print(f"[validate] erpToken={erp_token}")
+    _say(f"[validate] token captured: {'yes' if erp_token else 'no'}")  # never print the token
     return r
 
 
@@ -150,8 +154,7 @@ def establish_session():
                    "image/avif,image/webp,image/apng,*/*;q=0.8"),
         "referer": f"{ACCOUNTS}/",
     }, allow_redirects=True, timeout=30)
-    print(f"[session] status={r.status_code} final_url={r.url}")
-    print(f"[session] cookies={requests.utils.dict_from_cookiejar(s.cookies)}")
+    _say(f"[session] status={r.status_code}")
     save_session(s, extra)
     return r
 
