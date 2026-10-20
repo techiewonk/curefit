@@ -106,6 +106,8 @@ class SalesRecord(_Record):
     active_last_30d = models.CharField(max_length=8, blank=True, null=True)
     renewed = models.CharField(max_length=8, blank=True, null=True)
     revenue = models.FloatField(null=True, blank=True)
+    customer = models.ForeignKey("scraper.Customer", null=True, blank=True, on_delete=models.SET_NULL,
+                                 related_name="sales")
 
     class Meta:
         indexes = [models.Index(fields=["session", "center"])]
@@ -138,6 +140,8 @@ class GymMember(_Record):
     new_vs_repeat = models.CharField(max_length=32, blank=True, null=True)
     class_level = models.CharField(max_length=64, blank=True, null=True)
     last_class_date = models.DateField(blank=True, null=True)
+    customer = models.ForeignKey("scraper.Customer", null=True, blank=True, on_delete=models.SET_NULL,
+                                 related_name="gym")
 
     class Meta:
         indexes = [models.Index(fields=["session", "center"])]
@@ -282,3 +286,50 @@ class AutoRun(models.Model):
         from . import autorun
         autorun.remove_schedule(self)
         return super().delete(*args, **kwargs)
+
+
+class Customer(models.Model):
+    """One person across sessions and centers. Identified by the Kronos user id; phone numbers
+    (several allowed) are the fallback. Holds the newest status seen, so no history is kept here:
+    the purchases themselves stay on the sales / gym rows of their sessions."""
+
+    ACTIVE, EXPIRING, EXPIRED, LAPSED, UNKNOWN = "active", "expiring", "expired", "lapsed", "unknown"
+    LEAD_CHOICES = [(ACTIVE, "Active"), (EXPIRING, "Expiring soon"), (EXPIRED, "Expired recently"),
+                    (LAPSED, "Lapsed"), (UNKNOWN, "No pack date")]
+
+    user_id = models.CharField(max_length=40, unique=True, null=True, blank=True,
+                               help_text="Kronos user id. Empty for a person only known by phone number.")
+    name = models.CharField(max_length=255, blank=True)
+    center = models.ForeignKey(Center, null=True, blank=True, on_delete=models.SET_NULL, related_name="+",
+                               help_text="Center of the newest pack.")
+    pack_name = models.CharField(max_length=255, blank=True)
+    pack_end_date = models.DateField(null=True, blank=True, db_index=True)
+    renewed = models.CharField(max_length=8, blank=True)
+    active_last_30d = models.CharField(max_length=8, blank=True)
+    member_status = models.CharField(max_length=32, blank=True)
+    new_vs_repeat = models.CharField(max_length=32, blank=True)
+    last_class_date = models.DateField(null=True, blank=True)
+    last_amount = models.FloatField(null=True, blank=True, help_text="Amount of the newest purchase.")
+    lead_status = models.CharField(max_length=10, choices=LEAD_CHOICES, default=UNKNOWN, db_index=True)
+    as_of = models.DateField(null=True, blank=True, help_text="End date of the session this status comes from.")
+    last_session = models.ForeignKey(Session, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    first_seen = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-pack_end_date", "id"]
+
+    def __str__(self):
+        return f"{self.name or 'Unnamed'} ({self.user_id or 'phone only'})"
+
+
+class CustomerPhone(models.Model):
+    """A normalised phone number (last 10 digits). Unique; one customer may have several."""
+
+    phone = models.CharField(max_length=10, unique=True)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="phones")
+    shared = models.BooleanField(default=False, db_index=True,
+                                 help_text="Seen with more than one user id: check before treating them as one person.")
+
+    def __str__(self):
+        return self.phone

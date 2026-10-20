@@ -141,11 +141,14 @@ CONSTANCE_CONFIG = {
     "REPORT_FAIL_LIMIT": (3, "Failures in a row (none succeeded) before a report is skipped", int),
     "MAX_WORKERS": (4, "Most centers fetched at the same time", int),
     "LOGIN_EMAIL": ("shaurya@teamfit.in", "Kronos account that receives the login OTP", str),
+    "LEAD_EXPIRING_DAYS": (30, "A pack ending within this many days makes the customer 'expiring soon'", int),
+    "LEAD_EXPIRED_DAYS": (90, "A pack that ended within this many days is 'expired recently'; older is 'lapsed'", int),
 }
 CONSTANCE_CONFIG_FIELDSETS = {
     "Requests": ("DELAY_MIN", "DELAY_MAX", "MAX_RETRIES", "BACKOFF_BASE", "POLL_SECONDS", "REQUEST_TIMEOUT"),
     "Safety": ("ROW_CAP", "AUTH_FAIL_LIMIT", "REPORT_FAIL_LIMIT", "MAX_WORKERS"),
     "Account": ("LOGIN_EMAIL",),
+    "Leads": ("LEAD_EXPIRING_DAYS", "LEAD_EXPIRED_DAYS"),
 }
 
 UNFOLD = {
@@ -175,6 +178,7 @@ UNFOLD = {
                 {"title": "Sales records", "icon": "receipt_long", "link": _ADMIN("scraper_salesrecord")},
                 {"title": "Perf metrics", "icon": "query_stats", "link": _ADMIN("scraper_perfmetric")},
                 {"title": "Gym members", "icon": "groups", "link": _ADMIN("scraper_gymmember")},
+                {"title": "Customers (leads)", "icon": "person_search", "link": _ADMIN("scraper_customer")},
                 {"title": "Other cards", "icon": "dataset", "link": _ADMIN("scraper_cardrow")},
             ]},
             {"title": "Centers", "separator": True, "items": [

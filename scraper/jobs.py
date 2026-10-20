@@ -16,6 +16,7 @@ from django.utils import timezone
 from django_q.tasks import async_task
 
 from centers import services
+from centers.models import Center
 from . import engine
 from .models import Job, SectionResult, Session
 from .reports import REPORTS
@@ -72,7 +73,8 @@ def enqueue(spec, sync=False):
             SectionResult.objects.filter(session=session, status=SectionResult.EMPTY).delete()
     else:
         list_name = spec.get("list") or "actual"
-        ids = services.list_ids(list_name)
+        ids = sorted(Center.objects.filter(pk__in=spec["center_ids"]).values_list("pk", flat=True)) \
+            if spec.get("center_ids") else services.list_ids(list_name)
         if not ids:
             raise JobError(f"The {list_name} center list is empty - pick centers in the admin first")
         if not spec.get("start") or not spec.get("end") or spec["start"] > spec["end"]:

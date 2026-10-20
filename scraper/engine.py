@@ -20,7 +20,7 @@ from django.utils import timezone
 
 from centers.models import Center, KnownEmpty
 
-from . import checks, conf, files, kronos, login
+from . import checks, conf, customers, files, kronos, login
 from .throttle import Gate
 from .models import SectionResult, Session
 from .reports import REPORTS
@@ -274,6 +274,10 @@ def _finish(session, ids, reports, stats, flags, status):
     session.missing = {r: m for r, m in missing.items() if m}
     session.coverage = coverage
     session.checks = checks.run(session)
+    try:
+        customers.link_session(session)  # sales / gym rows -> customers, newest status wins
+    except Exception:  # noqa: BLE001 - a linking problem must not fail a finished scrape; `link_customers` retries
+        log.exception("could not link customers for %s", session.session_id)
     session.status = Session.COMPLETE if not session.missing else Session.INCOMPLETE
     session.finished_at = timezone.now()
     session.save()

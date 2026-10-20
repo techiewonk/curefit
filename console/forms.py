@@ -3,10 +3,10 @@ import datetime as dt
 
 from django import forms
 from unfold.widgets import (UnfoldAdminCheckboxSelectMultipleWidget, UnfoldAdminRadioSelectWidget,
-                            UnfoldAdminSelectWidget, UnfoldAdminSingleDateWidget,
+                            UnfoldAdminSelect2MultipleWidget, UnfoldAdminSelectWidget, UnfoldAdminSingleDateWidget,
                             UnfoldAdminTextInputWidget, UnfoldBooleanSwitchWidget)
 
-from centers.models import CenterList
+from centers.models import Center, CenterList
 from scraper.conf import SPEED_CHOICES, SPEED_PROFILES
 from scraper.models import Session
 from scraper.reports import REPORTS, report_choices
@@ -26,6 +26,11 @@ class RunForm(forms.Form):
                           help_text="The sales report only holds the last 90 days before today.")
     centers = forms.ModelChoiceField(CenterList.objects.all(), to_field_name="name", empty_label=None,
                                      label="Centers", widget=UnfoldAdminRadioSelectWidget)
+    pick = forms.ModelMultipleChoiceField(
+        Center.objects.order_by("center_id"), required=False, label="Or choose centers",
+        help_text="Optional, handy for testing: type to search and pick one or more. When any are chosen "
+                  "they are used instead of the list above.",
+        widget=UnfoldAdminSelect2MultipleWidget)
     reports = forms.MultipleChoiceField(choices=report_choices, initial=list(REPORTS),
                                         widget=UnfoldAdminCheckboxSelectMultipleWidget)
     speed = forms.ChoiceField(choices=SPEED_CHOICES, initial="normal", widget=UnfoldAdminSelectWidget)
@@ -45,6 +50,12 @@ class RunForm(forms.Form):
         self.fields["start"].initial, self.fields["end"].initial = start, end
         self.fields["centers"].initial = "actual"
 
+    @property
+    def center_count(self):
+        """How many centers this run covers: the chosen ones, else the whole list."""
+        d = self.cleaned_data
+        return len(d["pick"]) if d.get("pick") else d["centers"].centers.count()
+
     def clean(self):
         data = super().clean()
         if data.get("start") and data.get("end") and data["start"] > data["end"]:
@@ -61,6 +72,7 @@ class RunForm(forms.Form):
         every_report = set(d["reports"]) == set(REPORTS)
         return {"start": d["start"].isoformat(), "end": d["end"].isoformat(), "list": d["centers"].name,
                 "only": None if every_report else d["reports"], "workers": self.workers,
+                "center_ids": [c.pk for c in d["pick"]] or None,
                 "speed": d["speed"], "granularity": d["granularity"] or Session.MONTH,
                 "session": d["session"].pk if d["session"] else None,
                 "retry_empty": d["retry_empty"], "recheck_known": d["recheck_known"]}

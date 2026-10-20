@@ -9,16 +9,17 @@ from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import (AllValuesCheckboxFilter, AutocompleteSelectFilter, BooleanRadioFilter,
                                           ChoicesDropdownFilter, FieldTextFilter, RangeDateFilter,
                                           RangeDateTimeFilter, RangeNumericFilter, RelatedDropdownFilter)
+from unfold.admin import TabularInline
 from unfold.decorators import action, display
 from unfold.widgets import UnfoldAdminCheckboxSelectMultipleWidget, UnfoldAdminSelectWidget
 
 from centers.models import KnownEmpty
 from config.admin_base import ExportModelAdmin
 
-from . import autorun, files, jobs
+from . import autorun, customers, files, jobs
 from .conf import SPEED_CHOICES
-from .models import (AutoRun, CardColumns, CardRow, GymMember, Job, PerfMetric, SalesRecord, SectionResult,
-                     Session)
+from .models import (AutoRun, CardColumns, CardRow, Customer, CustomerPhone, GymMember, Job, PerfMetric,
+                     SalesRecord, SectionResult, Session)
 from .reports import report_choices
 from .resources import GymMemberResource, PerfMetricResource, SalesRecordResource
 
@@ -182,6 +183,7 @@ class SalesRecordAdmin(DataAdmin):
                    ("pack_name", FieldTextFilter), ("name", FieldTextFilter), ("phone", FieldTextFilter),
                    ("scraped_at", RangeDateTimeFilter)]
     search_fields = ("name", "phone", "user_id", "center__name", "pack_name")
+    raw_id_fields = ("customer",)
 
 
 @admin.register(PerfMetric)
@@ -207,6 +209,7 @@ class GymMemberAdmin(DataAdmin):
                    ("class_level", AllValuesCheckboxFilter), ("pack_name", FieldTextFilter),
                    ("username", FieldTextFilter), ("scraped_at", RangeDateTimeFilter)]
     search_fields = ("username", "user_id", "center__name", "pack_name")
+    raw_id_fields = ("customer",)
 
 
 @admin.register(CardRow)
@@ -303,3 +306,59 @@ class AutoRunAdmin(ExportModelAdmin):
     def run_selected(self, request, queryset):
         for auto in queryset:
             self._run(request, auto)
+
+
+class PhoneInline(TabularInline):
+    model = CustomerPhone
+    extra = 0
+    can_delete = False
+    readonly_fields = ("phone", "shared")
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Customer)
+class CustomerAdmin(ExportModelAdmin):
+    """Everyone seen in sales or gym data, one row per person, with the newest status and a lead label."""
+
+    list_display = ("name", "user_id", "phone_numbers", "center", "pack_name", "pack_end_date", "lead_badge",
+                    "member_status", "last_class_date", "purchases_link")
+    list_filter = [("lead_status", AllValuesCheckboxFilter), ("pack_end_date", RangeDateFilter),
+                   ("last_class_date", RangeDateFilter), ("last_amount", RangeNumericFilter),
+                   ("center", AutocompleteSelectFilter), ("renewed", AllValuesCheckboxFilter),
+                   ("active_last_30d", AllValuesCheckboxFilter), ("member_status", AllValuesCheckboxFilter),
+                   ("new_vs_repeat", AllValuesCheckboxFilter), ("pack_name", FieldTextFilter),
+                   ("name", FieldTextFilter), ("phones__phone", FieldTextFilter),
+                   ("phones__shared", BooleanRadioFilter), ("updated_at", RangeDateTimeFilter)]
+    search_fields = ("name", "user_id", "phones__phone", "pack_name")
+    list_select_related = ("center",)
+    list_per_page = 50
+    inlines = [PhoneInline]
+    autocomplete_fields = ("center",)
+    readonly_fields = ("user_id", "last_session", "as_of", "first_seen", "updated_at", "lead_status")
+    actions = ["refresh_leads"]
+
+    @display(description="Phones")
+    def phone_numbers(self, obj):
+        return ", ".join(p.phone for p in obj.phones.all())
+
+    @display(description="Lead", label={"active": "success", "expiring": "warning", "expired": "info",
+                                        "lapsed": "danger", "unknown": "info"})
+    def lead_badge(self, obj):
+        return obj.lead_status
+
+    @display(description="Purchases")
+    def purchases_link(self, obj):
+        return format_html('<a href="/admin/scraper/salesrecord/?customer={0}">sales</a> · '
+                           '<a href="/admin/scraper/gymmember/?customer={0}">gym</a>', obj.pk)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("phones")
+
+    @action(description="Recompute lead status from the pack end dates")
+    def refresh_leads(self, request, queryset):
+        messages.success(request, f"Lead status refreshed for {customers.refresh_leads()} customers.")
+
+    def has_add_permission(self, request):
+        return False

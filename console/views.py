@@ -111,7 +111,7 @@ class EstimatePanel(Partial, TemplateView):
         ctx = super().get_context_data(**kwargs)
         data = form.cleaned_data
         if all(data.get(f) for f in ("centers", "reports", "speed")):
-            ctx["estimate"] = selectors.estimate(data["centers"].centers.count(), data["reports"], form.workers)
+            ctx["estimate"] = selectors.estimate(form.center_count, data["reports"], form.workers)
         ctx["window_notice"] = selectors.sales_window_notice(data.get("end"), data.get("reports", []))
         return ctx
 

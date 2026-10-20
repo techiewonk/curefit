@@ -1,3 +1,5 @@
+from unittest import mock
+
 from datetime import timedelta
 
 from django.test import TransactionTestCase
@@ -91,3 +93,21 @@ class JobTests(FakeKronosMixin, TransactionTestCase):
         jobs.request_stop(job)
         self.assertTrue(jobs.payload(job)["stopping"])
         self.assertEqual(jobs.payload(None)["state"], "idle")
+
+
+class PickedCentersTests(FakeKronosMixin, TransactionTestCase):
+    def test_chosen_centers_replace_the_list(self):
+        services.set_list("test", [1, 2, 3, 4])
+        with mock.patch("scraper.jobs.async_task"):
+            job = jobs.enqueue({"start": "2026-07-01", "end": "2026-07-31", "list": "test", "workers": 1,
+                                "center_ids": [3, 1]})
+        self.assertEqual(job.session.center_ids, [1, 3])
+
+    def test_run_form_counts_and_sends_the_picked_centers(self):
+        from console.forms import RunForm
+        services.set_list("test", [1, 2, 3, 4])
+        form = RunForm({"start": "2026-07-01", "end": "2026-07-31", "centers": "test", "speed": "normal",
+                        "reports": ["sales"], "pick": [2, 4]})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.center_count, 2)
+        self.assertEqual(form.to_spec()["center_ids"], [2, 4])
