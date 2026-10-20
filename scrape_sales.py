@@ -730,6 +730,64 @@ def print_analysis(analysis, start, end):
     console.print(t)
 
 
+# ----------------------------- merge -----------------------------
+def merge_session(folder, meta=None):
+    """One file per report with every center's rows, built from centers/*/<report>.csv.
+
+    Writes merged/<report>.csv (center_id, center_name + the card's own columns) and, when
+    openpyxl is available, merged/all_reports.xlsx with one sheet per report.
+    """
+    meta = meta if meta is not None else load_center_meta()
+    centers_dir = os.path.join(folder, "centers")
+    out_dir = os.path.join(folder, "merged")
+    if not os.path.isdir(centers_dir):
+        return []
+    os.makedirs(out_dir, exist_ok=True)
+
+    parts = {}  # report -> [(center_id, file)]
+    for d in sorted(os.listdir(centers_dir),
+                    key=lambda x: int(x.split("_")[0]) if x.split("_")[0].isdigit() else 0):
+        cid = d.split("_")[0]
+        for f in sorted(os.listdir(os.path.join(centers_dir, d))):
+            if f.endswith(".csv"):
+                parts.setdefault(f[:-4], []).append((cid, os.path.join(centers_dir, d, f)))
+
+    written, merged = [], {}
+    for report in [r for r in REPORTS if r in parts]:
+        header, rows = [], []
+        for cid, path in parts[report]:
+            with open(path, newline="", encoding="utf-8") as fh:
+                reader = csv.reader(fh)
+                cols = next(reader, [])
+                for c in cols:  # centers can differ in columns: keep the union, in order seen
+                    if c not in header:
+                        header.append(c)
+                name = meta.get(cid, ("", ""))[0]
+                for r in reader:
+                    rows.append((cid, name, dict(zip(cols, r))))
+        full = ["center_id", "center_name"] + header
+        data = [[cid, name] + [row.get(c, "") for c in header] for cid, name, row in rows]
+        path = os.path.join(out_dir, f"{report}.csv")
+        _write_csv(path, full, data)
+        written.append(path)
+        merged[report] = (full, data)
+
+    try:
+        from openpyxl import Workbook
+        wb = Workbook(write_only=True)
+        for report, (full, data) in merged.items():
+            ws = wb.create_sheet(report[:31])
+            ws.append(full)
+            for r in data:
+                ws.append(r)
+        xlsx = os.path.join(out_dir, "all_reports.xlsx")
+        wb.save(xlsx)
+        written.append(xlsx)
+    except ImportError:
+        log.warning("xlsx_skipped", reason="openpyxl not installed (pip install openpyxl)")
+    return written
+
+
 # ----------------------------- runner -----------------------------
 def _write_coverage(stats, path):
     rows = []
@@ -896,6 +954,7 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
     cov_path = os.path.join(folder, "coverage.csv")
     cov_rows = _write_coverage(stats, cov_path)
     written.append(cov_path)
+    written.extend(merge_session(folder, meta))
     print_analysis(analysis, start, end)
 
     # complete = every requested center/section is saved in this session
@@ -941,7 +1000,16 @@ def main():
     ap.add_argument("--session", help="resume this session id (default: start a new session)")
     ap.add_argument("--refresh", action="store_true",
                     help="re-fetch everything, even what the session already saved")
+    ap.add_argument("--merge", metavar="SESSION_ID",
+                    help="only rebuild merged/ (one file per report) for this session")
     args = ap.parse_args()
+    if args.merge:
+        info = find_session(args.merge)
+        if info is None:
+            raise SystemExit(f"No session '{args.merge}' under {RUNS_DIR}")
+        for pth in merge_session(info["folder"]):
+            console.print(os.path.relpath(pth, info["folder"]))
+        return
     session = None
     if args.session:
         session = find_session(args.session)

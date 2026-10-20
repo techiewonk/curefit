@@ -236,3 +236,10 @@ runs/2026-10-20/2026-07-01_to_2026-07-31_a1b2c3/
 - `curefit.db` stays the shared database; every row is tagged with its session id, and
   rows from before sessions are tagged `legacy`.
 - `dashboard.bat` has a session picker, so each run can be viewed on its own.
+
+### Merged files (all centers in one file per report)
+
+At the end of every run, `merged/` inside the session folder gets one CSV per report
+(`sales.csv`, `perf.csv`, `gym.csv`, `perf_membership.csv`, ...), each with every center's rows
+and `center_id` / `center_name` as the first columns, plus `all_reports.xlsx` with one sheet per
+report. To rebuild them for an earlier session: `python scrape_sales.py --merge a1b2c3`.
