@@ -128,6 +128,8 @@ from django.urls import reverse_lazy  # noqa: E402
 _ADMIN = lambda model: reverse_lazy(f"admin:{model}_changelist")  # noqa: E731
 
 # Settings editable in the admin (System → Settings). Read them with `constance.config.NAME`.
+IMPORT_EXPORT_ESCAPE_FORMULAE_ON_EXPORT = True  # a name like =HYPERLINK(...) must not run when opened in Excel
+
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
 CONSTANCE_CONFIG = {
     "DELAY_MIN": (1.0, "Shortest pause between requests (seconds)", float),

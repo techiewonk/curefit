@@ -139,14 +139,16 @@ def _snapshot(session, rows):
         sales = _newest([r for r in mine if r["kind"] == "sales"], lambda r: (r["end"] or dt.date.min, r["ts"]))
         gym = _newest([r for r in mine if r["kind"] == "gym"], lambda r: (r["end"] or dt.date.min, r["ts"]))
         c.name = next((r["name"] for r in (pack, sales, gym) if r and r["name"]), c.name)
-        c.center_id, c.pack_name = pack["center"], pack["pack"] or c.pack_name
-        c.pack_end_date = pack["end"] or c.pack_end_date
+        if c.pack_end_date is None or (pack["end"] and pack["end"] >= c.pack_end_date):
+            # the pack only moves forward: a short session that shows an older, expired pack must not replace it
+            c.center_id, c.pack_name = pack["center"], pack["pack"] or c.pack_name
+            c.pack_end_date = pack["end"] or c.pack_end_date
         if sales:
             c.renewed, c.active_last_30d = sales["renewed"] or c.renewed, sales["active"] or c.active_last_30d
             c.last_amount = sales["amount"] if sales["amount"] is not None else c.last_amount
         if gym:
             c.member_status, c.new_vs_repeat = gym["status"] or c.member_status, gym["nvr"] or c.new_vs_repeat
-            c.last_class_date = gym["last_class"] or c.last_class_date
+            c.last_class_date = max(filter(None, [c.last_class_date, gym["last_class"]]), default=None)
             c.last_amount = gym["amount"] if gym["amount"] is not None else c.last_amount
         c.as_of, c.last_session, c.updated_at = session.end_date, session, now
         changed.append(c)

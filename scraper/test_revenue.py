@@ -97,3 +97,13 @@ class RevenueTests(FakeKronosMixin, TransactionTestCase):
         call_command("import_groups", f.name, "--apply")
         self.assertEqual(list(CenterGroup.objects.get(name="GYMS").centers.values_list("pk", flat=True)), [1])
         self.assertEqual(list(CenterGroup.objects.get(name="Gym Hybrid").centers.values_list("pk", flat=True)), [2])
+
+
+class PartialMonthTests(FakeKronosMixin, TransactionTestCase):
+    def test_a_later_run_for_a_few_days_does_not_replace_the_full_month(self):
+        full = engine.new_session("2026-08-01", "2026-08-31", [1], ["perf"])
+        few = engine.new_session("2026-08-01", "2026-08-05", [1], ["perf"])  # newer, but only five days
+        PerfMetric.objects.create(session=full, center_id=1, metric_date=D(2026, 8, 1), metric=TOTAL, value=9000)
+        PerfMetric.objects.create(session=few, center_id=1, metric_date=D(2026, 8, 1), metric=TOTAL, value=700)
+        data = revenue.matrix(months=3, today=D(2026, 10, 15))
+        self.assertEqual(data["rows"][0]["values"][D(2026, 8, 1)], 9000)

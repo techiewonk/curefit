@@ -92,3 +92,13 @@ class CustomerTests(FakeKronosMixin, TransactionTestCase):
         c = Customer.objects.first()
         self.assertEqual(self.client.get(reverse("admin:scraper_customer_change", args=[c.pk])).status_code, 200)
         self.assertEqual(self.client.get(reverse("admin:scraper_salesrecord_changelist") + f"?customer={c.pk}").status_code, 200)
+
+    def test_a_short_session_with_an_expired_pack_does_not_move_the_pack_back(self):
+        GymMember.objects.create(session=self.old, center_id=1, user_id="U1", username="Asha", pack_name="Annual",
+                                 pack_end_date=D(2026, 12, 1), last_class_date=D(2026, 6, 28), status="ACTIVE")
+        customers.link_session(self.old)
+        self.sale(self.new, "U1", "9876543210", D(2026, 7, 30), pack="Monthly")  # an older pack expired later
+        customers.link_session(self.new)
+        c = Customer.objects.get(user_id="U1")
+        self.assertEqual((c.pack_name, c.pack_end_date), ("Annual", D(2026, 12, 1)))
+        self.assertEqual(c.as_of, D(2026, 7, 31))

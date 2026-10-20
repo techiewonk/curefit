@@ -14,7 +14,7 @@ from unfold.views import UnfoldSiteViewMixin
 
 from centers import sync
 from centers.models import Center, CenterList, CenterSyncLog
-from scraper import analysis, auth, jobs, revenue, selectors
+from scraper import analysis, auth, coverage, jobs, revenue, selectors
 from scraper.models import Job, Session
 
 from .forms import CompareForm, OtpForm, RunForm, SessionPickForm
@@ -112,7 +112,9 @@ class EstimatePanel(Partial, TemplateView):
         ctx = super().get_context_data(**kwargs)
         data = form.cleaned_data
         if all(data.get(f) for f in ("centers", "reports", "speed")):
-            ctx["estimate"] = selectors.estimate(form.center_count, data["reports"], form.workers)
+            pieces = len(coverage.pieces(data["start"], data["end"], data.get("sales_chunk") or Session.WHOLE)) \
+                if data.get("start") and data.get("end") and data["start"] <= data["end"] else 1
+            ctx["estimate"] = selectors.estimate(form.center_count, data["reports"], form.workers, pieces)
         ctx["window_notice"] = selectors.sales_window_notice(data.get("end"), data.get("reports", []))
         return ctx
 

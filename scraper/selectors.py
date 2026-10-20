@@ -18,14 +18,18 @@ HIGH_FACTOR = 1.5     # slow cards make the real time drift upwards
 
 
 # ------------------------------------------------------------------ run page
-def estimate(center_count, reports, workers):
-    """How long a run is expected to take, from the sections timed in earlier sessions."""
+def estimate(center_count, reports, workers, sales_pieces=1):
+    """How long a run is expected to take, from the sections timed in earlier sessions.
+
+    sales_pieces: how many day / week requests the sales report makes per center (1 = the whole period)."""
     measured = {r["report"]: r["avg"] for r in SectionResult.objects
                 .filter(status=SectionResult.OK, seconds__isnull=False).values("report")
                 .annotate(avg=Avg("seconds"), n=Count("id")).filter(n__gte=3)}
-    per_center = sum(measured[r] + PAIR_OVERHEAD if r in measured else UNKNOWN_SECONDS for r in reports)
+    per_center = sum((measured[r] + PAIR_OVERHEAD if r in measured else UNKNOWN_SECONDS)
+                     * (sales_pieces if r == "sales" else 1) for r in reports)
     low = per_center * center_count / workers
-    return {"centers": center_count, "reports": len(reports), "pairs": center_count * len(reports),
+    return {"centers": center_count, "reports": len(reports), "sales_pieces": sales_pieces,
+            "pairs": center_count * (len(reports) - ("sales" in reports) + (sales_pieces if "sales" in reports else 0)),
             "workers": workers, "low_text": _duration(low), "high_text": _duration(low * HIGH_FACTOR),
             "seconds_low": round(low), "seconds_high": round(low * HIGH_FACTOR),
             "assumed": sorted(set(reports) - set(measured))}

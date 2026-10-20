@@ -102,3 +102,12 @@ class SelectorTests(FakeKronosMixin, TransactionTestCase):
         self.assertIsNone(selectors.sales_window_notice(old, ["perf", "gym"]))
         self.assertIsNone(selectors.sales_window_notice(recent, ["sales"]))
         self.assertIsNone(selectors.sales_window_notice(None, ["sales"]))
+
+
+class EstimateSalesPiecesTests(TransactionTestCase):
+    def test_sales_asked_per_day_multiplies_the_requests(self):
+        from scraper import selectors
+        one = selectors.estimate(10, ["sales", "perf"], 2)
+        many = selectors.estimate(10, ["sales", "perf"], 2, sales_pieces=30)
+        self.assertEqual((one["pairs"], many["pairs"]), (20, 10 * 31))
+        self.assertGreater(many["seconds_low"], one["seconds_low"])

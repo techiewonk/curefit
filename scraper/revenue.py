@@ -24,6 +24,10 @@ def label(month):
     return month.strftime("%b-%y")
 
 
+def next_month(month):
+    return (month + dt.timedelta(days=32)).replace(day=1)
+
+
 def _months(current, count):
     out, m = [], current
     for _ in range(count):
@@ -61,10 +65,14 @@ def matrix(group="", months=12, today=None):
         elif group:
             qs = qs.filter(center_id__in=[cid for cid, names_ in members.items() if group in names_])
         sums = {}
-        for cid, day, value, sid, ended, created in qs.values_list(
-                "center_id", "metric_date", "value", "session_id", "session__end_date", "session__created_at"):
-            key = (cid, month_of(day), sid)
-            sums.setdefault(key, [0.0, (ended, created)])[0] += value
+        for cid, day, value, sid, began, ended, created in qs.values_list(
+                "center_id", "metric_date", "value", "session_id", "session__start_date", "session__end_date",
+                "session__created_at"):
+            month = month_of(day)
+            # prefer the session that covers most of the month, then the newest: a later run for a few
+            # days of a month must not replace a full-month figure
+            overlap = (min(ended, next_month(month) - dt.timedelta(days=1)) - max(began, month)).days + 1
+            sums.setdefault((cid, month, sid), [0.0, (overlap, ended, created)])[0] += value
         for (cid, month, _), (value, order) in sums.items():
             if (cid, month) not in best or order > best[(cid, month)][0]:
                 best[(cid, month)] = (order, value)
