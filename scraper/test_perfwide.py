@@ -28,13 +28,17 @@ class PerfWideTests(FakeKronosMixin, TransactionTestCase):
         PerfMetric.objects.create(session=session, center_id=cid, metric_date=day, metric=metric, value=value)
 
     def test_metrics_become_columns_one_row_per_center_and_month(self):
-        rows, columns = perfwide.wide_rows()
-        self.assertEqual(columns, [TOTAL, NEW])
-        self.assertEqual(len(rows), 6)  # 2 centers x 3 months
-        first = rows[0]
-        self.assertEqual((first["month"], first["cells"]), (D(2026, 8, 1), [3000, 750.0]))
-        self.assertEqual(len(perfwide.wide_rows(group="GYMS")[0]), 3)
-        self.assertEqual(len(perfwide.wide_rows(since=D(2026, 7, 1))[0]), 4)
+        from scraper.models import CenterMonth
+        self.assertEqual(perfwide.rebuild_months(), 6)  # 2 centers x 3 months
+        self.assertEqual(perfwide.rebuild_months(), 6)  # repeating changes nothing
+        self.assertEqual(CenterMonth.objects.count(), 6)
+        row = CenterMonth.objects.get(center_id=1, month=D(2026, 8, 1))
+        self.assertEqual((row.total_revenue, row.new_revenue, row.repeat_revenue), (3000, 750.0, None))
+        self.assertEqual(row.metrics, {TOTAL: 3000, NEW: 750.0})
+        self.put(self.month_run, 1, D(2026, 8, 1), "Retention %", 80)
+        self.assertEqual(perfwide.rebuild_months(self.month_run), 6)  # only that session's centers and months
+        self.assertEqual(CenterMonth.objects.get(center_id=1, month=D(2026, 8, 1)).metrics["Retention %"], 80)
+        self.assertEqual(perfwide.extra_metric_names(), ["Retention %"])
 
     def test_a_month_split_run_beats_day_rows_and_day_rows_are_added_when_alone(self):
         for day in (3, 4, 5):
@@ -62,18 +66,35 @@ class PerfWideTests(FakeKronosMixin, TransactionTestCase):
         avg = perfwide.analyse(TOTAL, group="GYMS", agg="avg", month=D(2026, 8, 1), today=today)
         self.assertEqual(avg["lines"]["GYMS"][-2], 3000)
 
-    def test_pages_download_home_and_sidebar_sections(self):
-        for url in (reverse("console:perf"), reverse("console:perf") + "?group=GYMS&from=2026-07&q=cult",
-                    reverse("console:perf_analysis"), reverse("console:perf_analysis") + "?mode=range&a_from=2026-07&a_to=2026-08&b_from=2025-08&b_to=2025-08",
+    def test_the_monthly_table_is_a_real_admin_list_with_filters_and_export(self):
+        from scraper.resources import CenterMonthResource
+        self.put(self.month_run, 1, D(2026, 8, 1), "Retention %", 80)
+        perfwide.rebuild_months()
+        url = reverse("admin:scraper_centermonth_changelist")
+        page = self.client.get(url)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Retention %")  # a column per metric
+        self.assertEqual(self.client.get(url, {"total_revenue_from": "2500"}).context["cl"].result_count, 1)
+        self.assertEqual(self.client.get(url, {"center__groups__name": "GYMS"}).context["cl"].result_count, 3)
+        self.assertEqual(self.client.get(url, {"month_from": "2026-08-01", "month_to": "2026-08-31"}).context["cl"].result_count, 2)
+        self.assertEqual(self.client.get(url + "?q=zzz").context["cl"].result_count, 0)
+        self.assertEqual(self.client.get(reverse("admin:scraper_centermonth_export")).status_code, 200)
+        data = CenterMonthResource().export()
+        self.assertEqual(data.headers, ["center_id", "center", "group", "month", "total_revenue", "new_revenue",
+                                        "repeat_revenue", "Retention %"])
+        first = next(r for r in data.dict if r["center_id"] == "1" and r["month"] == "Aug-26")
+        self.assertEqual((first["group"], first["total_revenue"], first["Retention %"]), ("GYMS", "3000.0", 80))
+
+    def test_pages_home_and_the_old_link(self):
+        for url in (reverse("console:perf_analysis"),
+                    reverse("console:perf_analysis") + "?mode=range&a_from=2026-07&a_to=2026-08&b_from=2025-08&b_to=2025-08",
                     reverse("console:perf_analysis") + "?mode=group&agg=avg&months=x", "/admin/", reverse("console:revenue")):
             self.assertEqual(self.client.get(url).status_code, 200, url)
-        r = self.client.get(reverse("console:perf_csv"), {"group": "GYMS"})
-        header = r.content.decode().splitlines()[0]
-        self.assertEqual(header, "center_id,center,group,month," + TOTAL + "," + NEW)
-        self.assertIn("spreadsheetml", self.client.get(reverse("console:perf_csv"), {"format": "xlsx"})["Content-Type"])
+        self.assertRedirects(self.client.get(reverse("console:perf")), reverse("admin:scraper_centermonth_changelist"),
+                             fetch_redirect_response=False)
         home = self.client.get("/admin/")
         self.assertContains(home, "New group")
-        self.assertContains(self.client.get("/admin/"), "Perf analysis and compare")
+        self.assertContains(home, "Perf analysis and compare")
 
     def test_groups_by_month_table_and_download(self):
         from scraper import revenue

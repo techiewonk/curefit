@@ -21,7 +21,7 @@ from django.utils import timezone
 
 from centers.models import Center, KnownEmpty
 
-from . import checks, conf, coverage, customers, files, kronos, login, masters
+from . import checks, conf, coverage, customers, files, kronos, login, masters, perfwide
 from .throttle import Gate
 from .models import SectionResult, Session
 from .reports import REPORTS
@@ -306,6 +306,7 @@ def _finish(session, ids, reports, stats, flags, status):
     try:
         customers.link_session(session)  # sales / gym rows -> customers, newest status wins
         masters.merge_session(session)   # the all-runs gym and expired-pack tables
+        perfwide.rebuild_months(session)  # one row per center and month, metrics as columns
         masters.prune_run_rows(config.KEEP_RUN_ROWS)
     except Exception:  # noqa: BLE001 - a linking problem must not fail a finished scrape; `link_customers` retries
         log.exception("could not link customers for %s", session.session_id)

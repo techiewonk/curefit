@@ -71,28 +71,54 @@ def center_ids_for(group):
     return [cid for cid, names in members.items() if group in names]
 
 
-def wide_rows(group="", since=None, until=None, search="", metrics=None):
-    """Rows for the wide table, newest month first; plus the metric columns that have any data."""
-    ids = center_ids_for(group)
-    values = month_values(since, until, ids, metrics)
-    centers = {c.pk: c for c in Center.objects.filter(pk__in={cid for cid, _ in values})}
-    members = group_members()
-    needle = search.strip().lower()
-    columns = ordered_metrics(sorted({m for v in values.values() for m in v}))
-    rows = []
+def extra_metric_names():
+    """Metric names that are not one of the three revenue columns of CenterMonth."""
+    names = metric_names()
+    trio = {m for m in revenue_metrics(names) if m}
+    return [m for m in ordered_metrics(names) if m not in trio]
+
+
+def rebuild_months(session=None):
+    """(Re)build the CenterMonth rows for a session's centers and months, or for everything.
+
+    Returns the number of rows written. Safe to repeat: it always recomputes from the perf rows.
+    """
+    from django.utils import timezone
+
+    from .models import CenterMonth
+    since = until = ids = None
+    if session is not None:
+        session = Session.objects.get(pk=session.pk)
+        since, until, ids = month_of(session.start_date), month_of(session.end_date), session.center_ids
+    values = month_values(since, until, ids)
+    if not values:
+        return 0
+    trio = revenue_metrics(sorted({m for v in values.values() for m in v}))
+    have = {}
+    for chunk in range(0, len(ids or []) or 1, 900):
+        qs = CenterMonth.objects.all()
+        if ids is not None:
+            qs = qs.filter(center_id__in=ids[chunk:chunk + 900])
+        have.update({(c.center_id, c.month): c for c in qs})
+        if ids is None:
+            break
+    now, new, changed = timezone.now(), [], []
     for (cid, month), vals in values.items():
-        c = centers.get(cid)
-        if c is None or (needle and needle not in f"{c.name} {cid}".lower()):
-            continue
-        rows.append({"id": cid, "name": c.name, "group": ", ".join(members.get(cid) or ["Ungrouped"]), "month": month,
-                     "cells": [vals.get(m) for m in columns]})
-    rows.sort(key=lambda r: (-r["month"].toordinal(), r["name"]))
-    return rows, columns
-
-
-def table(rows, columns):
-    headers = ["center_id", "center", "group", "month"] + columns
-    return headers, [[r["id"], r["name"], r["group"], label(r["month"])] + r["cells"] for r in rows]
+        fields = dict(total_revenue=vals.get(trio[0]) if trio[0] else None,
+                      new_revenue=vals.get(trio[1]) if trio[1] else None,
+                      repeat_revenue=vals.get(trio[2]) if trio[2] else None,
+                      metrics={k: v for k, v in vals.items()}, last_session=session, updated_at=now)
+        row = have.get((cid, month))
+        if row is None:
+            new.append(CenterMonth(center_id=cid, month=month, **fields))
+        else:
+            for k, v in fields.items():
+                setattr(row, k, v)
+            changed.append(row)
+    CenterMonth.objects.bulk_create(new, batch_size=500, ignore_conflicts=True)
+    CenterMonth.objects.bulk_update(
+        changed, ["total_revenue", "new_revenue", "repeat_revenue", "metrics", "last_session", "updated_at"], batch_size=500)
+    return len(new) + len(changed)
 
 
 # ------------------------------------------------------------------ analysis

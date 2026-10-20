@@ -408,3 +408,21 @@ class SalesCoverage(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["center", "day"], name="one_coverage_per_center_day")]
+
+
+class CenterMonth(models.Model):
+    """Performance numbers of one center for one month: every metric of the perf card as a column
+    (the three revenue metrics are real columns so they can be filtered and sorted; the rest sit in `metrics`)."""
+
+    center = models.ForeignKey(Center, on_delete=models.PROTECT, related_name="months")
+    month = models.DateField(db_index=True, help_text="First day of the month.")
+    total_revenue = models.FloatField(null=True, blank=True, db_index=True)
+    new_revenue = models.FloatField(null=True, blank=True)
+    repeat_revenue = models.FloatField(null=True, blank=True)
+    metrics = models.JSONField(default=dict, blank=True, help_text="Every metric of the month, by name.")
+    last_session = models.ForeignKey(Session, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    updated_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-month", "center_id"]
+        constraints = [models.UniqueConstraint(fields=["center", "month"], name="one_row_per_center_month")]

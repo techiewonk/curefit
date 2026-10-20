@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path
+from django.views.generic import RedirectView
 
 from . import views
 
@@ -17,8 +18,7 @@ urlpatterns = [
     path("analytics/", page(views.AnalyticsView), name="analytics"),
     path("compare/", page(views.CompareView), name="compare"),
     path("coverage/", page(views.CoverageView), name="coverage"),
-    path("perf/", page(views.PerfTableView), name="perf"),
-    path("perf/csv/", views.PerfCsv.as_view(), name="perf_csv"),
+    path("perf/", RedirectView.as_view(pattern_name="admin:scraper_centermonth_changelist"), name="perf"),
     path("perf/analysis/", page(views.PerfAnalysisView), name="perf_analysis"),
     path("revenue/", page(views.RevenueView), name="revenue"),
     path("revenue/csv/", views.RevenueCsv.as_view(), name="revenue_csv"),

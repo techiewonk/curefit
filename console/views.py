@@ -231,38 +231,6 @@ class CoverageView(ConsolePage, TemplateView):
             first_gap=gaps[0]["day"] if gaps else None, last_gap=gaps[-1]["day"] if gaps else None, **kwargs)
 
 
-def _perf_filters(request):
-    g = request.GET
-    since, until = perfwide.parse_month(g.get("from")), perfwide.parse_month(g.get("to"))
-    return {"group": g.get("group", ""), "since": since, "until": until, "search": g.get("q", "")}
-
-
-class PerfTableView(ConsolePage, TemplateView):
-    """Performance metrics as a wide table: a row per center and month, a column per metric."""
-
-    template_name = "console/perf.html"
-    title = "Perf metrics"
-
-    def get_context_data(self, **kwargs):
-        from django.core.paginator import Paginator
-        f = _perf_filters(self.request)
-        rows, columns = perfwide.wide_rows(**f)
-        page = Paginator(rows, 100).get_page(self.request.GET.get("page"))
-        query = self.request.GET.copy()
-        query.pop("page", None)
-        return super().get_context_data(
-            page=page, columns=columns, total=len(rows), groups=list(CenterGroup.objects.values_list("name", flat=True)),
-            group=f["group"], q=f["search"], since=self.request.GET.get("from", ""), until=self.request.GET.get("to", ""),
-            query=query.urlencode(), **kwargs)
-
-
-class PerfCsv(Partial, View):
-    def get(self, request):
-        rows, columns = perfwide.wide_rows(**_perf_filters(request))
-        headers, body = perfwide.table(rows, columns)
-        return _download(request, "perf_metrics_by_month", headers, body)
-
-
 class PerfAnalysisView(ConsolePage, TemplateView):
     """One metric over months: chart per group, and a comparison (vs previous month, last year, two ranges, group)."""
 

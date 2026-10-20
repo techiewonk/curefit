@@ -16,12 +16,12 @@ from unfold.widgets import UnfoldAdminCheckboxSelectMultipleWidget, UnfoldAdminS
 from centers.models import KnownEmpty
 from config.admin_base import ExportModelAdmin
 
-from . import autorun, customers, files, jobs
+from . import autorun, customers, files, jobs, perfwide
 from .conf import SPEED_CHOICES
-from .models import (AutoRun, CardColumns, CardRow, Customer, CustomerPhone, GymMember, GymPack, Job, PerfMetric,
+from .models import (AutoRun, CardColumns, CenterMonth, CardRow, Customer, CustomerPhone, GymMember, GymPack, Job, PerfMetric,
                      SalesCoverage, SalesPack, SalesRecord, SectionResult, Session)
 from .reports import report_choices
-from .resources import (GymMemberResource, GymPackResource, PerfMetricResource, SalesPackResource,
+from .resources import (GymMemberResource, CenterMonthResource, GymPackResource, PerfMetricResource, SalesPackResource,
                         SalesRecordResource)
 
 STATUS_LABELS = {"complete": "success", "ok": "success", "done": "success", "finished": "success",
@@ -405,3 +405,39 @@ class SalesCoverageAdmin(DataAdmin):
     list_filter = [("center", AutocompleteSelectFilter), ("day", RangeDateFilter),
                    ("fetched_at", RangeDateTimeFilter)]
     list_select_related = ("center", "session")
+
+
+@admin.register(CenterMonth)
+class CenterMonthAdmin(DataAdmin):
+    """Performance metrics by month: a row per gym and month, a column per metric. Filter, sort, search, export."""
+
+    resource_classes = [CenterMonthResource]
+    list_select_related = ("center",)
+    ordering = ("-month", "center_id")
+    list_filter = [("center", AutocompleteSelectFilter), ("center__groups__name", AllValuesCheckboxFilter),
+                   ("month", RangeDateFilter), ("total_revenue", RangeNumericFilter),
+                   ("new_revenue", RangeNumericFilter), ("repeat_revenue", RangeNumericFilter)]
+    search_fields = ("center__name", "center__code")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("center__groups")
+
+    def get_list_display(self, request):
+        return ["center", "groups_column", "month_column", "total_revenue", "new_revenue", "repeat_revenue",
+                *[self._metric_column(i, name) for i, name in enumerate(perfwide.extra_metric_names())]]
+
+    @display(description="Groups")
+    def groups_column(self, obj):
+        return ", ".join(g.name for g in obj.center.groups.all())
+
+    @display(description="Month", ordering="month")
+    def month_column(self, obj):
+        return obj.month.strftime("%b-%y")
+
+    @staticmethod
+    def _metric_column(index, name):
+        def column(obj):
+            value = obj.metrics.get(name)
+            return "" if value is None else f"{value:,.2f}".rstrip("0").rstrip(".")
+        column.__name__ = f"metric_{index}"
+        return display(description=name)(column)
