@@ -28,11 +28,13 @@ import os
 import random
 import re
 import sqlite3
+import threading
 import time
 import uuid
 import urllib.parse
 
 import requests
+from concurrent.futures import ThreadPoolExecutor
 from rich.panel import Panel
 from rich.progress import (Progress, SpinnerColumn, BarColumn, TextColumn,
                            MofNCompleteColumn, TimeElapsedColumn)
@@ -121,7 +123,7 @@ REPORTS.update(GENERIC_REPORTS)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CENTERS_JSON = os.path.join(HERE, "centers.json")
-RUNS_DIR = os.path.join(HERE, "runs")
+RUNS_DIR = os.environ.get("CUREFIT_RUNS_DIR") or os.path.join(HERE, "runs")
 
 
 def polite_sleep():
@@ -818,7 +820,7 @@ def _write_coverage(stats, path):
 
 
 def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refresh=False,
-               session=None, status=None):
+               session=None, status=None, workers=1):
     """Scrape all configured reports for the centers in the CSV into one session.
 
     session=None starts a brand-new session (nothing is skipped because of older runs).
@@ -828,6 +830,7 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
     only: one report name or a list of them (default: all).
     status: optional dict the admin app reads for live progress; set status["stop"]=True to
     stop cleanly after the current request (the session stays resumable).
+    workers: how many centers are fetched at the same time (1 = strictly one after another).
     """
     csv_path = centers_csv if os.path.isabs(centers_csv) else os.path.join(HERE, centers_csv)
     db_path = db if os.path.isabs(db) else os.path.join(HERE, db)
@@ -883,31 +886,38 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
         status.update(state="running", session=sid, folder=folder, done=0, total=total,
                       desc="", error=None, stop=False, log=[])
     fail_streak = {r: 0 for r in reports}
-    auth_failures, aborted, stopped = 0, False, False
+    lock = threading.Lock()  # guards stats/flags/progress when several centers run at once
+    flags = {"auth_failures": 0, "aborted": False, "stopped": False}
 
     def note(msg):
         if status is not None:
-            status["log"].append(f"{time.strftime('%H:%M:%S')} {msg}")
-            del status["log"][:-200]
+            with lock:
+                status["log"].append(f"{time.strftime('%H:%M:%S')} {msg}")
+                del status["log"][:-200]
 
     def advance():
-        progress.advance(task)
-        if status is not None:
-            status["done"] += 1
+        with lock:
+            progress.advance(task)
+            if status is not None:
+                status["done"] += 1
 
-    progress = Progress(SpinnerColumn(), BarColumn(), MofNCompleteColumn(),
-                        TextColumn("{task.description}"), TimeElapsedColumn(), console=console)
-    with progress:
-        task = progress.add_task("", total=total)
-        for cid in ids:
-            name, code = meta.get(cid, ("", ""))
+    def process_center(cid):
+        """Every pending section of one center, on this thread's own connection + session."""
+        name, code = meta.get(cid, ("", ""))
+        tconn = sqlite3.connect(db_path, timeout=60)
+        tmb = requests.Session()
+        tmb.cookies.set("metabase.DEVICE", str(uuid.uuid4()))
+        try:
             for reps in groups.values():
                 token = None
                 for rep_name in [r for r in reps if cid not in done[r]]:
-                    st = stats[rep_name]
+                    if flags["aborted"]:
+                        return
                     if status is not None and status.get("stop"):
-                        aborted = stopped = True
-                        break
+                        with lock:
+                            flags["aborted"] = flags["stopped"] = True
+                        return
+                    st = stats[rep_name]
                     if st["skipped"]:
                         advance()
                         continue
@@ -922,8 +932,8 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                         for attempt in (1, 2):  # an empty result gets one retry, fresh token
                             if token is None:
                                 token = get_token(http, rep, cid, start, end)
-                                warm_up(mb, token)
-                            rows, cols = get_rows(mb, rep, token, start, end)
+                                warm_up(tmb, token)
+                            rows, cols = get_rows(tmb, rep, token, start, end)
                             if rows:
                                 break
                             log.info("empty_result_retry", report=rep_name, center_id=cid,
@@ -933,60 +943,83 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                         if not rows:
                             # empty after a retry on a fresh token: recorded as done (0 rows)
                             # for this session only; a new session fetches it again
-                            st["empty"].append(cid)
-                            conn.execute("INSERT OR REPLACE INTO scrape_log VALUES (?,?,?,?,?,?,?)",
-                                         (rep_name, cid, start, end, 0, now, sid))
-                            conn.commit()
+                            tconn.execute("INSERT OR REPLACE INTO scrape_log VALUES (?,?,?,?,?,?,?)",
+                                          (rep_name, cid, start, end, 0, now, sid))
+                            tconn.commit()
+                            with lock:
+                                st["empty"].append(cid)
                             log.warning("center_empty", report=rep_name, center_id=cid,
                                         center=name or code)
                             note(f"empty  {rep_name} · {cid} {name or code}")
                         else:
                             if len(rows) >= ROW_CAP:
-                                st["capped"].append(cid)
+                                with lock:
+                                    st["capped"].append(cid)
                                 log.warning("possible_truncation", report=rep_name,
                                             center_id=cid, rows=len(rows), cap=ROW_CAP)
                             if rep_name in STORE:
-                                STORE[rep_name](conn, cid, name, code, start, end, rows, now, sid)
+                                STORE[rep_name](tconn, cid, name, code, start, end, rows, now, sid)
                             else:
-                                store_generic(conn, rep_name, cols, cid, name, code,
+                                store_generic(tconn, rep_name, cols, cid, name, code,
                                               start, end, rows, now, sid)
                             write_center_file(folder, cid, name, code, rep_name, cols, rows)
-                            conn.execute("INSERT OR REPLACE INTO scrape_log VALUES (?,?,?,?,?,?,?)",
-                                         (rep_name, cid, start, end, len(rows), now, sid))
-                            conn.commit()
-                            st["ok"] += 1
+                            tconn.execute("INSERT OR REPLACE INTO scrape_log VALUES (?,?,?,?,?,?,?)",
+                                          (rep_name, cid, start, end, len(rows), now, sid))
+                            tconn.commit()
+                            with lock:
+                                st["ok"] += 1
                             log.info("center_ok", report=rep_name, center_id=cid,
                                      center=name or code, rows=len(rows))
                             note(f"ok     {rep_name} · {cid} {name or code} · {len(rows)} rows")
-                        fail_streak[rep_name] = 0
-                        auth_failures = 0
+                        with lock:
+                            fail_streak[rep_name] = 0
+                            flags["auth_failures"] = 0
                     except AuthError as e:
-                        conn.rollback()
-                        st["failed"].append(cid)
-                        auth_failures += 1
+                        tconn.rollback()
+                        with lock:
+                            st["failed"].append(cid)
+                            flags["auth_failures"] += 1
+                            if flags["auth_failures"] >= AUTH_FAIL_LIMIT:
+                                flags["aborted"] = True
                         log.error("auth_failed", report=rep_name, center_id=cid, error=str(e))
                         note(f"AUTH   {rep_name} · {cid} {e}")
                     except Exception as e:
-                        conn.rollback()
+                        tconn.rollback()
                         token = None
-                        st["failed"].append(cid)
-                        fail_streak[rep_name] += 1
+                        with lock:
+                            st["failed"].append(cid)
+                            fail_streak[rep_name] += 1
+                            skip = fail_streak[rep_name] >= REPORT_FAIL_LIMIT and st["ok"] == 0
+                            if skip:
+                                st["skipped"] = True
                         log.error("center_failed", report=rep_name, center_id=cid, error=str(e))
                         note(f"FAILED {rep_name} · {cid} {name or code} · {e}")
-                        if fail_streak[rep_name] >= REPORT_FAIL_LIMIT and st["ok"] == 0:
-                            st["skipped"] = True
+                        if skip:
                             log.error("report_skipped", report=rep_name,
                                       reason=f"{REPORT_FAIL_LIMIT} failures in a row, none succeeded")
                     advance()
-                    if auth_failures >= AUTH_FAIL_LIMIT:
-                        aborted = True
-                        break
+                    if flags["aborted"]:
+                        return
                     polite_sleep()
-                if aborted:
-                    break
-            if aborted:
-                break
+        finally:
+            tconn.close()
+            tmb.close()
 
+    progress = Progress(SpinnerColumn(), BarColumn(), MofNCompleteColumn(),
+                        TextColumn("{task.description}"), TimeElapsedColumn(), console=console)
+    with progress:
+        task = progress.add_task("", total=total)
+        if workers <= 1:
+            for cid in ids:
+                if flags["aborted"]:
+                    break
+                process_center(cid)
+        else:
+            with ThreadPoolExecutor(max_workers=workers) as pool:
+                for fut in [pool.submit(process_center, cid) for cid in ids]:
+                    fut.result()
+
+    aborted, stopped = flags["aborted"], flags["stopped"]
     if stopped:
         console.print("[yellow]Stopped by user — continue this session later to finish.[/yellow]")
     elif aborted:

@@ -1,5 +1,5 @@
 @echo off
-REM Local admin: sessions, run/continue scrapes, analytics (opens in your browser)
+REM Curefit admin web app: sessions, run/stop/continue, centers, analytics
 cd /d "%~dp0"
-python admin_server.py
+python webapp.py
 pause
