@@ -17,7 +17,8 @@ dev.bat        same, but the web server restarts whenever a .py file changes
 ```
 
 `install.bat` is safe to run again after an update. Static files are collected at every start. `run.bat` and `dev.bat` run it for you the first
-time and apply any pending migrations on every start, so after pulling new code you just start them.
+time and apply any pending migrations on every fresh start, so after pulling new code you just start them. With `dev.bat`'s auto-reload the
+migrations run once, at the start: a restart caused by a code change does not run them again (stop and start `dev.bat` after adding a migration).
 
 By hand: `python manage.py serve` (options: `--reload`, `--port 9000`, `--no-open`, `--no-jobs`).
 

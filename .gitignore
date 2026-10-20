@@ -36,4 +36,3 @@ test_db.sqlite3*
 *.out
 *.err
 serve_pid.txt
-serve.*

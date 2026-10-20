@@ -56,13 +56,24 @@ class NumberTests(FakeKronosMixin, TransactionTestCase):
             call_command("serve", "--no-open", "--no-jobs")
         self.assertEqual(called.call_args_list[0].args[0], "migrate")
 
-    def test_an_auto_reload_restart_migrates_too_but_skips_the_slow_steps(self):
+    def test_a_fresh_start_migrates_but_an_auto_reload_restart_does_not(self):
         import os
         from unittest import mock
         from django.core.management import call_command
         with mock.patch.dict(os.environ, {"RUN_MAIN": "true"}),                 mock.patch("console.management.commands.serve.call_command") as called,                 mock.patch("django.core.management.commands.runserver.Command.handle"), mock.patch("subprocess.Popen"):
             call_command("serve", "--no-open", "--no-jobs", "--reload")
         names = [c.args[0] for c in called.call_args_list]
-        self.assertEqual(names[0], "migrate")
+        self.assertNotIn("migrate", names)           # the reload child never migrates
         self.assertNotIn("link_customers", names)
         self.assertNotIn("merge_masters", names)
+        env = {k: v for k, v in os.environ.items() if k != "RUN_MAIN"}
+        with mock.patch.dict(os.environ, env, clear=True),                 mock.patch("console.management.commands.serve.call_command") as called,                 mock.patch("django.core.management.commands.runserver.Command.handle"), mock.patch("subprocess.Popen"),                 mock.patch("threading.Timer"):
+            call_command("serve", "--no-open", "--no-jobs", "--reload")
+        self.assertEqual([c.args[0] for c in called.call_args_list][0], "migrate")  # the first, outer start does
+
+    def test_dev_bat_and_run_bat_both_migrate_on_a_fresh_start(self):
+        from pathlib import Path
+        from django.conf import settings
+        for name in ("dev.bat", "run.bat"):
+            text = (Path(settings.BASE_DIR) / name).read_text(encoding="utf-8")
+            self.assertIn("manage.py migrate", text, name)
