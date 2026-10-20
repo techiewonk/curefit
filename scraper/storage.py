@@ -1,5 +1,6 @@
 """Saving one center/report result: data rows + the SectionResult, together or not at all."""
 import datetime
+import math
 
 from django.db import transaction
 from django.utils import timezone
@@ -8,10 +9,12 @@ from .models import CardColumns, CardRow, GymMember, PerfMetric, SalesRecord, Se
 
 
 def _f(value):
+    """A number for the database, or None (empty, not a number, NaN or infinite: they would break sums and charts)."""
     try:
-        return None if value is None or value == "" else round(float(value), 4)  # no float noise in the database
+        number = None if value is None or value == "" else float(value)
     except (TypeError, ValueError):
         return None
+    return round(number, 4) if number is not None and math.isfinite(number) else None  # no float noise either
 
 
 def _day(value):

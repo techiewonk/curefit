@@ -16,7 +16,8 @@ class PerfWideTests(FakeKronosMixin, TransactionTestCase):
     def setUp(self):
         super().setUp()
         self.month_run = engine.new_session("2025-06-01", "2026-08-31", [1, 2], ["perf"], granularity="month")
-        self.day_run = engine.new_session("2026-08-01", "2026-08-31", [1, 2], ["perf"], granularity="day")
+        # a few days fetched by day: the month run covers more of August, so it wins there
+        self.day_run = engine.new_session("2026-08-03", "2026-08-05", [1, 2], ["perf"], granularity="day")
         CenterGroup.objects.get_or_create(name="GYMS")[0].centers.add(1)
         CenterGroup.objects.get_or_create(name="HYBRIDS")[0].centers.add(2)
         for cid, base in ((1, 1000), (2, 400)):
@@ -48,6 +49,14 @@ class PerfWideTests(FakeKronosMixin, TransactionTestCase):
         values = perfwide.month_values()
         self.assertEqual(values[(1, D(2026, 8, 1))][TOTAL], 3000)
         self.assertEqual(values[(1, D(2026, 9, 1))][TOTAL], 12)
+        # a newer day run of the whole of August covers as many days as the month run: the newest wins, and a day
+        # without a row (no sales) is part of what it asked for, not a gap
+        whole = engine.new_session("2026-08-01", "2026-08-31", [1], ["perf"], granularity="day")
+        for day in range(1, 32):
+            if day != 15:
+                self.put(whole, 1, D(2026, 8, day), TOTAL, 50)
+        figure = perfwide.month_figures()[(1, D(2026, 8, 1))][TOTAL]
+        self.assertEqual((figure.value, figure.covered), (1500, 31))
 
     def test_analysis_modes(self):
         today = D(2026, 9, 15)
@@ -340,7 +349,12 @@ class FetchMissingTests(FakeKronosMixin, TransactionTestCase):
         self.assertContains(self.client.get(url), "Fetch the missing days")
         from centers import services
         services.set_list("actual", [1])
-        r = self.client.get(reverse("admin:scraper_salescoverage_fetch_missing_days"))
-        self.assertRedirects(r, reverse("console:run"), fetch_redirect_response=False)
+        url = reverse("admin:scraper_salescoverage_fetch_missing_days")
+        self.assertEqual(self.client.get(url).status_code, 200)  # a confirmation dialog first: nothing started yet
+        from scraper.models import Job
+        self.assertFalse(Job.objects.exists())
+        r = self.client.post(url, {"_form_submitted": "True"}, HTTP_HX_REQUEST="true")  # what the dialog's button sends
+        self.assertEqual(r["HX-Redirect"], reverse("console:run"))
+        self.assertTrue(Job.objects.exists())
         self.assertRedirects(self.client.get(reverse("admin:scraper_salescoverage_open_missing_days")), reverse("console:coverage"),
                              fetch_redirect_response=False)

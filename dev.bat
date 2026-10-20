@@ -1,6 +1,7 @@
 @echo off
 REM Development: the web server restarts when a .py file changes (a running scrape is not affected,
-REM it lives in the job runner). Sets itself up first if needed and applies pending migrations.
+REM it lives in the job runner). Sets itself up first if needed and installs packages that changed.
+REM Pending database migrations are applied before the start, not on a reload (seed_groups runs inside serve).
 setlocal
 cd /d "%~dp0"
 if not exist ".venv\Scripts\python.exe" (
@@ -8,9 +9,9 @@ if not exist ".venv\Scripts\python.exe" (
     if errorlevel 1 goto :fail
 )
 set CUREFIT_DEBUG=1
-".venv\Scripts\python" manage.py migrate --noinput
+call update_packages.bat
 if errorlevel 1 goto :fail
-".venv\Scripts\python" manage.py seed_groups
+".venv\Scripts\python" manage.py migrate --noinput
 if errorlevel 1 goto :fail
 ".venv\Scripts\python" manage.py collectstatic --noinput --verbosity 0
 if errorlevel 1 goto :fail

@@ -1,7 +1,8 @@
 {% extends "console/base.html" %}
-{% load unfold humanize %}
+{% load unfold humanize formats %}
 
 {% block page %}
+<p class="text-sm text-font-subtle-light dark:text-font-subtle-dark">Sales and revenue per center in two runs side by side, with the difference (B minus A). Pick session A and B, for example two runs of the same period, and tick <em>only changed</em> to hide centers that did not move.</p>
 <form method="get" class="flex flex-col gap-2">
   {% component "unfold/components/card.html" with title="Sessions to compare" %}
     <div class="grid gap-x-6 md:grid-cols-3">
@@ -16,12 +17,16 @@
   {% endcomponent %}
 </form>
 
+{% if rows_pruned %}
+  {% component "unfold/components/card.html" %}<p class="text-orange-600">The per-run sales or gym rows of one of these sessions were removed to save space (<em>Keep run rows</em> in Settings), so its sales show as missing here. Its data is still in the all-runs tables.</p>{% endcomponent %}
+{% endif %}
+
 {% if rows %}
   <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
     {% component "unfold/components/card.html" with title="Centers shown" %}<span class="text-2xl font-semibold">{{ rows|length }}</span>{% endcomponent %}
-    {% component "unfold/components/card.html" with title="Sales change" %}<span class="text-2xl font-semibold">{{ totals.sales|intcomma }}</span>{% endcomponent %}
-    {% component "unfold/components/card.html" with title="Sales revenue change" %}<span class="text-2xl font-semibold">₹{{ totals.sales_revenue|intcomma }}</span>{% endcomponent %}
-    {% component "unfold/components/card.html" with title="Total revenue change" %}<span class="text-2xl font-semibold">₹{{ totals.total_revenue|intcomma }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Sales change" %}<span class="text-2xl font-semibold">{{ totals.sales|inr }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Sales revenue change" %}<span class="text-2xl font-semibold">₹{{ totals.sales_revenue|inr }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Total revenue change" %}<span class="text-2xl font-semibold">₹{{ totals.total_revenue|inr }}</span>{% endcomponent %}
   </div>
   {% component "unfold/components/card.html" %}
     <div class="max-h-[70vh] overflow-auto">
@@ -34,10 +39,10 @@
             <td>{{ r.id }} · {{ r.name }}
               {% if not r.a %}<span class="bg-blue-100 px-1.5 rounded-default text-blue-700 text-xs">only in B</span>{% endif %}
               {% if not r.b %}<span class="bg-orange-100 px-1.5 rounded-default text-orange-700 text-xs">only in A</span>{% endif %}</td>
-            <td class="text-right">{{ r.a.sales|default_if_none:"" }}</td><td class="text-right">{{ r.b.sales|default_if_none:"" }}</td>
-            <td class="text-right {% if r.diff.sales > 0 %}text-green-600{% elif r.diff.sales < 0 %}text-red-600{% endif %}">{{ r.diff.sales|default_if_none:""|intcomma }}</td>
-            <td class="text-right">{{ r.a.sales_revenue|default_if_none:""|intcomma }}</td><td class="text-right">{{ r.b.sales_revenue|default_if_none:""|intcomma }}</td>
-            <td class="text-right {% if r.diff.sales_revenue > 0 %}text-green-600{% elif r.diff.sales_revenue < 0 %}text-red-600{% endif %}">{{ r.diff.sales_revenue|default_if_none:""|intcomma }}</td>
+            <td class="text-right">{{ r.a.sales|inr }}</td><td class="text-right">{{ r.b.sales|inr }}</td>
+            <td class="text-right {% if r.diff.sales > 0 %}text-green-600{% elif r.diff.sales < 0 %}text-red-600{% endif %}">{{ r.diff.sales|inr }}</td>
+            <td class="text-right">{{ r.a.sales_revenue|inr }}</td><td class="text-right">{{ r.b.sales_revenue|inr }}</td>
+            <td class="text-right {% if r.diff.sales_revenue > 0 %}text-green-600{% elif r.diff.sales_revenue < 0 %}text-red-600{% endif %}">{{ r.diff.sales_revenue|inr }}</td>
           </tr>
         {% endfor %}
         </tbody>

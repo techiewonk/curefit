@@ -2,10 +2,12 @@
    The admin lists (Gym members and the rest) have this built in on the server; this gives the report pages that
    show months or ranks across the same feel. Numbers sort as numbers (18,75,475 and 12.5% included). */
 (function () {
+  var NUMBER = /^[-+]?(\d+(\.\d*)?|\.\d+)$/;   // the whole cell must be a number: "99 Fitness" is text
+
   function value(cell) {
     var text = (cell.getAttribute("data-sort") || cell.textContent || "").trim();
-    var n = parseFloat(text.replace(/[₹%,\s]/g, ""));
-    return text !== "" && !isNaN(n) ? n : text.toLowerCase();
+    var bare = text.replace(/[₹%,\s]/g, "");
+    return NUMBER.test(bare) ? parseFloat(bare) : text.toLowerCase();
   }
 
   function compare(a, b, dir) {
@@ -49,16 +51,20 @@
     var search = document.createElement("input");
     search.type = "search";
     search.placeholder = "Search this table";
+    search.setAttribute("aria-label", "Search this table");
     search.className = "border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700";
     var sizes = document.createElement("select");
     sizes.className = search.className;
+    sizes.setAttribute("aria-label", "Rows per page");
     [[0, "All rows"], [25, "25 per page"], [50, "50 per page"], [100, "100 per page"]].forEach(function (o) {
       var opt = document.createElement("option");
       opt.value = o[0]; opt.textContent = o[1]; opt.selected = o[0] === state.size;
       sizes.appendChild(opt);
     });
     var info = document.createElement("span");
-    var prev = document.createElement("a"), next = document.createElement("a");
+    info.setAttribute("aria-live", "polite");
+    var prev = document.createElement("button"), next = document.createElement("button");
+    prev.type = next.type = "button";              // a real button: keyboard operable, never submits a form
     prev.textContent = "← Previous"; next.textContent = "Next →";
     prev.className = next.className = "text-primary-600 cursor-pointer";
     [search, sizes, info, prev, next].forEach(function (el) { bar.appendChild(el); });
@@ -66,13 +72,20 @@
     holder.parentNode.insertBefore(bar, holder);
 
     var heads = columnHeaders(table);   // with grouped (two-level) headings: the bottom-most heading of each column
+    heads = heads.map(function (th, i) { return heads.indexOf(th) === i ? th : null; });  // a wide heading sorts by its first column, once
     heads.forEach(function (th, i) {
       if (!th) return;
-      th.style.cursor = "pointer";
-      th.title = "Click to sort";
-      th.addEventListener("click", function () {
+      function sort() {
         state.dir = state.col === i ? -state.dir : 1;
         state.col = i; state.page = 0; draw();
+      }
+      th.style.cursor = "pointer";
+      th.title = "Click (or Enter) to sort";
+      th.tabIndex = 0;
+      th.setAttribute("role", "columnheader");
+      th.addEventListener("click", sort);
+      th.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sort(); }
       });
     });
 

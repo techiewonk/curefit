@@ -3,7 +3,7 @@ import tempfile
 from unittest import mock
 
 from centers.models import Center
-from scraper import conf, files, kronos, login
+from scraper import auth, conf, files, kronos, login
 from scraper.reports import REPORTS
 
 
@@ -18,6 +18,7 @@ class FakeKronosMixin:
         self.calls, self.mode, self.params = [], {}, []
         self.by_card = {v["card"]: k for k, v in REPORTS.items()}
         for p in (
+            mock.patch.object(auth, "logged_in", lambda fresh=False: True),  # jobs.enqueue checks the login
             mock.patch.object(files, "RUNS_DIR", self.tmp),
             mock.patch.object(conf.RunSettings, "pause", lambda self: None),
             mock.patch.object(login, "load_session", lambda: (object(), {})),
@@ -29,7 +30,7 @@ class FakeKronosMixin:
             p.start()
             self.addCleanup(p.stop)
 
-    def fake_rows(self, mb, rep, token, start, end, cfg=None, granularity="month"):
+    def fake_rows(self, mb, rep, token, start, end, cfg=None, granularity="month", **kw):  # kw: should_stop, on_busy
         cid = int(token.split(":")[1])
         name = self.by_card[rep["card"]]
         self.calls.append((name, cid))
@@ -39,6 +40,12 @@ class FakeKronosMixin:
             hook(name, cid)
         if name in self.mode.get("fail", ()):
             raise RuntimeError("HTTP 500")
+        if name in self.mode.get("leak", ()):  # an error that carries the signed token in its text
+            raise RuntimeError(f"500 for https://metabase.curefit.co/api/embed/dashboard/{token}/dashcard/1")
+        once = self.mode.setdefault("empty_once_seen", set())
+        if (name, cid, start) in self.mode.get("empty_once", ()) and (name, cid, start) not in once:
+            once.add((name, cid, start))  # Metabase answering empty by mistake: the retry gets the rows
+            return [], []
         if name in self.mode.get("slow", ()):
             raise kronos.SlowQuery("not completed")
         if self.mode.get("auth"):

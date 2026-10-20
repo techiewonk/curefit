@@ -4,6 +4,7 @@ Settings for the Curefit admin (local, single user, SQLite).
 Environment:
     CUREFIT_DEBUG=1        development (dev.bat sets it): runserver auto-reload, DEBUG pages
     CUREFIT_DB=<path>      use another SQLite file (tests, experiments)
+    CUREFIT_TEST_DB=<path> the SQLite file the test runner creates and deletes
 """
 import os
 import secrets
@@ -25,6 +26,10 @@ SECRET_KEY = _secret_key()
 # The admin has no password page (only the Kronos OTP): it must never be reachable from elsewhere.
 ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = ["http://localhost:8000", "http://127.0.0.1:8000"]
+# own cookie names, so other apps on localhost neither read nor overwrite ours; never sent on cross-site requests
+SESSION_COOKIE_NAME = "curefit_sessionid"
+CSRF_COOKIE_NAME = "curefit_csrftoken"
+SESSION_COOKIE_SAMESITE = CSRF_COOKIE_SAMESITE = "Strict"
 
 INSTALLED_APPS = [
     "unfold",                        # modern admin theme (must precede django.contrib.admin)
@@ -107,11 +112,12 @@ STORAGES = {
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
 
-# Background jobs: the Django database is the queue (no Redis/broker). One job at a time; the
-# scrape itself fans out over centers inside the task. `manage.py qcluster` runs it.
+# Background jobs: the Django database is the queue (no Redis/broker). The scrape itself fans out over centers
+# inside the task. Two workers, so a scheduled automatic run is looked at (and skipped with a reason) while a long
+# scrape runs instead of waiting hours behind it; the Job lock still allows only one scrape at a time.
 Q_CLUSTER = {
     "name": "curefit",
-    "workers": 1,
+    "workers": 2,
     "orm": "default",
     "timeout": 60 * 60 * 24 * 6,  # a full scrape can take many hours
     "retry": 60 * 60 * 24 * 7,    # must exceed the timeout, or q2 would queue the task again
@@ -128,26 +134,62 @@ from django.urls import reverse_lazy  # noqa: E402
 _ADMIN = lambda model: reverse_lazy(f"admin:{model}_changelist")  # noqa: E731
 
 # Settings editable in the admin (System → Settings). Read them with `constance.config.NAME`.
+# Backstop only: every export already passes its text cells through scraper.resources.safe_cell.
 IMPORT_EXPORT_ESCAPE_FORMULAE_ON_EXPORT = True  # a name like =HYPERLINK(...) must not run when opened in Excel
+IMPORT_EXPORT_ESCAPE_ILLEGAL_CHARS_ON_EXPORT = True  # a control character must not make the XLSX download fail
 
 CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
+
+
+def _number(kind, low, high=None):
+    """A constance field that refuses values outside [low, high]: zero retries or 50 workers would break a run
+    or hammer Curefit's production servers."""
+    widget = "unfold.widgets.UnfoldAdminIntegerFieldWidget" if kind == "Integer" else \
+        "unfold.widgets.UnfoldAdminDecimalFieldWidget"
+    options = {"widget": widget, "min_value": low}
+    if high is not None:
+        options["max_value"] = high
+    return [f"django.forms.{kind}Field", options]
+
+
+CONSTANCE_ADDITIONAL_FIELDS = {
+    "delay": _number("Float", 0, 60),
+    "retries": _number("Integer", 1, 10),
+    "seconds": _number("Integer", 10, 900),
+    "fail_limit": _number("Integer", 1, 20),
+    "workers": _number("Integer", 1, 8),
+    "row_cap": _number("Integer", 100, 1_000_000),
+    "count": _number("Integer", 0),
+    "days": _number("Integer", 1, 3650),
+    "email": ["django.forms.EmailField", {"widget": "unfold.widgets.UnfoldAdminEmailInputWidget"}],
+    "sales_chunk": ["django.forms.ChoiceField", {
+        "widget": "unfold.widgets.UnfoldAdminSelectWidget",
+        "choices": (("whole", "Whole period in one request"), ("day", "One request per day"),
+                    ("week", "One request per week"))}],
+    "text": ["django.forms.CharField", {"widget": "unfold.widgets.UnfoldAdminTextInputWidget", "required": False}],
+}
+
 CONSTANCE_CONFIG = {
-    "DELAY_MIN": (1.0, "Shortest pause between requests (seconds)", float),
-    "DELAY_MAX": (3.0, "Longest pause between requests (seconds)", float),
-    "MAX_RETRIES": (4, "Tries for a failed request", int),
-    "BACKOFF_BASE": (2.0, "Wait before the first retry (seconds); doubles each time", float),
-    "POLL_SECONDS": (240, "How long to wait for a slow Metabase query (seconds)", int),
-    "REQUEST_TIMEOUT": (300, "Network timeout per request (seconds)", int),
-    "ROW_CAP": (10000, "A result this long may have been cut off by Metabase", int),
-    "AUTH_FAIL_LIMIT": (3, "Consecutive 401/403 answers before a run stops", int),
-    "REPORT_FAIL_LIMIT": (3, "Failures in a row (none succeeded) before a report is skipped", int),
-    "MAX_WORKERS": (4, "Most centers fetched at the same time", int),
-    "LOGIN_EMAIL": ("shaurya@teamfit.in", "Kronos account that receives the login OTP", str),
+    "DELAY_MIN": (1.0, "Shortest pause between requests, in seconds (0-60, at most Longest pause)", "delay"),
+    "DELAY_MAX": (3.0, "Longest pause between requests, in seconds (0-60). 1-5 is considerate", "delay"),
+    "MAX_RETRIES": (4, "Tries for a failed request (1-10)", "retries"),
+    "BACKOFF_BASE": (2.0, "Wait before the first retry, in seconds (0-60); doubles each time", "delay"),
+    "POLL_SECONDS": (240, "How long to wait for a slow Metabase query, in seconds (10-900)", "seconds"),
+    "REQUEST_TIMEOUT": (300, "Network timeout per request, in seconds (10-900)", "seconds"),
+    "ROW_CAP": (10000, "A result this long may have been cut off by Metabase (100-1,000,000)", "row_cap"),
+    "AUTH_FAIL_LIMIT": (3, "Consecutive 401/403 answers before a run stops (1-20)", "fail_limit"),
+    "REPORT_FAIL_LIMIT": (3, "Failures in a row (none succeeded) before a report is skipped (1-20)", "fail_limit"),
+    "MAX_WORKERS": (4, "Most centers fetched at the same time (1-8; more only strains Curefit's servers)", "workers"),
+    "LOGIN_EMAIL": ("shaurya@teamfit.in", "Kronos account that receives the login OTP (an email address)", "email"),
     "KEEP_RUN_ROWS": (0, "Keep the per-run sales and gym rows of only this many newest sessions (0 = all). "
-                         "The all-runs tables keep the data either way", int),
-    "SALES_CHUNK": ("whole", "How Expired Pack User Details is asked for by default: whole, day or week", str),
-    "LEAD_EXPIRING_DAYS": (30, "A pack ending within this many days makes the customer 'expiring soon'", int),
-    "LEAD_EXPIRED_DAYS": (90, "A pack that ended within this many days is 'expired recently'; older is 'lapsed'", int),
+                         "The all-runs tables keep the data either way", "count"),
+    "SALES_CHUNK": ("whole", "How Expired Pack User Details is asked for by default", "sales_chunk"),
+    "LEAD_EXPIRING_DAYS": (30, "A pack ending within this many days makes the customer 'expiring soon' (1-3650)", "days"),
+    "LEAD_EXPIRED_DAYS": (90, "A pack that ended within this many days is 'expired recently'; older is 'lapsed' "
+                              "(1-3650)", "days"),
+    "RATE_METRICS": ("", "Extra metric names, comma-separated, that are rates: averaged across gyms instead of "
+                         "added up (names containing rate, %, retention, ... already are)", "text"),
+    "NOT_RATE": ("", "Metric names, comma-separated, that are always added up even if they look like a rate", "text"),
 }
 CONSTANCE_CONFIG_FIELDSETS = {
     "Requests": ("DELAY_MIN", "DELAY_MAX", "MAX_RETRIES", "BACKOFF_BASE", "POLL_SECONDS", "REQUEST_TIMEOUT"),
@@ -155,6 +197,7 @@ CONSTANCE_CONFIG_FIELDSETS = {
     "Account": ("LOGIN_EMAIL",),
     "Leads": ("LEAD_EXPIRING_DAYS", "LEAD_EXPIRED_DAYS"),
     "Sales report": ("SALES_CHUNK",),
+    "Metrics": ("RATE_METRICS", "NOT_RATE"),
     "Storage": ("KEEP_RUN_ROWS",),
 }
 
@@ -223,10 +266,26 @@ UNFOLD = {
     },
 }
 
+# Logs go to the console window and to logs/curefit.log (5 files of 5 MB), so closing the window loses nothing.
+# Every line passes the token scrubber: a traceback can carry a Metabase embed URL.
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+_LOG_HANDLERS = ["console", "file"]
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
-    "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "root": {"handlers": ["console"], "level": "WARNING"},
-    "loggers": {"scraper": {"handlers": ["console"], "level": "INFO", "propagate": False}},
+    "filters": {"scrub": {"()": "config.logscrub.ScrubToken"}},
+    "formatters": {"file": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"}},
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "filters": ["scrub"]},
+        "file": {"class": "logging.handlers.RotatingFileHandler", "filename": LOG_DIR / "curefit.log",
+                 "maxBytes": 5 * 1024 * 1024, "backupCount": 5, "encoding": "utf-8", "delay": True,
+                 "filters": ["scrub"], "formatter": "file"},
+    },
+    "root": {"handlers": _LOG_HANDLERS, "level": "WARNING"},
+    "loggers": {
+        "scraper": {"handlers": _LOG_HANDLERS, "level": "INFO", "propagate": False},
+        "django-q": {"handlers": _LOG_HANDLERS, "level": "INFO", "propagate": False},  # django-q2's logger name
+        "django.request": {"handlers": _LOG_HANDLERS, "level": "WARNING", "propagate": False},
+    },
 }

@@ -17,7 +17,7 @@
 
   {% if not home_charts.has_data %}
     {% component "unfold/components/card.html" with title="Revenue by group" %}
-      No monthly revenue yet. Run <strong>Total Revenue and Split</strong> with <em>Split by: month</em> on the
+      No monthly revenue yet. Run <strong>{% report_label "perf" %}</strong> with <em>Split by: month</em> on the
       <a class="text-primary-600" href="{% url 'console:run' %}">Run page</a>; the charts fill in as soon as a run finishes.
     {% endcomponent %}
   {% else %}
@@ -29,6 +29,7 @@
       </div>
       {% component "unfold/components/card.html" with title="Latest full month by group" %}
         {% component "unfold/components/chart/bar.html" with data=home_charts.share options=home_charts.share_options height=300 %}{% endcomponent %}
+        <p class="mt-2 text-xs text-font-subtle-light dark:text-font-subtle-dark">A gym in two groups counts in both, so the bars can add up to more than the total of all gyms (see Revenue by group).</p>
       {% endcomponent %}
     </div>
 

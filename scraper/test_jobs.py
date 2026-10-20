@@ -37,9 +37,31 @@ class JobTests(FakeKronosMixin, TransactionTestCase):
         self.assertEqual(cm.exception.code, 409)
 
     def test_validation(self):
-        for bad in ({"only": ["nope"]}, {"workers": 9}, {"list": "actual"}, {"start": "2026-08-01"}):
+        for bad in ({"only": ["nope"]}, {"only": []}, {"list": "actual"}, {"start": "2026-08-01"},
+                    {"start": "2026-13-01"}, {"end": "soon"}, {"speed": "warp"}, {"granularity": "year"},
+                    {"sales_chunk": "hour"}, {"workers": "lots"},
+                    {"start": "2024-01-01"},                                       # longer than 400 days
+                    {"start": "2026-01-01", "sales_chunk": "day", "only": ["sales"]}):  # > 120 days one day at a time
             with self.assertRaises(jobs.JobError, msg=str(bad)):
                 jobs.enqueue({**self.spec, **bad}, sync=True)
+        self.assertEqual(Session.objects.count(), 0)  # nothing was created by a refused start
+        self.assertEqual(Job.objects.count(), 0)
+
+    def test_too_many_workers_are_capped_and_a_long_run_can_be_confirmed(self):
+        with mock.patch("scraper.jobs.async_task"):
+            job = jobs.enqueue({**self.spec, "workers": 99})
+            self.assertEqual(job.spec["workers"], jobs.config.MAX_WORKERS)
+            Job.objects.all().update(state=Job.DONE)
+            job = jobs.enqueue({**self.spec, "start": "2024-01-01", "confirm_long": True})
+        self.assertEqual(str(job.session.start_date), "2024-01-01")
+
+    def test_enqueue_refuses_without_a_kronos_login(self):
+        from scraper import auth
+        with mock.patch.object(auth, "logged_in", lambda fresh=False: False):
+            with self.assertRaises(jobs.JobError) as cm:
+                self.run_job(only=["sales"])
+        self.assertIn("Not logged in", str(cm.exception))
+        self.assertEqual(Job.objects.count(), 0)
 
     def test_continue_after_a_stop_finishes_the_session(self):
         s = engine.new_session("2026-07-01", "2026-07-31", [1, 2, 3, 4], ["sales", "perf"])

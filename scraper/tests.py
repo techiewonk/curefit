@@ -36,7 +36,7 @@ class EngineTests(FakeKronosMixin, TransactionTestCase):
     def test_files_and_merged(self):
         s = engine.run_session(self.new())
         merged = os.path.join(s.folder, "merged")
-        with open(os.path.join(merged, "sales.csv"), newline="", encoding="utf-8") as f:
+        with open(os.path.join(merged, "sales.csv"), newline="", encoding="utf-8-sig") as f:  # Excel-friendly BOM
             rows = list(csv.reader(f))
         self.assertEqual(len(rows) - 1, 10)
         self.assertEqual(rows[0][:2], ["center_id", "center_name"])
@@ -154,7 +154,7 @@ class EngineTests(FakeKronosMixin, TransactionTestCase):
     def test_report_columns_are_stable_and_dashboard_escapes_names(self):
         Center.objects.filter(pk=1).update(name='</script><b>boom')
         s = engine.run_session(self.new(["sales", "perf"]))
-        with open(os.path.join(s.folder, "sales_report.csv"), newline="", encoding="utf-8") as f:
+        with open(os.path.join(s.folder, "sales_report.csv"), newline="", encoding="utf-8-sig") as f:
             header = next(csv.reader(f))
         self.assertEqual(header, ["center_id", "center_name", "center_code", "start_date", "end_date", "user_id",
                                   "name", "phone", "pack_name", "member_end_date", "active_last_30d", "renewed",

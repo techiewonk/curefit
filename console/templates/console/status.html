@@ -2,6 +2,7 @@
 {% load unfold humanize formats %}
 
 {% block page %}<div class="flex flex-col gap-6">
+  <p class="text-sm text-font-subtle-light dark:text-font-subtle-dark">The state of scraping: the Kronos login, the run in progress (with Stop), what needs attention (failed or unfinished runs, skipped automatic runs, data checks) and the latest totals. Work through <em>Needs attention</em> with its <em>Open</em> links.</p>
   <div class="flex flex-row flex-wrap gap-3 items-center">
     <a href="{% url 'console:run' %}" class="bg-primary-600 border border-transparent font-medium px-4 py-2 rounded-default text-white">Run a scrape</a>
     <a href="{% url 'console:monitor' %}" class="border border-base-200 font-medium px-4 py-2 rounded-default dark:border-base-700">Live monitor</a>
@@ -81,5 +82,6 @@
       <a class="mt-3 inline-block text-primary-600" href="{% url 'console:centers' %}">Update or edit the lists →</a>
     {% endcomponent %}
   </div>
+  <p class="text-xs text-font-subtle-light dark:text-font-subtle-dark">Everything the web server and the job runner log is also written to <code>logs/curefit.log</code> in the project folder (the last five files of 5 MB are kept, login tokens removed), so closing the window loses nothing.</p>
 </div>
 {% endblock %}

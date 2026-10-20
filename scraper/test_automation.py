@@ -97,11 +97,20 @@ class AutoRunTests(FakeKronosMixin, TransactionTestCase):
                          (yesterday, yesterday, Session.DAY))
         self.assertIn("day", {p.get("granular") for p in self.params})
 
-    def test_queued_run_is_not_repeated_the_same_day(self):
+    def test_a_run_is_not_started_twice_while_its_last_start_is_still_going(self):
         auto = self.auto(enabled=True)
-        with mock.patch.object(jobs, "enqueue", return_value=mock.Mock(session_id="x", session=None)):
+        with mock.patch("scraper.jobs.async_task"):
             self.assertEqual(autorun.run(auto)[0], "started")
-            self.assertEqual(autorun.run(auto), ("skipped", "Already started today."))
+            job = Job.objects.get()
+            Job.objects.filter(pk=job.pk).update(state=Job.RUNNING, heartbeat=timezone.now())
+            status, message = autorun.run(auto)
+            self.assertEqual(status, "skipped")
+            self.assertIn("still going", message)
+            auto.refresh_from_db()
+            self.assertEqual((auto.last_status, auto.last_session_id), ("started", job.session_id))  # left as it was
+            Job.objects.filter(pk=job.pk).update(state=Job.DONE)
+            self.assertEqual(autorun.run(auto)[0], "started")  # a second run the same day is fine once it ended
+        self.assertEqual(Job.objects.count(), 2)
 
     def test_command(self):
         self.auto(name="Nightly")

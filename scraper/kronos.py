@@ -10,9 +10,12 @@ import uuid
 import requests
 
 from . import login
+from .throttle import Stopped  # noqa: F401 - raised from here too (a stop while polling)
 
 log = logging.getLogger("scraper.http")
 _TOKEN_IN_URL = re.compile(r"/dashboard/[^/?\s]+")
+BUSY_CODES = (429, 500, 502, 503, 504)  # the server is overloaded: tell the throttle
+POLL_FIRST, POLL_GROWTH, POLL_MAX = 2.0, 1.5, 15.0  # seconds between two looks at an unfinished query
 
 
 def scrub(text):
@@ -28,7 +31,23 @@ class SlowQuery(RuntimeError):
     """Metabase did not finish within the poll window. Not retried blindly: the engine decides."""
 
 
-def with_retry(fn, what, cfg):
+def _sleep(seconds, should_stop=None):
+    """Sleep, but give up (Stopped) within a second of the run being stopped."""
+    end = time.monotonic() + seconds
+    while True:
+        if should_stop is not None and should_stop():
+            raise Stopped("stopped while waiting")
+        left = end - time.monotonic()
+        if left <= 0:
+            return
+        time.sleep(min(1.0, left))
+
+
+def with_retry(fn, what, cfg, should_stop=None, on_busy=None):
+    """Call fn, retrying network errors and 5xx with a growing wait.
+
+    should_stop: a Stop pressed during a wait ends the call (Stopped). on_busy: called on 429/5xx, so the
+    throttle can slow the whole run down."""
     last = None
     for attempt in range(cfg.max_retries):
         try:
@@ -39,8 +58,10 @@ def with_retry(fn, what, cfg):
                 raise AuthError(f"{what}: HTTP {code}") from e
             if code in (400, 404):
                 raise
+            if code in BUSY_CODES and on_busy is not None:
+                on_busy()
             last = e
-        except SlowQuery:
+        except (SlowQuery, Stopped):
             raise
         except Exception as e:
             last = e
@@ -49,7 +70,7 @@ def with_retry(fn, what, cfg):
         wait = cfg.backoff_base * (2 ** attempt) + random.uniform(0, 1)
         log.warning("retry %s: %s (attempt %d/%d, waiting %.1fs)", what, scrub(last), attempt + 1,
                     cfg.max_retries, wait)
-        time.sleep(wait)
+        _sleep(wait, should_stop)
     raise last or RuntimeError(f"{what}: no attempt was made (MAX_RETRIES is {cfg.max_retries})")
 
 
@@ -96,19 +117,21 @@ def warm_up(mb, token, cfg):
             log.warning("warm-up failed %s: %s", scrub(url.split("?")[0]), scrub(e))
 
 
-def get_rows(mb, rep, token, start, end, cfg, granularity="month"):
+def get_rows(mb, rep, token, start, end, cfg, granularity="month", should_stop=None, on_busy=None):
     """Return (rows, column_names) once Metabase reports the query completed.
 
-    A 200 or a 202 body can already be the finished result; anything else is polled until
-    `cfg.poll_seconds`, then SlowQuery is raised.
+    A 200 or a 202 body can already be the finished result; anything else is polled (2s, then a little longer
+    each time, at most 15s apart) until `cfg.poll_seconds` after the first request, then SlowQuery is raised.
+    A retry after a network error does not restart that clock. should_stop / on_busy: see with_retry.
     """
     params = urllib.parse.quote(json.dumps(rep["data_params"](start, end, granularity)))
     url = (f"https://metabase.curefit.co/api/embed/dashboard/{token}"
            f"/dashcard/{rep['dashcard']}/card/{rep['card']}?parameters={params}")
     hdr = {**embed_headers(token), "x-metabase-guest-embed": "true"}
+    deadline = time.time() + cfg.poll_seconds
 
     def do():
-        deadline = time.time() + cfg.poll_seconds
+        wait = POLL_FIRST
         while True:
             r = mb.get(url, headers=hdr, timeout=cfg.request_timeout)
             r.raise_for_status()
@@ -125,6 +148,7 @@ def get_rows(mb, rep, token, start, end, cfg, granularity="month"):
             if time.time() > deadline:
                 raise SlowQuery(f"metabase query not completed after {cfg.poll_seconds}s "
                                 f"(status={status!r})")
-            time.sleep(2)
+            _sleep(min(wait, max(0.0, deadline - time.time()) + 0.1), should_stop)
+            wait = min(POLL_MAX, wait * POLL_GROWTH)
 
-    return with_retry(do, "data", cfg)
+    return with_retry(do, "data", cfg, should_stop, on_busy)

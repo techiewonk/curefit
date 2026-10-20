@@ -6,6 +6,8 @@ from django.utils import timezone
 
 from centers.models import Center, CenterGroup, CenterList
 
+from .conf import SPEED_CHOICES, SPEED_PROFILES
+
 
 class SessionQuerySet(models.QuerySet):
     def unfinished(self):
@@ -48,6 +50,9 @@ class Session(models.Model):
         default=False, help_text="Sales only: skip days already stored and fetch just the gaps.")
     merged_into_masters = models.BooleanField(
         default=False, help_text="Its sales and gym rows are in the all-runs tables (safe to prune).")
+    rows_pruned = models.BooleanField(
+        default=False, help_text="Its per-run sales and gym rows were deleted to save space (Keep run rows): its "
+                                 "Analytics and Compare show no sales; the all-runs tables still hold the data.")
     coverage = models.JSONField(null=True, blank=True)
     missing = models.JSONField(default=dict, blank=True)
     checks = models.JSONField(default=list, blank=True, help_text="Automatic findings after the run")
@@ -132,7 +137,8 @@ class PerfMetric(_Record):
 
     class Meta:
         indexes = [models.Index(fields=["session", "center"]),
-                   models.Index(fields=["session", "metric"])]
+                   models.Index(fields=["session", "metric"]),
+                   models.Index(fields=["metric", "metric_date"])]
 
 
 class GymMember(_Record):
@@ -276,7 +282,7 @@ class AutoRun(models.Model):
     groups = models.ManyToManyField(CenterGroup, blank=True, related_name="auto_runs", help_text="... plus the gyms of these groups ...")
     gyms = models.ManyToManyField(Center, blank=True, related_name="auto_runs", help_text="... plus these gyms.")
     reports = models.JSONField(default=list)
-    speed = models.CharField(max_length=16, default="adaptive")
+    speed = models.CharField(max_length=16, default="adaptive", choices=SPEED_CHOICES)
     granularity = models.CharField(
         max_length=5, choices=Session.GRANULARITY_CHOICES, default=Session.DAY,
         help_text="How the perf cards split the period: one row per day, week or month.")
@@ -309,6 +315,31 @@ class AutoRun(models.Model):
         if self.period_rule == self.FIXED:
             if not (self.start_date and self.end_date) or self.start_date > self.end_date:
                 raise ValidationError({"end_date": "Fixed dates need a start date on or before the end date."})
+
+    def clean_fields(self, exclude=None):
+        """Also refuse an empty or unknown report list (empty would scrape everything) and an unknown speed, sales
+        chunk or split (the schedule task would crash on it). Fields a form leaves out (`exclude`) are not checked:
+        'Save as campaign' fills them from the Run form, which checked them already."""
+        from django.core.exceptions import ValidationError
+
+        from .reports import REPORTS
+        errors = {}
+        try:
+            super().clean_fields(exclude)
+        except ValidationError as e:
+            errors = e.update_error_dict(errors)
+        skip = set(exclude or ())
+        reports = self.reports if isinstance(self.reports, list) else []
+        if "reports" not in skip and (not reports or any(r not in REPORTS for r in reports)):
+            unknown = [str(r) for r in reports if r not in REPORTS]
+            errors.setdefault("reports", []).append(
+                f"Unknown report(s): {', '.join(unknown)}." if unknown else "Pick at least one report.")
+        for field, allowed in (("speed", SPEED_PROFILES), ("sales_chunk", dict(Session.CHUNK_CHOICES)),
+                               ("granularity", dict(Session.GRANULARITY_CHOICES))):
+            if field not in skip and field not in errors and getattr(self, field) not in allowed:
+                errors[field] = [f"Choose one of: {', '.join(allowed)}."]
+        if errors:
+            raise ValidationError(errors)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -441,9 +472,29 @@ class CenterMonth(models.Model):
     new_revenue = models.FloatField(null=True, blank=True)
     repeat_revenue = models.FloatField(null=True, blank=True)
     metrics = models.JSONField(default=dict, blank=True, help_text="Every metric of the month, by name.")
+    covered_days = models.PositiveSmallIntegerField(
+        null=True, blank=True, help_text="Days of the month the total revenue figure covers; fewer than the "
+                                         "month has = a partly fetched month (kept out of averages and ranks).")
+    estimated = models.BooleanField(
+        default=False, help_text="Part of the figure comes from a week that crosses the month end, split by days.")
     last_session = models.ForeignKey(Session, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     updated_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         ordering = ["-month", "center_id"]
         constraints = [models.UniqueConstraint(fields=["center", "month"], name="one_row_per_center_month")]
+
+
+class RepairLog(models.Model):
+    """One-time repairs of stored data after a change in how it is computed (see scraper/repairs.py)."""
+
+    version = models.CharField(max_length=40, unique=True, help_text="Which repair ran; each runs only once.")
+    ran_at = models.DateTimeField(default=timezone.now)
+    counts = models.JSONField(default=dict, blank=True, help_text="Rows rebuilt by each step.")
+    error = models.TextField(blank=True, help_text="Why the repair stopped, if it did (it is tried again next start).")
+
+    class Meta:
+        ordering = ["-ran_at"]
+
+    def __str__(self):
+        return f"{self.version} · {self.ran_at:%Y-%m-%d %H:%M}"

@@ -211,9 +211,17 @@ def link_pending():
     return done
 
 
+STATUS_FIELDS = dict(as_of=None, center=None, pack_name="", pack_end_date=None, renewed="", active_last_30d="",
+                     member_status="", new_vs_repeat="", last_class_date=None, last_amount=None)
+
+
 def rebuild_all():
-    """Forget every status and replay all sessions oldest first (by the day they were run). For repairing old data."""
-    Customer.objects.update(as_of=None)
+    """Forget every status and replay all sessions oldest first (by the day they were run). For repairing old data.
+
+    The pack, end date and status are reset too (the pack only moves forward, so a wrong one would otherwise stay),
+    unless some session's rows were pruned: those rows cannot be replayed, so only the 'as of' date is reset."""
+    pruned = Session.objects.filter(rows_pruned=True).exists()
+    Customer.objects.update(**({"as_of": None} if pruned else STATUS_FIELDS))
     done = 0
     for session in _in_time_order(Session.objects.all()):
         done += link_session(session, refresh=False)

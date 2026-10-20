@@ -2,6 +2,7 @@
 {% load unfold humanize formats %}
 
 {% block page %}
+<p class="text-sm text-font-subtle-light dark:text-font-subtle-dark">Every Franchise Performance metric of this gym by month, then each metric against its group's average. Choose how many months to show; a month marked partial is shown but kept out of averages and changes.</p>
 <form method="get" class="flex flex-row flex-wrap gap-3 items-end">
   <label class="mb-4 text-sm">Months
     <select name="months" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">

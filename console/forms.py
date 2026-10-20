@@ -2,6 +2,8 @@
 import datetime as dt
 
 from django import forms
+from django.core.exceptions import NON_FIELD_ERRORS
+from django.utils import timezone
 from unfold.widgets import (UnfoldAdminCheckboxSelectMultipleWidget, UnfoldAdminRadioSelectWidget,
                             UnfoldAdminSelect2MultipleWidget, UnfoldAdminSelectWidget, UnfoldAdminSingleDateWidget, UnfoldAdminSingleTimeWidget,
                             UnfoldAdminTextInputWidget, UnfoldBooleanSwitchWidget)
@@ -18,9 +20,14 @@ def default_chunk():
 
 
 def last_month():
-    first_of_month = dt.date.today().replace(day=1)
+    """The previous calendar month in India time (date.today() would follow the PC's clock zone)."""
+    first_of_month = timezone.localdate().replace(day=1)
     last = first_of_month - dt.timedelta(days=1)
     return last.replace(day=1), last
+
+
+MAX_SPAN_DAYS = 4 * 366     # four years: more is surely a typo (and Revenue by group shows at most 48 months)
+MAX_FUTURE_DAYS = 31        # this month may be asked for in full; a year typo in the future may not
 
 
 class RunForm(forms.Form):
@@ -28,7 +35,8 @@ class RunForm(forms.Form):
 
     start = forms.DateField(widget=UnfoldAdminSingleDateWidget)
     end = forms.DateField(widget=UnfoldAdminSingleDateWidget,
-                          help_text="The sales report only holds the last 90 days before today.")
+                          help_text="The sales report only holds the last 90 days before today. A period can be at "
+                                    "most four years long and end at most a month from today.")
     centers = forms.ModelChoiceField(CenterList.objects.all(), to_field_name="name", empty_label=None,
                                      label="Centers", widget=UnfoldAdminRadioSelectWidget)
     pick = forms.ModelMultipleChoiceField(
@@ -55,10 +63,12 @@ class RunForm(forms.Form):
                                       widget=UnfoldBooleanSwitchWidget)
     session = forms.ModelChoiceField(Session.objects.unfinished(), required=False,
                                      empty_label="Start a new session", widget=UnfoldAdminRadioSelectWidget)
-    retry_empty = forms.BooleanField(required=False, label="Also retry empty results",
-                                     widget=UnfoldBooleanSwitchWidget)
-    recheck_known = forms.BooleanField(required=False, label="Also re-check known-empty centers",
-                                       widget=UnfoldBooleanSwitchWidget)
+    retry_empty = forms.BooleanField(
+        required=False, label="Also retry empty results", widget=UnfoldBooleanSwitchWidget,
+        help_text="Only when continuing a session: centers that came back empty are asked again.")
+    recheck_known = forms.BooleanField(
+        required=False, label="Also re-check known-empty centers", widget=UnfoldBooleanSwitchWidget,
+        help_text="Centers marked known empty for a report are normally skipped; switch on to ask them anyway.")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -82,9 +92,24 @@ class RunForm(forms.Form):
 
     def clean(self):
         data = super().clean()
-        if data.get("start") and data.get("end") and data["start"] > data["end"]:
+        start, end = data.get("start"), data.get("end")
+        if start and end and start > end:
             self.add_error("end", "The end date is before the start date.")
+        elif start and end and (end - start).days >= MAX_SPAN_DAYS:
+            self.add_error("end", "The period is longer than four years - check the year.")
+        elif end and end > timezone.localdate() + dt.timedelta(days=MAX_FUTURE_DAYS):
+            self.add_error("end", "The end date is more than a month in the future - check the year.")
         return data
+
+    def piece_count(self):
+        """Sales requests per center for the period: 1, one per day, or one per week (counted, not listed,
+        so a typo in the year cannot make this slow)."""
+        d = self.cleaned_data
+        start, end, chunk = d.get("start"), d.get("end"), d.get("sales_chunk") or default_chunk()
+        if not (start and end) or start > end or chunk == Session.WHOLE:
+            return 1
+        days = (end - start).days + 1
+        return days if chunk == Session.DAY else -(-days // 7)
 
     @property
     def workers(self):
@@ -139,21 +164,41 @@ class CampaignForm(forms.ModelForm):
                    "month_day": UnfoldAdminTextInputWidget, "days": UnfoldAdminTextInputWidget,
                    "enabled": UnfoldBooleanSwitchWidget, "continue_unfinished": UnfoldBooleanSwitchWidget}
         labels = {"period_rule": "Period each run reports on", "enabled": "Switched on", "days": "Last N days"}
+        help_texts = {"period_rule": "'Fixed dates' keeps the start and end typed above; every other choice moves "
+                                     "with the day the campaign runs."}
+
+    def add_error(self, field, error):
+        """The model's own checks can name fields this form does not show (the fixed start and end dates come from
+        the Run form): those messages are shown at the top of the form instead of failing with a server error."""
+        if field is None and hasattr(error, "error_dict"):
+            for name in [n for n in error.error_dict if n != NON_FIELD_ERRORS and n not in self.fields]:
+                super().add_error(None, error.error_dict.pop(name))
+        super().add_error(field, error)
+
+    def use_run(self, run_form):
+        """Copy the settings of the (valid) Run form onto the campaign before it is validated: the model's checks
+        (reports, speed, the fixed dates) look at them, and this form does not show those fields."""
+        self._apply(self.instance, run_form.cleaned_data)
+
+    @staticmethod
+    def _apply(auto, d):
+        auto.centers = d["centers"]
+        auto.reports = d["reports"]
+        auto.speed = d["speed"]
+        auto.granularity = d["granularity"] or Session.MONTH
+        auto.sales_chunk = d["sales_chunk"] or default_chunk()  # the same default a Start would use
+        auto.fill_missing = d["fill_missing"]
+        auto.retry_empty = d["retry_empty"]
+        auto.recheck_known = d["recheck_known"]
+        auto.start_date, auto.end_date = d["start"], d["end"]  # used by 'Fixed dates' only
 
     def save_from(self, run_form, commit=True):
         """The campaign: this form's name and schedule, with the settings of the (valid) Run form."""
         d = run_form.cleaned_data
         auto = self.save(commit=False)
-        auto.centers = d["centers"]
-        auto.reports = d["reports"]
-        auto.speed = d["speed"]
-        auto.granularity = d["granularity"] or Session.MONTH
-        auto.sales_chunk = d["sales_chunk"] or Session.WHOLE
-        auto.fill_missing = d["fill_missing"]
-        auto.retry_empty = d["retry_empty"]
-        auto.recheck_known = d["recheck_known"]
-        if auto.period_rule == AutoRun.FIXED:  # the dates typed on the Run page
-            auto.start_date, auto.end_date = d["start"], d["end"]
+        self._apply(auto, d)
+        if auto.period_rule != AutoRun.FIXED:  # the other rules work out their own period
+            auto.start_date = auto.end_date = None
         if commit:
             auto.save()
             auto.gyms.set(d["pick"])

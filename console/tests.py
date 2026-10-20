@@ -32,7 +32,8 @@ class ConsoleViewTests(FakeKronosMixin, TransactionTestCase):
 
     # ------------------------------------------------------------------ pages
     def test_every_page_renders(self):
-        for url in ("run/", "monitor/", "analytics/", "compare/", "centers/"):
+        for url in ("run/", "monitor/", "analytics/", "compare/", "centers/", "coverage/", "perf/analysis/",
+                    "revenue/", "gym/1/", "status/"):
             r = self.client.get(BASE + url)
             self.assertEqual(r.status_code, 200, url)
             self.assertContains(r, "htmx.js")

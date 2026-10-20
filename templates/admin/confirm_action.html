@@ -1,0 +1,30 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{# The second step of a bulk action that cannot be undone (scraper.admin.confirmed): what will happen, the rows, a button. #}
+{% block bodyclass %}{{ block.super }} app-{{ opts.app_label }} model-{{ opts.model_name }} delete-confirmation{% endblock %}
+
+{% block content %}
+<div class="border border-base-200 rounded-default shadow-xs dark:border-base-800">
+  <p class="font-semibold p-4 text-font-important-light dark:text-font-important-dark">{{ what }}</p>
+
+  <div class="border-t border-base-200 p-4 dark:border-base-800">
+    <h2 class="font-semibold mb-2 text-font-important-light dark:text-font-important-dark">{{ count }} selected</h2>
+    <ul class="leading-relaxed">
+      {% for obj in objects %}<li>{{ obj }}</li>{% endfor %}
+      {% if count > objects|length %}<li>… and {{ count|add:"-50" }} more</li>{% endif %}
+    </ul>
+  </div>
+
+  <form method="post" class="border-t border-base-200 flex flex-row gap-3 items-center px-4 py-3 dark:border-base-800">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="{{ action }}">
+    <input type="hidden" name="select_across" value="{{ select_across }}">
+    <input type="hidden" name="index" value="0">
+    {% for pk in selected %}<input type="hidden" name="{{ checkbox_name }}" value="{{ pk }}">{% endfor %}
+    <input type="hidden" name="confirmed" value="yes">
+    <button type="submit" class="bg-red-600 border border-transparent font-medium px-4 py-2 rounded-default text-white">Yes, go ahead</button>
+    <a href="" onclick="history.back(); return false;" class="border border-base-200 font-medium px-4 py-2 rounded-default dark:border-base-700">No, go back</a>
+  </form>
+</div>
+{% endblock %}

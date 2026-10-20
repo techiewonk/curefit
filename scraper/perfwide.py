@@ -1,20 +1,22 @@
 """Performance metrics as a wide table: one row per center and month, one column per metric.
 
 The perf card stores one row per metric and date. Here those become columns, and several sessions that
-cover the same month collapse to one figure: a session split by month wins over day/week splits, then the one
-covering most of the month, then the newest. Only when a month has nothing but day or week rows are the
-rows added up.
+cover the same month collapse to one figure: each month uses one split (day, week or month), the one covering
+most of the month, then the newest; day and week rows are added up (rates averaged).
 """
 import datetime as dt
 import re
+from collections import namedtuple
 
+from django.db.models import Sum
 from django.utils import timezone
 
 from centers.models import Center, CenterGroup
 
+from . import numbers
 from .analysis import revenue_metrics
 from .models import PerfMetric, Session
-from .months import days_in, label, month_of, next_month
+from .months import days_in, label, month_of, next_month  # noqa: F401 - label is used by the pages
 
 
 def metric_names():
@@ -27,70 +29,121 @@ def ordered_metrics(names):
     return first + [m for m in sorted(names) if m not in first]
 
 
-def _covered_days(began, ended, created, month):
-    """How many days of `month` a session's period covers, counting only up to the day it was fetched.
+class Figure(namedtuple("Figure", "value covered days estimated")):
+    """One center's figure for a metric and month: the value, how many of the month's `days` it covers, and
+    whether part of it was estimated (a week crossing the month end, split by days)."""
 
-    A session set up for a period that ends in the future (or a legacy one) cannot hold data from after the fetch."""
+    @property
+    def partial(self):
+        return self.covered < self.days
+
+    @property
+    def coverage_text(self):
+        return f"{self.covered} of {self.days} days"
+
+
+MIXED_SPLIT_HELP = ("Each month uses one split (day, week or month): the one covering most days, then the newest. "
+                    "A week that crosses a month end is split between the two months by days (marked estimated).")
+
+
+def _span(day, gran, began, ended, created):
+    """(first, last) day a perf row stands for: its day, week or month, cut to the session's period and to the
+    day the session was fetched. A row lying outside its session's period (old data) keeps its own dates, up to
+    the fetch day (at least its first day)."""
+    if gran == Session.MONTH:
+        first, last = month_of(day), next_month(month_of(day)) - dt.timedelta(days=1)
+    elif gran == Session.WEEK:
+        first, last = day, day + dt.timedelta(days=6)
+    else:
+        first = last = day
     fetched_on = timezone.localtime(created).date()
-    last = min(ended, fetched_on, next_month(month) - dt.timedelta(days=1))
-    return max(0, (last - max(began, month)).days + 1)
+    lo, hi = max(first, began), min(last, ended, fetched_on)
+    return (lo, hi) if lo <= hi else (first, min(last, max(first, fetched_on)))
 
 
-def month_values(since=None, until=None, center_ids=None, metrics=None):
-    """{(center_id, month): {metric: value}} for the months from `since` to `until` (first-of-month dates).
+def month_figures(since=None, until=None, center_ids=None, metrics=None):
+    """{(center_id, month): {metric: Figure}} for the months from `since` to `until` (first-of-month dates).
 
     One figure per center, metric and month, chosen like this:
-      * a session split by month gives the month's figure directly, a day or week split gives rows that are
-        combined (added up, or averaged for rates like retention);
-      * for each date the newest session's value is used, so a re-run corrects an earlier figure;
-      * between a month-split figure and the day/week rows, the one that covers more of the month wins,
-        and the month-split figure wins a tie. Coverage counts only up to the day the session was fetched, so a
-        session whose period runs into the future does not beat a newer, fuller one.
-    A week is counted in the month its first day falls in.
+      * the rows are added up per session and date in SQL;
+      * for each split (day, week, month) and date, the session covering more days wins, then the newest one,
+        so a re-run corrects an earlier figure; coverage counts only up to the day the session was fetched;
+      * day and week rows of a month are combined (added up, or a day-weighted average for rates like
+        retention); a week crossing the month end is split between the two months by days (`estimated`);
+      * the month then takes ONE split, never a mix: the one covering most days of it, then the newest.
+    `covered` counts the days of the month those sessions asked for (their period, up to the day they were fetched),
+    so a day without sales (no row) is not a gap; fewer than the month's days = a partly fetched month.
     """
     qs = PerfMetric.objects.filter(metric_date__isnull=False, value__isnull=False)
     if since:
-        qs = qs.filter(metric_date__gte=since)
+        qs = qs.filter(metric_date__gte=since - dt.timedelta(days=6))  # a week starting in the month before
     if until:
         qs = qs.filter(metric_date__lt=next_month(until))
     if center_ids is not None:
         qs = qs.filter(center_id__in=list(center_ids))
     if metrics:
         qs = qs.filter(metric__in=list(metrics))
-    sums = {}  # (center, metric, date, session) -> [value, created, granularity, began, ended]
-    for cid, day, metric, value, sid, gran, began, ended, created in qs.values_list(
-            "center_id", "metric_date", "metric", "value", "session_id", "session__granularity",
-            "session__start_date", "session__end_date", "session__created_at"):
-        entry = sums.setdefault((cid, metric, day, sid), [0.0, created, gran, began, ended])
-        entry[0] += value
-    month_figure = {}  # (center, metric, month) -> (days covered, created, value)
-    per_date = {}      # (center, metric, month) -> {date: (created, value, days it stands for)}
-    for (cid, metric, day, _), (value, created, gran, began, ended) in sums.items():
-        month = month_of(day)
+    rows = list(qs.order_by().values_list("center_id", "metric", "metric_date", "session_id").annotate(v=Sum("value")))
+    sessions = {pk: rest for pk, *rest in Session.objects.filter(pk__in={r[3] for r in rows}).values_list(
+        "pk", "granularity", "start_date", "end_date", "created_at")} if rows else {}
+    chosen = {}  # (center, metric, granularity, date) -> (days covered, created, value, first, last)
+    asked = {}  # (center, metric, month, granularity) -> sessions with rows there (their periods count as covered)
+    for cid, metric, day, sid, value in rows:
+        if not numbers.is_finite(value) or sid not in sessions:
+            continue
+        gran, began, ended, created = sessions[sid]
+        first, last = _span(day, gran, began, ended, created)
+        candidate = ((last - first).days + 1, created, value, first, last)
+        key = (cid, metric, gran, day)
+        if key not in chosen or candidate[:2] > chosen[key][:2]:
+            chosen[key] = candidate
+        month = month_of(first)
+        while month <= last:
+            asked.setdefault((cid, metric, month, gran), set()).add(sid)
+            month = next_month(month)
+    rates = {m: is_rate(m) for m in {k[1] for k in chosen}}  # once per name: the Settings lists are read here
+    parts = {}  # (center, metric, month, granularity) -> [days set, newest, weighted sum, weight, estimated]
+    for (cid, metric, gran, _), (length, created, value, first, last) in chosen.items():
+        month = month_of(first)
+        while month <= last:
+            lo, hi = max(first, month), min(last, next_month(month) - dt.timedelta(days=1))
+            share = (hi - lo).days + 1
+            part = parts.setdefault((cid, metric, month, gran), [set(), created, 0.0, 0, False])
+            part[0].update(lo + dt.timedelta(days=i) for i in range(share))
+            part[1] = max(part[1], created)
+            if rates[metric]:
+                part[2], part[3] = part[2] + value * share, part[3] + share
+            else:
+                part[2] += value * share / length
+            part[4] = part[4] or share < length
+            month = next_month(month)
+    # A day with no sales has no row, but the session did ask for it: the days of a session's period (up to the day
+    # it was fetched) count as covered in every month where that session gave this center and metric a figure.
+    for (cid, metric, month, gran), part in parts.items():
+        month_end = next_month(month) - dt.timedelta(days=1)
+        for sid in asked.get((cid, metric, month, gran), ()):
+            _, began, ended, created = sessions[sid]
+            lo, hi = max(began, month), min(ended, month_end, timezone.localtime(created).date())
+            part[0].update(lo + dt.timedelta(days=i) for i in range((hi - lo).days + 1))
+    best = {}  # (center, metric, month) -> (days covered, newest, Figure)
+    for (cid, metric, month, _), (days, newest, total, weight, estimated) in parts.items():
+        if (since and month < since) or (until and month > until):
+            continue
+        value = total / weight if weight else total
+        candidate = (len(days), newest, Figure(value, len(days), days_in(month), estimated))
         key = (cid, metric, month)
-        if gran == Session.MONTH:
-            candidate = (_covered_days(began, ended, created, month), created, value)
-            if key not in month_figure or candidate[:2] > month_figure[key][:2]:
-                month_figure[key] = candidate
-        else:
-            dates = per_date.setdefault(key, {})
-            if day not in dates or created > dates[day][0]:
-                dates[day] = (created, value, 7 if gran == Session.WEEK else 1)
+        if key not in best or candidate[:2] > best[key][:2]:
+            best[key] = candidate
     out = {}
-    for key in set(month_figure) | set(per_date):
-        cid, metric, month = key
-        parts = per_date.get(key, {})
-        day_cover = min(days_in(month), sum(u for _, _, u in parts.values()))
-        day_value = None
-        if parts:
-            values = [v for _, v, _ in parts.values()]
-            day_value = sum(values) / len(values) if is_rate(metric) else sum(values)
-        if key in month_figure and (not parts or month_figure[key][0] >= day_cover):
-            value = month_figure[key][2]
-        else:
-            value = day_value
-        out.setdefault((cid, month), {})[metric] = value
+    for (cid, metric, month), (_, _, figure) in best.items():
+        out.setdefault((cid, month), {})[metric] = figure
     return out
+
+
+def month_values(since=None, until=None, center_ids=None, metrics=None):
+    """{(center_id, month): {metric: value}}: the values of `month_figures`, without the coverage."""
+    return {key: {m: f.value for m, f in vals.items()}
+            for key, vals in month_figures(since, until, center_ids, metrics).items()}
 
 
 def group_members():
@@ -130,9 +183,12 @@ def rebuild_months(session=None):
     if session is not None:
         session = Session.objects.get(pk=session.pk)
         since, until, ids = month_of(session.start_date), month_of(session.end_date), session.center_ids
-    values = month_values(since, until, ids)
-    if not values:
+    figures = month_figures(since, until, ids)
+    if not figures:
+        if session is None:  # no perf rows at all any more: nothing of the old table is still true
+            CenterMonth.objects.all().delete()
         return 0
+    values = {key: {m: f.value for m, f in vals.items()} for key, vals in figures.items()}
     trio = revenue_metrics(sorted({m for v in values.values() for m in v}))
     have = {}
     for chunk in range(0, len(ids or []) or 1, 900):
@@ -144,9 +200,11 @@ def rebuild_months(session=None):
             break
     now, new, changed = timezone.now(), [], []
     for (cid, month), vals in values.items():
+        total = figures[(cid, month)].get(trio[0]) if trio[0] else None
         fields = dict(total_revenue=vals.get(trio[0]) if trio[0] else None,
                       new_revenue=vals.get(trio[1]) if trio[1] else None,
                       repeat_revenue=vals.get(trio[2]) if trio[2] else None,
+                      covered_days=total.covered if total else None, estimated=bool(total and total.estimated),
                       metrics={k: round(v, 4) for k, v in vals.items()}, last_session=session, updated_at=now)
         row = have.get((cid, month))
         if row is None:
@@ -160,7 +218,8 @@ def rebuild_months(session=None):
         CenterMonth.objects.filter(pk__in=[c.pk for c in CenterMonth.objects.all() if (c.center_id, c.month) not in keep]).delete()
     CenterMonth.objects.bulk_create(new, batch_size=500, ignore_conflicts=True)
     CenterMonth.objects.bulk_update(
-        changed, ["total_revenue", "new_revenue", "repeat_revenue", "metrics", "last_session", "updated_at"], batch_size=500)
+        changed, ["total_revenue", "new_revenue", "repeat_revenue", "covered_days", "estimated", "metrics", "last_session",
+                  "updated_at"], batch_size=500)
     return len(new) + len(changed)
 
 
@@ -285,10 +344,31 @@ _RATE = re.compile(r"%|per (member|user|gym|visit)|\b(rates?|ratings?|ratios?|re
                    r"occupancy|arpu)\b", re.I)
 
 
+RATE_HELP = ("Rates (%, averages, per member, retention...) are averaged across gyms and days; counts and money are "
+             "added up. Settings > Rate metrics / Not rate metrics override the guess for a metric name.")
+
+
+def _named(setting):
+    """Metric names listed in a Settings text (one per line or comma separated), lower case."""
+    from constance import config
+    try:
+        text = getattr(config, setting)
+    except AttributeError:  # the setting is not declared (yet)
+        return set()
+    return {n.strip().lower() for n in re.split(r"[\n,;]", str(text or "")) if n.strip()}
+
+
 def is_rate(name):
-    """Rates and ratings are averaged across gyms, counts and money are added up. Whole words only:
+    """Rates and ratings are averaged across gyms, counts and money are added up.
+
+    The Settings lists RATE_METRICS / NOT_RATE decide first; otherwise the name is guessed from whole words:
     'Corporate' and 'Registrations' are not rates."""
-    return bool(_RATE.search(name))
+    low = (name or "").strip().lower()
+    if low in _named("NOT_RATE"):
+        return False
+    if low in _named("RATE_METRICS"):
+        return True
+    return bool(_RATE.search(name or ""))
 
 
 def available_months():

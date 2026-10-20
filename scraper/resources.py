@@ -1,10 +1,27 @@
 """django-import-export resources: one definition of each table's export columns, used by both
 the admin's Export button and the per-session report files."""
+import re
+
 from import_export import resources, widgets
 from import_export.fields import Field
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 
 from .numbers import trim
 from .models import CenterMonth, GymMember, GymPack, PerfMetric, SalesPack, SalesRecord
+
+_NUMBER = re.compile(r"^[+-]?\d[\d,]*(\.\d+)?%?$")
+
+
+def safe_cell(value):
+    """A cell that is safe to open in Excel: text starting with = + - @ (a formula, e.g. a member named
+    =HYPERLINK(...)) gets a leading apostrophe, numbers written as text (-354.5) are left alone, and control
+    characters that XLSX cannot hold are dropped instead of failing the whole download."""
+    if not isinstance(value, str):
+        return value
+    value = ILLEGAL_CHARACTERS_RE.sub("", value)
+    if value[:1] in ("=", "@", "\t", "\r") or (value[:1] in ("+", "-") and not _NUMBER.match(value)):
+        return "'" + value
+    return value
 
 
 class TrimmedFloatWidget(widgets.FloatWidget):
@@ -19,6 +36,13 @@ class ModelResource(resources.ModelResource):
     def widget_from_django_field(cls, f, default=widgets.Widget):
         from django.db import models
         return TrimmedFloatWidget if isinstance(f, models.FloatField) else super().widget_from_django_field(f, default)
+
+    def export_field(self, field, instance, **kwargs):
+        return safe_cell(super().export_field(field, instance, **kwargs))
+
+    def get_export_headers(self, *args, **kwargs):
+        """Headers too: CenterMonth's metric columns are named after whatever the data holds."""
+        return [safe_cell(h) for h in super().get_export_headers(*args, **kwargs)]
 
 
 def _from(attribute, name):
@@ -127,10 +151,10 @@ class CenterMonthResource(ModelResource):
 
     def export_field(self, field, instance, **kwargs):
         if field.column_name == "group":
-            return ", ".join(g.name for g in instance.center.groups.all())
+            return safe_cell(", ".join(g.name for g in instance.center.groups.all()))
         if field.column_name == "month":
             return instance.month.strftime("%b-%y")
         if field.column_name in self.metric_names:
             value = instance.metrics.get(field.column_name)
-            return trim(value) if isinstance(value, float) else value
+            return trim(value) if isinstance(value, float) else safe_cell(value)
         return super().export_field(field, instance, **kwargs)

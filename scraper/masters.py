@@ -4,7 +4,7 @@ A run adds packs it has not seen and updates the ones it has. The data of the ne
 (by `scraped_at`, so merging an old session late cannot undo a newer one), and a date never moves
 backwards: the later of the stored and the new date is kept.
 """
-from .customers import _in, clean_user_id
+from .customers import _in, clean_user_id, normalise_phone
 from .models import GymPack, GymMember, SalesPack, SalesRecord, Session
 
 BATCH = 1000
@@ -31,6 +31,40 @@ def make_key(row, fields):
     return "|".join("" if row[f] is None else str(row[f]) for f in fields)
 
 
+def _identity(row):
+    """Who a row is about when Kronos gave no user id: the phone, else the name; None when neither is there.
+    Without this, every no-id row of a center, pack and date would collapse into one person."""
+    phone = normalise_phone(row.get("phone"))
+    if phone:
+        return f"~phone:{phone}"
+    name = " ".join(str(row.get("name") or row.get("username") or "").lower().split())
+    return f"~name:{name[:60]}" if name else None
+
+
+def row_key(row, fields, anonymous=None):
+    """The all-runs table key of a session row: the user id, else `_identity`, else the row's place among the
+    nameless rows of its pack (`anonymous`, set by `_keys`): stable when a later run returns the same rows."""
+    if row["user_id"]:
+        return make_key(row, fields)
+    who = _identity(row) or f"~anon:{anonymous if anonymous is not None else row['id']}"
+    return make_key({**row, "user_id": who}, fields)
+
+
+def _keys(rows, spec):
+    """[(key, row)] for a session's rows. Rows with no user id, phone or name cannot be told apart, so each is kept
+    as its own pack, numbered within its center / pack / date by amount (the same rows next run get the same keys)."""
+    amount, out, nameless = spec["amount"], [], {}
+    for row in rows:
+        if row["user_id"] or _identity(row):
+            out.append((row_key(row, spec["key"])[:200], row))
+        else:
+            nameless.setdefault(make_key(row, spec["key"]), []).append(row)
+    for group in nameless.values():
+        group.sort(key=lambda r: (r[amount] if r[amount] is not None else float("-inf"), r["id"]))
+        out += [(row_key(row, spec["key"], n)[:200], row) for n, row in enumerate(group, 1)]
+    return out
+
+
 def _later(old, new):
     return new if old is None or (new is not None and new > old) else old
 
@@ -52,10 +86,12 @@ def _combine(lines, spec):
 
 def _merge(session, spec):
     fields = tuple(dict.fromkeys(spec["key"] + spec["copy"] + spec["forward"] + ("customer_id", "scraped_at")))
-    grouped = {}
+    grouped, rows = {}, []
     for row in spec["rows"].objects.filter(session=session).order_by("scraped_at", "id").values("id", *fields):
         row["user_id"] = clean_user_id(row["user_id"]) or ""
-        grouped.setdefault(make_key(row, spec["key"]), []).append(row)
+        rows.append(row)
+    for key, row in _keys(rows, spec):
+        grouped.setdefault(key, []).append(row)
     incoming = {key: _combine(lines, spec) for key, lines in grouped.items()}
     master = spec["master"]
     have = {m.key: m for m in _in(master.objects, "key", list(incoming))}
@@ -95,7 +131,9 @@ def merge_session(session):
 def prune_run_rows(keep):
     """Delete the per-run sales and gym rows of all but the newest `keep` sessions (0 = keep everything).
 
-    The all-runs tables keep that data. Performance numbers and the other cards are not touched.
+    The all-runs tables keep that data. Performance numbers and the other cards are not touched. A session that
+    lost rows is marked `rows_pruned`, so its Analytics / Compare can say why it shows no sales and the checks do
+    not compare against it.
     """
     if not keep:
         return 0
@@ -104,8 +142,11 @@ def prune_run_rows(keep):
     deleted = 0
     for i in range(0, len(old), 500):
         chunk = old[i:i + 500]
+        hit = set(SalesRecord.objects.filter(session_id__in=chunk).values_list("session_id", flat=True).distinct()) | \
+            set(GymMember.objects.filter(session_id__in=chunk).values_list("session_id", flat=True).distinct())
         deleted += SalesRecord.objects.filter(session_id__in=chunk).delete()[0]
         deleted += GymMember.objects.filter(session_id__in=chunk).delete()[0]
+        Session.objects.filter(pk__in=hit).update(rows_pruned=True)
     return deleted
 
 

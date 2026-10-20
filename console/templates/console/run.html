@@ -2,12 +2,17 @@
 {% load unfold %}
 
 {% block page %}
+<p class="text-sm text-font-subtle-light dark:text-font-subtle-dark">Log in to Kronos with the emailed OTP, then choose a period, the gyms and the reports and press <em>Start</em>. One scrape runs at a time; if an unfinished session exists for the same period you can continue it instead. If the login expires during a run, log in again here and continue the session.</p>
 <div hx-get="{% url 'console:login' %}" hx-trigger="load" hx-swap="outerHTML"></div>
 
 <form method="post" id="run-form" class="flex flex-col gap-6">
   {% csrf_token %}
   {% if form.non_field_errors %}
     {% include "unfold/helpers/form_errors.html" with errors=form.non_field_errors %}
+  {% endif %}
+  {# the session choice is drawn by the resume panel below, which cannot show its errors #}
+  {% if form.session.errors %}
+    {% include "unfold/helpers/form_errors.html" with errors=form.session.errors %}
   {% endif %}
 
   {% component "unfold/components/card.html" with title="What to scrape" %}
@@ -25,6 +30,10 @@
     {# offers to continue an unfinished session for the chosen period #}
     <div hx-get="{% url 'console:resume' %}" hx-trigger="load, change from:#id_start, change from:#id_end"
          hx-include="#id_start, #id_end"></div>
+    <div class="grid gap-x-6 md:grid-cols-2">
+      {% include "unfold/helpers/field.html" with field=form.retry_empty %}
+      {% include "unfold/helpers/field.html" with field=form.recheck_known %}
+    </div>
     {% include "unfold/helpers/field.html" with field=form.reports %}
   {% endcomponent %}
 
@@ -39,9 +48,10 @@
   {% component "unfold/components/card.html" with title="Save as campaign (run it automatically)" %}
     <p class="mb-3 text-sm text-font-subtle-light dark:text-font-subtle-dark">
       Keeps everything above (gyms, groups, reports, speed, splits, options) under a name and runs it on a schedule.
-      The dates above are not repeated: choose the period each run should report on.
+      The dates above are not repeated: choose the period each run should report on (only "Fixed dates" keeps them).
     </p>
-    {% if campaign.errors %}{% include "unfold/helpers/form_errors.html" with errors=campaign.non_field_errors %}{% endif %}
+    {# the campaign is only checked once the settings above are valid (it takes them over) #}
+    {% if not form.errors and campaign.errors %}{% include "unfold/helpers/form_errors.html" with errors=campaign.non_field_errors %}{% endif %}
     <div class="grid gap-x-6 md:grid-cols-3">
       {% include "unfold/helpers/field.html" with field=campaign.name %}
       {% include "unfold/helpers/field.html" with field=campaign.period_rule %}

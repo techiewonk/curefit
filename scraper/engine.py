@@ -11,18 +11,19 @@ row): set status["stop"] / status["pause"] to stop or hold the run cleanly.
 import logging
 import threading
 import time
+import traceback
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
 from constance import config
-from django.db import connection
+from django.db import connection, transaction
 from django.utils import timezone
 
 from centers.models import Center, KnownEmpty
 
 from . import checks, conf, coverage, customers, files, kronos, login, masters, perfwide
-from .throttle import Gate
+from .throttle import Gate, Stopped
 from .models import SalesRecord, SectionResult, Session
 from .reports import REPORTS
 from .storage import append_rows, clear_rows, record_result, save_section
@@ -40,8 +41,17 @@ def new_session(start, end, center_ids, reports, speed="normal", workers=1, gran
         folder=files.session_folder(start, end, sid), reports=list(reports),
         center_ids=[int(c) for c in center_ids], speed=speed, workers=workers, granularity=granularity,
         sales_chunk=sales_chunk, fill_missing=bool(fill_missing))
-    files.write_session_json(session)
+    _write_session_json(session)
     return session
+
+
+def _write_session_json(session):
+    """The folder's session.json is a convenience copy: a folder that cannot be written (path too long, disk full,
+    a file open elsewhere) must not stop a run whose data goes to the database. The CSV steps report it later."""
+    try:
+        files.write_session_json(session)
+    except OSError as e:
+        log.warning("could not write session.json for %s: %s", session.session_id, e)
 
 
 def find_unfinished(start, end, granularity=None):
@@ -69,7 +79,7 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
     session.status = Session.RUNNING
     session.finished_at = None
     session.save(update_fields=["status", "finished_at"])
-    files.write_session_json(session)
+    _write_session_json(session)
 
     http, _ = login.load_session()
     stats, done = {}, {}
@@ -90,9 +100,10 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
                       active=[], started_at=time.time(), workers=workers)
 
     lock = threading.Lock()
-    flags = {"auth_failures": 0, "aborted": False, "stopped": False}
     fail_streak = {r: 0 for r in reports}
     row_cap, auth_limit, report_limit = cfg.row_cap, cfg.auth_fail_limit, cfg.report_fail_limit
+    # reason: why the run ended early - "auth" (Kronos login rejected), "error" (a worker blew up) or "stop"
+    flags = {"auth_failures": 0, "aborted": False, "stopped": False, "reason": None, "auth_limit": auth_limit}
 
     def note(msg):
         if status is not None:
@@ -126,8 +137,13 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
         if status is not None and status.get("stop"):
             with lock:
                 flags["aborted"] = flags["stopped"] = True
+                flags["reason"] = flags["reason"] or "stop"
             return True
         return flags["aborted"]
+
+    def stop_now():
+        """Non-blocking: has Stop been pressed (or the run aborted)? Checked while a request waits."""
+        return bool(status is not None and status.get("stop")) or flags["aborted"]
 
     def process_center(cid):
         center = centers.get(cid) or Center.objects.get_or_create(center_id=cid)[0]
@@ -144,13 +160,14 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
             how long it waited for a free slot."""
             for attempt in (1, 2):
                 fresh = state["token"] is None
-                with gate.slot():
+                with gate.slot(stop_now):
                     began = time.monotonic()
                     if fresh:
                         state["token"] = kronos.get_token(http, rep, cid, start, end, cfg)
                         kronos.warm_up(tmb, state["token"], cfg)
                     try:
-                        rows_, cols_ = kronos.get_rows(tmb, rep, state["token"], first, last, cfg, session.granularity)
+                        rows_, cols_ = kronos.get_rows(tmb, rep, state["token"], first, last, cfg, session.granularity,
+                                                       should_stop=stop_now, on_busy=gate.struggling)
                     except kronos.AuthError:
                         if fresh or attempt == 2:
                             raise
@@ -202,8 +219,9 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
                                     with lock:
                                         if cid not in st["capped"]:
                                             st["capped"].append(cid)
-                                append_rows(session, cid, rep_name, part)
-                                coverage.mark(session, cid, [(first, last)])
+                                with transaction.atomic():  # rows and "this day is stored" together, or neither
+                                    append_rows(session, cid, rep_name, part)
+                                    coverage.mark(session, cid, [(first, last)])
                                 rows += part
                                 cols = cols or cols_
                                 cfg.pause()
@@ -239,13 +257,23 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
                                 save_section(session, cid, rep_name, rows, cols, seconds)
                             else:  # the pieces are already saved
                                 record_result(session, cid, rep_name, SectionResult.OK, saved, seconds)
-                            files.write_center_file(session, center, rep_name, cols, rows)
                             with lock:
                                 st["ok"] += 1
                             note(f"ok     {rep_name} · {cid} {label} · {len(rows)} rows · {seconds}s")
+                            try:  # the data is saved: a file that cannot be written (open in Excel, disk full) is only noted
+                                files.write_center_file(session, center, rep_name, cols, rows)
+                            except OSError as e:
+                                log.warning("could not write the CSV of %s center %s: %s", rep_name, cid, e)
+                                note(f"file   {rep_name} · {cid} {label} · saved, but its CSV was not written "
+                                     f"({e.__class__.__name__}: is it open in Excel?)")
                         with lock:
                             fail_streak[rep_name] = 0
                             flags["auth_failures"] = 0
+                    except Stopped:  # Stop pressed while this request waited: nothing recorded, Continue asks again
+                        must_stop()
+                        note(f"stopped {rep_name} · {cid} {label} · the request in flight was abandoned")
+                        mark(cid, rep_name, "done")
+                        return
                     except kronos.AuthError as e:
                         record_result(session, cid, rep_name, SectionResult.FAILED, 0, None, kronos.scrub(e))
                         with lock:
@@ -253,6 +281,7 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
                             flags["auth_failures"] += 1
                             if flags["auth_failures"] >= auth_limit:
                                 flags["aborted"] = True
+                                flags["reason"] = flags["reason"] or "auth"
                         note(f"AUTH   {rep_name} · {cid} {kronos.scrub(e)}")
                         mark(cid, rep_name, "failed")
                     except kronos.SlowQuery as e:
@@ -296,9 +325,10 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
         try:
             process_center(cid)
         except Exception:  # noqa: BLE001
-            log.exception("center %s failed unexpectedly: stopping the run", cid)
+            log.error("center %s failed unexpectedly: stopping the run\n%s", cid, kronos.scrub(traceback.format_exc()))
             with lock:
                 flags["aborted"] = True
+                flags["reason"] = flags["reason"] or "error"
             note(f"ERROR  center {cid}: unexpected failure, run stopped (see the log); continue the session to finish it")
 
     if gate.maximum <= 1:
@@ -341,30 +371,58 @@ def register_known_empty(session):
                                              defaults={"note": "empty in two sessions"})
 
 
+# After the scrape: the data steps first (they matter), then the files (a locked CSV must not cost the tables).
+# Each step runs on its own, so one failure never skips the others; a failed data step leaves the session
+# incomplete (Continue runs the steps again) and is listed in its checks.
+DATA_STEPS = (
+    ("Linking customers", lambda s: customers.link_session(s), "python manage.py link_customers"),
+    ("Merging into the all-runs tables", lambda s: masters.merge_session(s), "python manage.py merge_masters"),
+    ("Monthly performance table", lambda s: perfwide.rebuild_months(s), "python manage.py merge_months"),
+    ("Dropping old run rows", lambda s: masters.prune_run_rows(config.KEEP_RUN_ROWS), "the next run"),
+)
+FILE_STEPS = (
+    ("Report files (sales_report.csv, dashboard.html, ...)", lambda s, st: files.export_reports(s)),
+    ("coverage.csv", lambda s, st: files.write_coverage(s, st)),
+    ("merged/ files", lambda s, st: files.merge_session(s)),
+)
+
+
+def _step(findings, name, fn, *args, level="error", fix=""):
+    """Run one after-scrape step; a failure becomes a finding instead of an exception. True when it worked."""
+    try:
+        fn(*args)
+        return True
+    except Exception as e:  # noqa: BLE001 - reported on the session, the other steps still run
+        log.error("%s failed\n%s", name, kronos.scrub(traceback.format_exc()))
+        hint = f" Fix the cause, then continue the session or run {fix}." if fix else " Close the file and continue the session."
+        findings.append({"level": level, "step": name,
+                         "text": f"{name} failed: {kronos.scrub(e)[:300]}.{hint}"})
+        return False
+
+
 def _finish(session, ids, reports, stats, flags, status):
-    register_known_empty(session)
-    files.export_reports(session)
-    coverage = files.write_coverage(session, stats)
-    files.merge_session(session)
+    problems = []
+    _step(problems, "Known-empty update", register_known_empty, session, level="warning", fix="the next run")
 
     saved = {(r, c) for r, c in SectionResult.objects.filter(
         session=session, status__in=DONE_STATES).values_list("report", "center_id")}
     missing = {r: [str(c) for c in ids if (r, c) not in saved] for r in reports}
     session.missing = {r: m for r, m in missing.items() if m}
-    session.coverage = coverage
-    session.checks = checks.run(session)
-    try:
-        customers.link_session(session)  # sales / gym rows -> customers, newest status wins
-        masters.merge_session(session)   # the all-runs gym and expired-pack tables
-        perfwide.rebuild_months(session)  # one row per center and month, metrics as columns
-        masters.prune_run_rows(config.KEEP_RUN_ROWS)
-    except Exception:  # noqa: BLE001 - a linking problem must not fail a finished scrape; `link_customers` retries
-        log.exception("could not link customers for %s", session.session_id)
-    session.status = Session.COMPLETE if not session.missing else Session.INCOMPLETE
+    session.coverage = files.coverage_rows(stats)
+    found = []
+    _step(problems, "Data checks", lambda s: found.extend(checks.run(s)), session, level="warning", fix="the next run")
+
+    data_ok = all([_step(problems, name, fn, session, fix=fix) for name, fn, fix in DATA_STEPS])
+    for name, fn in FILE_STEPS:
+        _step(problems, name, fn, session, stats, level="warning")
+    session.checks = problems + found
+    session.status = Session.COMPLETE if not session.missing and data_ok else Session.INCOMPLETE
     session.finished_at = timezone.now()
     session.save()
-    files.write_session_json(session)
+    _write_session_json(session)
     if status is not None:
         status.update(state="done", desc="", session_status=session.status,
-                      stopped=flags["stopped"], aborted=flags["aborted"])
+                      stopped=flags["stopped"], aborted=flags["aborted"], reason=flags["reason"],
+                      auth_limit=flags.get("auth_limit"),
+                      problems=[p["text"] for p in problems if p["level"] == "error"])
     return session

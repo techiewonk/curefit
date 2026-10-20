@@ -5,6 +5,9 @@
       {% if logged_in %}
         <span class="bg-green-100 font-medium px-2 py-1 rounded-default text-green-700 text-xs">logged in</span>
         <span>The saved session is valid. You can start a scrape.</span>
+      {% elif unreachable %}
+        <span class="bg-orange-100 font-medium px-2 py-1 rounded-default text-orange-700 text-xs">Kronos unreachable</span>
+        <span>Kronos could not be asked (no internet, or Kronos is down). The saved login may still be fine.</span>
       {% else %}
         <span class="bg-orange-100 font-medium px-2 py-1 rounded-default text-orange-700 text-xs">not logged in</span>
         <span>Send the OTP, then enter the code from the email.</span>
@@ -12,7 +15,8 @@
       {% if notice %}<strong class="{% if ok %}text-green-600{% else %}text-red-600{% endif %}">{{ notice }}</strong>{% endif %}
     </div>
     <div class="flex flex-row flex-wrap gap-3 items-end">
-      <button name="action" value="send" type="submit"
+      {# formnovalidate: sending the OTP must not wait for the (still empty) OTP box #}
+      <button name="action" value="send" type="submit" formnovalidate
               class="border border-base-200 font-medium mb-4 px-3 py-2 rounded-default dark:border-base-700">
         Send OTP
       </button>

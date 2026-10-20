@@ -1,9 +1,16 @@
 """Kronos login: an OTP is emailed, we exchange it for a session that is saved in session.json.
 
+A login in progress (OTP sent, not verified yet) lives in session.pending.json, so sending an OTP or typing a
+wrong one never throws away a login that still works: session.json is only replaced once the new login has been
+checked with Kronos.
+
 Nothing here prints or logs tokens, cookies or the OTP.
 """
 import json
 import logging
+import os
+import tempfile
+import time
 from urllib.parse import quote, unquote
 
 import requests
@@ -20,7 +27,10 @@ REFERER = (f"{ACCOUNTS}/login/?tenant={TENANT}&namespace={NAMESPACE}"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36")
 TIMEOUT = 30
+PROBE_TIMEOUT = 5  # the "are we logged in?" check: short, it runs while a page waits
 SESSION_FILE = settings.BASE_DIR / "session.json"  # git-ignored: it holds the login
+PENDING_FILE = settings.BASE_DIR / "session.pending.json"  # a login in progress (OTP sent, not verified yet)
+OK, REJECTED, UNREACHABLE = "ok", "rejected", "unreachable"
 
 
 def new_session():
@@ -30,22 +40,58 @@ def new_session():
     return s
 
 
-def save_session(s, extra=None):
-    """Write to a temporary file, then swap it in: a reader never sees a half-written session."""
-    temp = SESSION_FILE.with_suffix(".tmp")
-    temp.write_text(json.dumps({"cookies": requests.utils.dict_from_cookiejar(s.cookies),
-                                "extra": extra or {}}, indent=2), encoding="utf-8")
-    temp.replace(SESSION_FILE)
+def _write_json(path, data):
+    """Write to a temporary file next to `path`, then swap it in: a reader never sees a half-written file.
+
+    Windows refuses the swap while another process has the file open for a moment: it is tried a few times.
+    The temporary file is always removed."""
+    fd, temp = tempfile.mkstemp(prefix=path.name + ".", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        for attempt in range(5):
+            try:
+                os.replace(temp, path)
+                return
+            except PermissionError:
+                if attempt == 4:
+                    raise
+                time.sleep(0.2 * (attempt + 1))
+    finally:
+        if os.path.exists(temp):
+            os.remove(temp)
 
 
-def load_session():
-    """(requests session carrying the saved cookies, extra data such as the erpToken)."""
+def save_session(s, extra=None, path=None):
+    _write_json(path or SESSION_FILE, {"cookies": requests.utils.dict_from_cookiejar(s.cookies), "extra": extra or {}})
+
+
+def load_session(path=None):
+    """(requests session carrying the saved cookies, extra data such as the erpToken).
+
+    A missing, unreadable or damaged file counts as "not logged in" instead of an error."""
+    path = path or SESSION_FILE
     s, extra = new_session(), {}
-    if SESSION_FILE.exists():
-        data = json.loads(SESSION_FILE.read_text(encoding="utf-8"))
-        requests.utils.add_dict_to_cookiejar(s.cookies, data.get("cookies", {}))
-        extra = data.get("extra", {})
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return s, extra
+    except (OSError, ValueError) as e:
+        log.warning("could not read %s (%s): treated as not logged in", path.name, e.__class__.__name__)
+        return s, extra
+    if isinstance(data, dict):
+        cookies = data.get("cookies")
+        if isinstance(cookies, dict):
+            requests.utils.add_dict_to_cookiejar(s.cookies, cookies)
+        extra = data.get("extra") if isinstance(data.get("extra"), dict) else {}
     return s, extra
+
+
+def clear_pending():
+    try:
+        PENDING_FILE.unlink()
+    except OSError:
+        pass
 
 
 def _payload(email, **more):
@@ -53,35 +99,38 @@ def _payload(email, **more):
 
 
 def send_otp(email):
+    """Ask for an OTP. The new login is kept aside (pending); session.json is not touched. Network errors raise."""
     s = new_session()
     r = s.post(f"{ACCOUNTS}/login/otp/email/send", json=_payload(email), timeout=TIMEOUT)
-    save_session(s)
+    if r.status_code == 200:
+        save_session(s, path=PENDING_FILE)
     log.info("otp send: HTTP %s", r.status_code)
     return r
 
 
 def validate_otp(otp, email):
-    s, _ = load_session()
+    """Check the OTP on the pending login. Returns (response, requests session, token or None). Network errors raise."""
+    s, _ = load_session(PENDING_FILE)
     r = s.post(f"{ACCOUNTS}/login/otp/email/validate", json=_payload(email, otp=str(otp)),
                allow_redirects=False, timeout=TIMEOUT)
     token = _erp_token(r, s)
-    save_session(s, {"erpToken": token})
     log.info("otp validate: HTTP %s, token captured: %s", r.status_code, bool(token))
-    return r
+    return r, s, token
 
 
 def _erp_token(r, s):
     """The ERP token from the validate response: JSON body, then Location header, then cookie."""
     try:
         body = r.json()
+    except ValueError:
+        body = None
+    if isinstance(body, dict):
         for key in ("token", "erpToken"):
             if body.get(key):
-                return body[key]
+                return str(body[key])
         for key in ("callbackURL", "redirectUrl", "url"):
             if "erpToken=" in str(body.get(key, "")):
                 return str(body[key]).split("erpToken=")[1].split("&")[0]
-    except ValueError:
-        pass
     location = r.headers.get("Location", "")
     if "erpToken=" in location:
         return location.split("erpToken=")[1].split("&")[0]
@@ -91,27 +140,40 @@ def _erp_token(r, s):
     return None
 
 
-def establish_session():
-    """Open the Kronos session with the ERP token (sets the cookies the scraper needs)."""
-    s, extra = load_session()
-    if not extra.get("erpToken"):
+def establish_session(s=None, extra=None):
+    """Open the Kronos session with the ERP token (sets the cookies the scraper needs) on `s` (default: the saved
+    login, which is then saved again). Returns the response, or None without a token."""
+    saved = s is None
+    if saved:
+        s, extra = load_session()
+    if not (extra or {}).get("erpToken"):
         return None
     r = s.get(f"{KRONOS}/login?next=%2F&erpToken={quote(extra['erpToken'], safe='')}",
               headers={"accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                        "referer": f"{ACCOUNTS}/"}, allow_redirects=True, timeout=TIMEOUT)
-    save_session(s, extra)
+    if saved:
+        save_session(s, extra)
     log.info("kronos session: HTTP %s", r.status_code)
     return r
 
 
-def session_ok():
-    """True if Kronos accepts the saved session (one cheap authenticated call)."""
-    s, extra = load_session()
-    if not extra.get("erpToken"):
-        return False
+def session_state(s=None, extra=None):
+    """OK when Kronos accepts the login (one cheap call, at most PROBE_TIMEOUT seconds), REJECTED when there is
+    no login or Kronos refuses it, UNREACHABLE when Kronos could not be asked (offline, timeout, a 5xx)."""
+    if s is None:
+        s, extra = load_session()
+    if not (extra or {}).get("erpToken"):
+        return REJECTED
     try:
         r = s.get(f"{KRONOS}/v1/user/centers", headers={"accept": "application/json", "referer": f"{KRONOS}/"},
-                  timeout=TIMEOUT)
+                  timeout=PROBE_TIMEOUT)
     except requests.RequestException:
-        return False
-    return r.status_code == 200
+        return UNREACHABLE
+    if r.status_code == 200:
+        return OK
+    return UNREACHABLE if r.status_code >= 500 else REJECTED
+
+
+def session_ok():
+    """True if Kronos accepts the saved session."""
+    return session_state() == OK

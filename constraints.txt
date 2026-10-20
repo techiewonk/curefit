@@ -1,0 +1,26 @@
+# Exact versions known to work together (from pip freeze of a working install).
+# install.bat / run.bat / dev.bat install with:  pip install -r requirements.txt -c constraints.txt
+# To upgrade: change the version here (and in requirements.txt if needed), then run install.bat.
+asgiref==3.12.1
+certifi==2026.10.19
+charset-normalizer==3.5.2
+croniter==6.2.4
+diff-match-patch==20241021
+Django==6.1.2
+django-constance==4.3.5
+django-import-export==4.4.3
+django-picklefield==3.4.0
+django-q2==1.11.1
+django-unfold==0.110.0
+et_xmlfile==2.0.0
+idna==3.20
+openpyxl==3.1.5
+python-dateutil==2.9.0.post0
+requests==2.34.2
+six==1.17.0
+sqlparse==0.6.0
+tablib==3.10.0
+tzdata==2026.5
+urllib3==2.8.0
+waitress==3.0.2
+whitenoise==6.12.0

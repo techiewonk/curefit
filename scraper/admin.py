@@ -3,7 +3,11 @@ import shutil
 
 from django import forms
 from django.contrib import admin, messages
-from django.shortcuts import redirect
+from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+from django.db import transaction
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.template.response import TemplateResponse
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import (AllValuesCheckboxFilter, AutocompleteSelectFilter, BooleanRadioFilter,
@@ -36,6 +40,30 @@ STATUS_LABELS = {"complete": "success", "ok": "success", "done": "success", "fin
                  "failed": "danger", "error": "danger", "skipped": "danger"}
 
 
+def confirmed(model_admin, request, queryset, what):
+    """Django's delete-confirmation pattern for a bulk action that cannot be undone: the first post shows what
+    will happen (`what`) and the rows; only the second post, from that page, does it. Returns None when confirmed,
+    else the confirmation page to return from the action."""
+    if request.POST.get("confirmed") == "yes":
+        return None
+    opts = model_admin.model._meta
+    return TemplateResponse(request, "admin/confirm_action.html", {
+        **model_admin.admin_site.each_context(request), "opts": opts, "title": "Are you sure?",
+        "what": what, "objects": list(queryset[:50]), "count": queryset.count(),
+        "action": request.POST.get("action"), "selected": request.POST.getlist(ACTION_CHECKBOX_NAME),
+        "select_across": request.POST.get("select_across", "0"), "checkbox_name": ACTION_CHECKBOX_NAME})
+
+
+def done(request, url_name):
+    """After a dialog action (posted by HTMX from Unfold's dialog): go to `url_name` with the messages shown."""
+    url = reverse(url_name)
+    if request.headers.get("HX-Request"):
+        response = HttpResponse()
+        response["HX-Redirect"] = url
+        return response
+    return redirect(url)
+
+
 def _inside_runs(path):
     """Only ever delete folders that live under runs/."""
     root = os.path.realpath(files.RUNS_DIR)
@@ -51,8 +79,17 @@ class SessionAdmin(ExportModelAdmin):
                    ("start_date", RangeDateFilter), ("end_date", RangeDateFilter),
                    ("created_at", RangeDateTimeFilter), ("finished_at", RangeDateTimeFilter)]
     search_fields = ("session_id",)
-    readonly_fields = ("session_id", "folder", "coverage", "missing", "checks", "created_at", "finished_at")
+    readonly_fields = ("session_id", "folder", "coverage", "missing", "checks", "created_at", "finished_at",
+                       "run_rows")
     actions = ["continue_session", "stop_running", "merge_files"]
+
+    @display(description="Per-run rows")
+    def run_rows(self, obj):
+        from console.views import rows_pruned
+        if rows_pruned(obj):
+            return "Removed to save space (Keep run rows in Settings): this session's sales and gym rows are only " \
+                   "in the all-runs tables now, so its per-session pages show less than was scraped."
+        return "Kept"
 
     @display(description="Period")
     def period(self, obj):
@@ -131,26 +168,40 @@ class SectionResultAdmin(ExportModelAdmin):
     def status_badge(self, obj):
         return obj.status
 
-    @action(description="Mark selected as known empty (stop counting them as problems)")
+    @action(description="Mark selected empty results as known empty (skipped by later runs)")
     def mark_known_empty(self, request, queryset):
+        """Only results that came back empty: a known-empty center is skipped by every later run, so marking an
+        OK, failed or slow result would silently stop fetching data that exists."""
+        empty = queryset.filter(status=SectionResult.EMPTY)
+        skipped = queryset.count() - empty.count()
         n = 0
-        for r in queryset:
+        for r in empty:
             _, created = KnownEmpty.objects.get_or_create(
                 center_id=r.center_id, report=r.report, defaults={"note": f"seen empty in session {r.session_id}"})
             n += created
         messages.success(request, f"{n} new known-empty entr{'y' if n == 1 else 'ies'}.")
+        if skipped:
+            messages.warning(request, f"{skipped} selected result{'s' if skipped != 1 else ''} not marked: only "
+                                      "results with status 'empty' can be known empty.")
 
-    @action(description="Retry selected (continue their session)")
+    @action(description="Retry selected (deletes their results, then continues the session to fetch them again)")
     def retry_selected(self, request, queryset):
         sessions = set(queryset.values_list("session_id", flat=True))
         if len(sessions) != 1:
             return messages.error(request, "Pick results from one session.")
+        if jobs.active_job():  # checked before anything is deleted: the results and their errors stay
+            return messages.error(request, "A scrape is running: retry when it has finished. Nothing was deleted.")
+        page = confirmed(self, request, queryset, "These results and their error messages are deleted, then the "
+                                                  "session is continued so that they are fetched again.")
+        if page:
+            return page
         sid = sessions.pop()
-        queryset.delete()  # no result = still missing, so the continue fetches it again
         try:
-            job = jobs.enqueue({"session": sid, "workers": 1})
+            with transaction.atomic():  # the results come back if the job cannot be queued
+                queryset.delete()  # no result = still missing, so the continue fetches it again
+                job = jobs.enqueue({"session": sid, "workers": 1})
         except jobs.JobError as e:
-            return messages.error(request, str(e))
+            return messages.error(request, f"{e}. Nothing was deleted.")
         messages.success(request, f"Job {job.id} queued to retry the selected sections of {sid}.")
 
     def has_add_permission(self, request):
@@ -170,14 +221,20 @@ class DataAdmin(ExportModelAdmin):
         return False
 
     def has_delete_permission(self, request, obj=None):
-        # allowed so that deleting a Session can cascade into these rows; the manual
-        # bulk-delete is removed below, so they stay browse-and-export only
-        return True
+        """Never deleted by hand: one click would lose scraped (or merged, all-runs) history. Deleting a session or a
+        center still removes its rows (the admin checks this permission for every row the delete cascades into)."""
+        match = getattr(request, "resolver_match", None)
+        return bool(match) and match.url_name in CASCADE_PAGES
 
     def get_actions(self, request):
         actions = super().get_actions(request)
         actions.pop("delete_selected", None)
         return actions
+
+
+# the pages whose delete may cascade into the scraped rows: a session's and a center's delete
+CASCADE_PAGES = {"scraper_session_delete", "scraper_session_changelist", "centers_center_delete",
+                 "centers_center_changelist"}
 
 
 @admin.register(SalesRecord)
@@ -252,12 +309,27 @@ class JobAdmin(ExportModelAdmin):
 
     @action(description="Stop selected jobs NOW (abandons the request in progress)")
     def force_stop(self, request, queryset):
+        page = confirmed(self, request, queryset, "The job runner's worker is ended at once: the request in "
+                                                  "progress is lost and the session is marked interrupted. Everything "
+                                                  "saved so far is kept; continue the session later to finish it.")
+        if page:
+            return page
         for j in queryset:
             jobs.force_stop(j)
         messages.success(request, "Stopped. Continue the session later to finish it.")
 
     def has_add_permission(self, request):
         return False
+
+    def has_delete_permission(self, request, obj=None):
+        """A queued or running job cannot be deleted (the runner would lose track of it): stop it first."""
+        return not (obj and obj.is_active) and super().has_delete_permission(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        active = queryset.filter(state__in=jobs.ACTIVE)
+        if active.exists():
+            messages.warning(request, f"{active.count()} queued or running job(s) were kept: stop them first.")
+        super().delete_queryset(request, queryset.exclude(state__in=jobs.ACTIVE))
 
 
 class AutoRunForm(forms.ModelForm):
@@ -338,15 +410,31 @@ class AutoRunAdmin(ExportModelAdmin):
         status, message = autorun.run(auto, force=True)
         (messages.success if status == "started" else messages.warning)(request, f"{auto.name}: {message}")
 
-    @action(description="Run now (test it with the period it would report on)", url_path="run-now")
-    def run_now(self, request, object_id):
-        self._run(request, AutoRun.objects.get(pk=object_id))
-        return redirect(request.META.get("HTTP_REFERER") or "admin:scraper_autorun_changelist")
+    # a dialog: opening the link only asks, the scrape starts on the dialog's (POST, CSRF-checked) button
+    @action(description="Run now (test it with the period it would report on)", url_path="run-now",
+            dialog={"title": "Run this campaign now?",
+                    "description": "Starts a real scrape on Curefit's servers now, for the period this campaign would "
+                                   "report on today, even if it is switched off. It is refused while another scrape runs.",
+                    "form_submit_text": "Start the scrape"})
+    def run_now(self, request, form, object_id):
+        self._run(request, get_object_or_404(AutoRun, pk=object_id))
+        return done(request, "admin:scraper_autorun_changelist")
 
-    @action(description="Run the selected automatic runs now")
+    @action(description="Run the selected automatic runs now (starts real scrapes)")
     def run_selected(self, request, queryset):
+        page = confirmed(self, request, queryset, "Each selected campaign starts a real scrape on Curefit's servers "
+                                                  "now, for the period it would report on today. Only one scrape runs at "
+                                                  "a time, so the others are skipped with a reason.")
+        if page:
+            return page
         for auto in queryset:
             self._run(request, auto)
+
+    def delete_queryset(self, request, queryset):
+        """Bulk delete skips each object's delete(): remove the job runner's schedules here too."""
+        for auto in queryset:
+            autorun.remove_schedule(auto)
+        super().delete_queryset(request, queryset)
 
 
 class PhoneInline(TabularInline):
@@ -451,16 +539,20 @@ class SalesCoverageAdmin(DataAdmin):
     ordering = ("-day", "center_id")
     actions_list = ["fetch_missing_days", "open_missing_days"]
 
-    @action(description="Fetch the missing days", url_path="fetch-missing-days")
-    def fetch_missing_days(self, request):
+    @action(description="Fetch the missing days", url_path="fetch-missing-days",
+            dialog={"title": "Fetch the missing days?",
+                    "description": "Starts a sales scrape on Curefit's servers for the actual list: one request per "
+                                   "day, only for the days of the last 90 that are not stored yet.",
+                    "form_submit_text": "Start fetching"})
+    def fetch_missing_days(self, request, form):
         """Starts a sales run, one request per day, for the days of the last 90 that the actual list is missing."""
         try:
             job = coverage.fetch_missing("actual")
         except coverage.CannotFetch as e:
             messages.error(request, str(e))
-            return redirect(request.META.get("HTTP_REFERER") or "admin:scraper_salescoverage_changelist")
+            return done(request, "admin:scraper_salescoverage_changelist")
         messages.success(request, f"Fetching the missing days: job {job.id}. The job runner (qcluster) must be running.")
-        return redirect("console:run")
+        return done(request, "console:run")
 
     @action(description="Missing days", url_path="missing-days")
     def open_missing_days(self, request):
@@ -582,3 +674,14 @@ class CenterMonthAdmin(DataAdmin):
             return "" if value is None else f"{value:,.2f}".rstrip("0").rstrip(".")
         column.__name__ = f"metric_{index}"
         return display(description=name)(column)
+
+
+def _use_settings_form():
+    """System -> Settings: constance's admin with the cross-field checks of config.admin_base.SettingsForm."""
+    from constance.admin import Config
+    from config.admin_base import SettingsForm
+    if Config in admin.site._registry:
+        admin.site._registry[Config].change_list_form = SettingsForm
+
+
+_use_settings_form()

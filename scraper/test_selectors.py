@@ -69,20 +69,70 @@ class SelectorTests(FakeKronosMixin, TransactionTestCase):
         rows = {r["id"]: r for r in selectors.compare(self.session, other)}
         self.assertEqual(rows[1]["diff"]["sales"], 0)
         self.assertNotIn("b", rows[3])
-        self.assertIsNone(rows[3]["diff"])
+        self.assertTrue(rows[3]["one_sided"] and not rows[1]["one_sided"])
+        # only in A: its sales count as dropped, so a page summing the diffs includes it (G30)
+        self.assertEqual(rows[3]["diff"]["sales"], -rows[3]["a"]["sales"])
+        self.assertEqual(sum(r["diff"]["sales"] for r in rows.values()),
+                         selectors.compare_totals(list(rows.values()))["sales"]["change"])
+
+    def test_compare_totals_include_one_sided_gyms_and_say_when_rows_were_pruned(self):
+        other = engine.run_session(engine.new_session("2026-08-01", "2026-08-31", [1, 2], ["sales", "perf"]))
+        rows = selectors.compare(self.session, other)
+        totals = selectors.compare_totals(rows)
+        # gyms 3 and 4 are only in the first session: their sales count as dropped
+        self.assertEqual((totals["sales"]["a"], totals["sales"]["b"], totals["sales"]["change"]), (10, 3, -7))
+        self.assertEqual(totals["total_revenue"]["change"], totals["total_revenue"]["b"] - totals["total_revenue"]["a"])
+        self.assertEqual(selectors.compare_notices(self.session, other), [])
+        Session.objects.filter(pk=self.session.pk).update(rows_pruned=True)
+        self.session.refresh_from_db()
+        self.assertIn(self.session.session_id, selectors.compare_notices(self.session, other)[0])
+        self.assertTrue(selectors.analytics(self.session)["rows_pruned"])
 
     def test_home_alerts(self):
-        with mock.patch.object(auth, "logged_in", lambda fresh=False: False):
+        with mock.patch.object(auth, "state", lambda fresh=False: auth.REJECTED):
             home = selectors.home()
         texts = " ".join(a["text"] for a in home["alerts"])
         self.assertIn("Not logged in", texts)
         self.assertEqual(home["kpis"]["centers"], 4)
         self.assertEqual(home["latest"], self.session)
         Session.objects.filter(pk=self.session.pk).update(status="incomplete", missing={"perf": ["1"]})
-        with mock.patch.object(auth, "logged_in", lambda fresh=False: True):
+        with mock.patch.object(auth, "state", lambda fresh=False: auth.OK):
             texts = " ".join(a["text"] for a in selectors.home()["alerts"])
         self.assertIn("unfinished session", texts)
         self.assertNotIn("Not logged in", texts)
+        with mock.patch.object(auth, "state", lambda fresh=False: auth.UNREACHABLE):
+            texts = " ".join(a["text"] for a in selectors.home()["alerts"])
+        self.assertIn("Cannot reach Kronos", texts)
+        self.assertNotIn("Not logged in", texts)
+
+    def test_home_survives_sparse_coverage_and_lists_recent_failures(self):
+        from django_q.models import Failure
+        from scraper import checks
+        Session.objects.filter(pk=self.session.pk).update(
+            coverage=[{"report": "sales"}, {"report": "perf", "failed": 2}],  # rows written by older code
+            checks=[checks.post_processing_error("boom")])
+        Job.objects.create(id="old", state=Job.ERROR, error="disk full")
+        Job.objects.create(id="new", state=Job.DONE)
+        Failure.objects.create(id="t1", name="scrape-x", func="scraper.tasks.run", started=timezone.now(),
+                               stopped=timezone.now(), success=False, result="Traceback")
+        with mock.patch.object(auth, "state", lambda fresh=False: auth.OK):
+            alerts = selectors.home()["alerts"]
+        texts = " ".join(a["text"] for a in alerts)
+        self.assertIn("2 failed center/section pairs", texts)
+        self.assertIn("1 other job(s) ended in error", texts)
+        self.assertIn("1 job-runner task(s) failed", texts)
+        self.assertEqual(texts.count("Post-processing failed"), 1)  # listed once, not twice
+        # an older session whose after-run step failed (the engine's own finding: step + level 'error')
+        older = engine.new_session("2026-06-01", "2026-06-30", [1], ["perf"])
+        Session.objects.filter(pk=older.pk).update(
+            created_at=timezone.now() - timedelta(days=1), coverage=None,
+            checks=[{"level": "error", "step": "Monthly performance table", "text": "Monthly performance table failed"},
+                    {"level": "warning", "text": "3 ACTIVE center(s) returned no sales rows"}])
+        with mock.patch.object(auth, "state", lambda fresh=False: auth.OK):
+            alerts = selectors.home()["alerts"]
+        step = [a for a in alerts if "Monthly performance table failed" in a["text"]]
+        self.assertEqual([a["level"] for a in step], ["danger"])
+        self.assertNotIn("returned no sales rows", " ".join(a["text"] for a in alerts))  # plain findings stay on their session
 
     def test_queryset_helpers(self):
         self.assertEqual(Session.objects.for_period("2026-07-01", "2026-07-31").first(), self.session)

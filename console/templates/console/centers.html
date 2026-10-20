@@ -2,6 +2,7 @@
 {% load unfold %}
 
 {% block page %}
+<p class="text-sm text-font-subtle-light dark:text-font-subtle-dark">Load the current list of centers from Kronos and see the center lists (actual, test) that runs use. Update after Curefit opens or closes centers; nothing you set on a center (groups, target, lists) is lost.</p>
 {% component "unfold/components/card.html" with title="Center list from Kronos" %}
   <p class="mb-3">
     {{ total }} centers known, {{ active }} active.

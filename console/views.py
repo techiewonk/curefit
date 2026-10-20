@@ -1,7 +1,8 @@
 """Console pages: thin class-based views. Rules live in scraper/, display in the templates."""
 import datetime as dt
-import json
+import math
 
+import requests
 import tablib
 
 from django.contrib import admin, messages
@@ -9,17 +10,51 @@ from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
-from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme, urlencode
 from django.views.generic import FormView, TemplateView, View
 from unfold.views import UnfoldSiteViewMixin
 
 from centers import sync
 from centers.models import Center, CenterGroup, CenterList, CenterSyncLog
 from scraper import analysis, auth, coverage, jobs, perfwide, revenue, selectors, sparkline
-from scraper.models import Job, Session
+from scraper.kronos import scrub
+from scraper.models import GymMember, Job, SalesRecord, Session
+from scraper.months import days_in
+from scraper.resources import safe_cell
 
 from . import charts
 from .forms import CampaignForm, CompareForm, OtpForm, RunForm, SessionPickForm
+
+UNREACHABLE = "Could not reach Kronos - check the internet connection and try again."
+
+
+def _kronos_problem():
+    """None when Kronos accepts the saved login, else the reason to show (not logged in, or no network)."""
+    try:
+        if auth.logged_in(fresh=True):
+            return None
+        unreachable = auth.state() == auth.UNREACHABLE  # the answer just cached: no second request
+    except requests.RequestException:
+        unreachable = True
+    return UNREACHABLE if unreachable else "Not logged in - send and verify the OTP first."
+
+
+def _rounded(value, digits=2):
+    """A chart point: None for a gap (or NaN), else the value rounded."""
+    if value is None or (isinstance(value, float) and not math.isfinite(value)):
+        return None
+    return round(value, digits)
+
+
+def rows_pruned(session):
+    """True when this session's per-run sales or gym rows were removed to save space (Keep run rows in Settings):
+    its numbers then live only in the all-runs tables, so per-session pages show less than was scraped."""
+    if not session or not session.merged_into_masters:
+        return False
+    return any(session.results.filter(report=report, row_count__gt=0).exists()
+               and not model.objects.filter(session=session).exists()
+               for report, model in (("sales", SalesRecord), ("gym", GymMember)))
 
 
 class ConsolePage(UnfoldSiteViewMixin):
@@ -55,6 +90,8 @@ class RunView(ConsolePage, FormView):
         if "save_campaign" not in request.POST:
             return super().post(request, *args, **kwargs)
         form, campaign = self.get_form(), CampaignForm(request.POST, prefix="c")
+        if form.is_valid():  # the model checks the reports, speed and (for 'Fixed dates') the period of the Run form
+            campaign.use_run(form)
         if form.is_valid() and campaign.is_valid():
             auto = campaign.save_from(form)
             messages.success(request, f"Saved the campaign '{auto.name}'. It is {'on' if auto.enabled else 'off'}: "
@@ -63,8 +100,9 @@ class RunView(ConsolePage, FormView):
         return self.render_to_response(self.get_context_data(form=form, campaign=campaign))
 
     def form_valid(self, form):
-        if not auth.logged_in(fresh=True):
-            messages.error(self.request, "Not logged in - send and verify the OTP first.")
+        problem = _kronos_problem()
+        if problem:
+            messages.error(self.request, problem)
             return self.form_invalid(form)
         try:
             job = jobs.enqueue(form.to_spec())
@@ -82,20 +120,28 @@ class LoginPanel(Partial, TemplateView):
     template_name = "console/partials/login.html"
 
     def get_context_data(self, **kwargs):
-        ctx = super().get_context_data(**kwargs)
-        ctx.update(logged_in=auth.logged_in(), form=kwargs.get("form") or OtpForm())
-        return ctx
+        try:
+            logged_in = auth.logged_in()
+            unreachable = not logged_in and auth.state() == auth.UNREACHABLE
+        except requests.RequestException:
+            logged_in, unreachable = False, True
+        return super().get_context_data(logged_in=logged_in, unreachable=unreachable,
+                                        form=kwargs.pop("form", None) or OtpForm(), **kwargs)
 
     def post(self, request):
-        if request.POST.get("action") == "send":
-            sent = auth.send_otp()
-            return self.render_to_response(self.get_context_data(
-                notice="OTP sent - check the inbox." if sent else "Could not send the OTP.", ok=sent))
-        form = OtpForm(request.POST)
-        if form.is_valid():
-            ok = auth.verify_otp(form.cleaned_data["otp"])
-            return self.render_to_response(self.get_context_data(
-                notice="Logged in." if ok else "The OTP was not accepted.", ok=ok))
+        """Always answers with the panel (HTMX does not swap an error page), also when Kronos cannot be reached."""
+        try:
+            if request.POST.get("action") == "send":
+                sent = auth.send_otp()  # a Result: true or false, with the reason as its message
+                return self.render_to_response(self.get_context_data(notice=getattr(sent, "message", None) or (
+                    "OTP sent - check the inbox." if sent else "Could not send the OTP."), ok=bool(sent)))
+            form = OtpForm(request.POST)
+            if form.is_valid():
+                ok = auth.verify_otp(form.cleaned_data["otp"])
+                return self.render_to_response(self.get_context_data(notice=getattr(ok, "message", None) or (
+                    "Logged in." if ok else "The OTP was not accepted."), ok=bool(ok)))
+        except requests.RequestException:
+            return self.render_to_response(self.get_context_data(notice=UNREACHABLE, ok=False))
         return self.render_to_response(self.get_context_data(form=form))
 
 
@@ -139,9 +185,7 @@ class EstimatePanel(Partial, TemplateView):
         ctx = super().get_context_data(**kwargs)
         data = form.cleaned_data
         if all(data.get(f) for f in ("centers", "reports", "speed")):
-            pieces = len(coverage.pieces(data["start"], data["end"], data.get("sales_chunk") or Session.WHOLE)) \
-                if data.get("start") and data.get("end") and data["start"] <= data["end"] else 1
-            ctx["estimate"] = selectors.estimate(form.center_count, data["reports"], form.workers, pieces)
+            ctx["estimate"] = selectors.estimate(form.center_count, data["reports"], form.workers, form.piece_count())
         ctx["window_notice"] = selectors.sales_window_notice(data.get("end"), data.get("reports", []))
         return ctx
 
@@ -205,7 +249,7 @@ class AnalyticsView(ConsolePage, TemplateView):
             c = data["centers"]
             names = [x["name"] or str(x["id"]) for x in c]
             points = analysis.trend(session)
-            trend_chart = json.dumps({"labels": [str(p["date"]) for p in points], "datasets": [
+            trend_chart = charts.dumps({"labels": [str(p["date"]) for p in points], "datasets": [
                 {"label": label, "data": [p.get(key) for p in points], "borderColor": color}
                 for key, label, color in (("total", "Total revenue", "#7c3aed"), ("new", "New", "#22c55e"),
                                           ("repeat", "Repeat", "#f97316"))]}) if len(points) > 1 else None
@@ -213,13 +257,14 @@ class AnalyticsView(ConsolePage, TemplateView):
                        mix_options=charts.options("New and repeat revenue by center", "Center", "Revenue (₹)"),
                        pack_options=charts.options("Revenue by pack", "Pack", "Revenue (₹)", legend=False),
                        trend_options=charts.options("Revenue over time", "Date", "Revenue (₹)"),
-                       trend_chart=trend_chart, revenue_chart=json.dumps({
+                       rows_pruned=rows_pruned(session),
+                       trend_chart=trend_chart, revenue_chart=charts.dumps({
                 "labels": names, "datasets": [{"label": "Total revenue", "data": [x["total_revenue"] for x in c],
                                                "backgroundColor": "#7c3aed"}]}),
-                mix_chart=json.dumps({"labels": names, "datasets": [
+                mix_chart=charts.dumps({"labels": names, "datasets": [
                     {"label": "New", "data": [x["new_revenue"] for x in c], "backgroundColor": "#22c55e"},
                     {"label": "Repeat", "data": [x["repeat_revenue"] for x in c], "backgroundColor": "#f97316"}]}),
-                pack_chart=json.dumps({"labels": [p["pack_name"] for p in data["packs"][:8]], "datasets": [
+                pack_chart=charts.dumps({"labels": [p["pack_name"] for p in data["packs"][:8]], "datasets": [
                     {"data": [p["revenue"] or 0 for p in data["packs"][:8]],
                      "backgroundColor": ["#7c3aed", "#22c55e", "#f97316", "#ef4444", "#3b82f6", "#14b8a6",
                                          "#eab308", "#ec4899"]}]}),
@@ -268,7 +313,7 @@ class CoverageRun(PermissionRequiredMixin, View):
                 job = coverage.fetch_missing(list_name)
         except (coverage.CannotFetch, ValueError) as e:
             messages.error(request, str(e) or "Nothing to fetch.")
-            return redirect(f"{reverse('console:coverage')}?list={list_name}")
+            return redirect(f"{reverse('console:coverage')}?{urlencode({'list': list_name})}")
         messages.success(request, f"Fetching the missing days: job {job.id}, session {job.session_id}. "
                                   "The job runner (qcluster) must be running.")
         return redirect("console:run")
@@ -301,11 +346,11 @@ class PerfAnalysisView(ConsolePage, TemplateView):
         labels = [revenue.label(m) for m in months]
         cards = [{
             "metric": s_["metric"], "how": s_["how"],
-            "data": json.dumps({"labels": labels, "datasets": [
-                ({"label": name, "data": [None if v is None else round(v, 2) for v in points],
+            "data": charts.dumps({"labels": labels, "datasets": [
+                ({"label": name, "data": [_rounded(v) for v in points],
                   "borderColor": "#9ca3af", "backgroundColor": "#9ca3af", "borderDash": [6, 4]}
                  if name == perfwide.AVERAGE else
-                 {"label": name, "data": [None if v is None else round(v, 2) for v in points],
+                 {"label": name, "data": [_rounded(v) for v in points],
                   "borderColor": charts.colour(i), "backgroundColor": charts.colour(i)})
                 for i, (name, points) in enumerate(s_["lines"].items())]}),
             "options": charts.options(s_["metric"], "Month", f"{'Average per gym' if s_['how'] == 'avg' else 'Total'}")}
@@ -338,12 +383,12 @@ class GymTrendView(ConsolePage, TemplateView):
         labels = [revenue.label(m) for m in months]
         cards = []
         for i, r in enumerate(rows):
-            for_chart = [None if v is None else round(v, 2) for v in r["values"]]
+            for_chart = [_rounded(v) for v in r["values"]]
             datasets = [{"label": center.name, "data": for_chart, "borderColor": charts.colour(0), "backgroundColor": charts.colour(0)}]
             if group and any(v is not None for v in r["group_average"]):
-                datasets.append({"label": f"{group} average", "data": [None if v is None else round(v, 2) for v in r["group_average"]],
+                datasets.append({"label": f"{group} average", "data": [_rounded(v) for v in r["group_average"]],
                                  "borderColor": "#9ca3af", "backgroundColor": "#9ca3af", "borderDash": [6, 4]})
-            cards.append({"data": json.dumps({"labels": labels, "datasets": datasets}),
+            cards.append({"data": charts.dumps({"labels": labels, "datasets": datasets}),
                           "options": charts.options(r["metric"], "Month", "Value")})
             r["spark"] = sparkline.svg(r["values"][:-1][-6:], labels[:-1][-6:])  # full months only
         self.title = center.name
@@ -372,22 +417,34 @@ class RevenueView(ConsolePage, TemplateView):
     def get_context_data(self, **kwargs):
         g = self.request.GET
         data, months = _revenue_data(self.request)
-        chart = json.dumps({"labels": [revenue.label(m) for m in data["months"]], "datasets": [
-            {"label": name, "data": [None if series[m] is None else round(series[m]) for m in data["months"]],
+        chart = charts.dumps({"labels": [revenue.label(m) for m in data["months"]], "datasets": [
+            {"label": name, "data": [_rounded(series[m], 0) for m in data["months"]],
              "borderColor": charts.group_colour(name, data["group_order"]),
              "backgroundColor": charts.group_colour(name, data["group_order"])}
             for name, series in data["group_totals"].items()]})
-        group_months = revenue.group_month_table(g.get("group", ""))
+        twelve_data = revenue.matrix(g.get("group", ""), 12)
+        group_months = revenue.group_month_table(g.get("group", ""), data=twelve_data)
+        # a gym in two groups counts in both group totals; this row counts every gym once
+        twelve = twelve_data["rows"]
+        distinct = [sum(r["values"][m] for r in twelve if r["values"].get(m) is not None)
+                    if any(r["values"].get(m) is not None for r in twelve) else None for m in group_months["months"]]
+        today = timezone.localdate()
+        partial = {"label": revenue.label(data["current"]), "days": today.day, "of": days_in(data["current"])} \
+            if data["current"] in data["months"] else None
         recent = [m for m in data["months"] if m < data["current"]][-6:]  # the current month is partial
-        sections = [{**sec, "rows": [{**r, "cells": [r["values"].get(m) for m in data["months"]],
+        # a past month only partly fetched (G9) carries its 'N of M days' text, shown beside the value
+        sections = [{**sec, "rows": [{**r, "cells": [{"value": r["values"].get(m), "partial": r["partial"].get(m)}
+                                                    for m in data["months"]],
                                       "spark": sparkline.svg([r["values"].get(m) for m in recent],
                                                              [revenue.label(m) for m in recent])}
                                      for r in sec["rows"]]} for sec in data["sections"]]
         available = perfwide.available_months()
         return super().get_context_data(
             data=data, rows=data["rows"], sections=sections, group_months=group_months, months_back=months,
+            distinct_total=distinct, partial=partial,
+            any_partial=any(r["partial"] for r in data["rows"]),
             shown_months=len(data["months"]), group=g.get("group", ""),
-            labels=[revenue.label(m) for m in data["months"]],
+            labels=[revenue.label(m) + (" *" if m == data["current"] else "") for m in data["months"]],
             rank_labels=[revenue.label(m) + (" *" if m == data["current"] else "") for m in data["rank_months"]],
             chart=chart if len(data["months"]) > 1 else None,
             chart_options=charts.options("Revenue by group", "Month", "Revenue (₹)"),
@@ -406,10 +463,19 @@ class RevenueCsv(Partial, View):
         return _download(request, "revenue_by_gym", headers, rows)
 
 
+def _compare_rows(form):
+    """The rows of a valid CompareForm, only the centers that changed when that switch is on (page and CSV alike)."""
+    rows = selectors.compare(form.cleaned_data["a"], form.cleaned_data["b"])
+    if form.cleaned_data["only_changed"]:
+        rows = [r for r in rows if not r["diff"] or any(r["diff"].values())]
+    return rows
+
+
 class CompareView(ConsolePage, FormView):
     template_name = "console/compare.html"
     form_class = CompareForm
     title = "Compare sessions"
+    http_method_names = ["get", "head"]  # the form is a GET filter; nothing is posted here
 
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -421,17 +487,16 @@ class CompareView(ConsolePage, FormView):
         ctx = super().get_context_data(**kwargs)
         form = ctx["form"]
         if form.is_bound and form.is_valid():
-            rows = selectors.compare(form.cleaned_data["a"], form.cleaned_data["b"])
-            if form.cleaned_data["only_changed"]:
-                rows = [r for r in rows if not r["diff"] or any(r["diff"].values())]
+            rows = _compare_rows(form)
             ctx.update(rows=rows, totals={k: sum((r["diff"] or {}).get(k, 0) for r in rows)
-                                          for k in ("sales", "sales_revenue", "total_revenue")})
+                                          for k in ("sales", "sales_revenue", "total_revenue")},
+                       rows_pruned=rows_pruned(form.cleaned_data["a"]) or rows_pruned(form.cleaned_data["b"]))
         return ctx
 
 
 def _download(request, name, headers, rows):
-    """A tablib download: CSV by default, ?format=xlsx for Excel."""
-    book = tablib.Dataset(*rows, headers=headers)
+    """A tablib download: CSV by default, ?format=xlsx for Excel. Every cell is made safe to open in Excel."""
+    book = tablib.Dataset(*[[safe_cell(v) for v in row] for row in rows], headers=[safe_cell(h) for h in headers])
     if request.GET.get("format") == "xlsx":
         response = HttpResponse(book.export("xlsx"), content_type=(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
@@ -463,7 +528,7 @@ class CompareCsv(Partial, View):
         form = CompareForm(request.GET)
         if not form.is_valid():
             raise Http404("Pick two sessions")
-        rows = selectors.compare(form.cleaned_data["a"], form.cleaned_data["b"])
+        rows = _compare_rows(form)
         keys = ("sales", "sales_revenue", "total_revenue")
         headers = ["center_id", "center"] + [f"{k}_{t}" for k in keys for t in ("a", "b", "change")]
         body = [[r["id"], r["name"]] + [v for k in keys for v in
@@ -484,15 +549,18 @@ class CentersView(ConsolePage, TemplateView):
             active=Center.objects.filter(state="ACTIVE").count(), lists=CenterList.objects.all(), **kwargs)
 
     def post(self, request):
-        if not auth.logged_in(fresh=True):
-            messages.error(request, "Not logged in - send and verify the OTP on the Run page first.")
+        problem = _kronos_problem()
+        if problem:
+            messages.error(request, problem.replace("first.", "on the Run page first."))
             return redirect("console:centers")
         try:
             d = sync.sync_from_kronos()
         except sync.NotLoggedIn as e:
-            messages.error(request, str(e))
+            messages.error(request, scrub(e))
+        except requests.RequestException:
+            messages.error(request, UNREACHABLE)
         except Exception as e:
-            messages.error(request, f"Sync failed: {e}")
+            messages.error(request, f"Sync failed: {scrub(e)}")
         else:
             messages.success(request, f"Updated {d['total']} centers ({d['active']} active): {len(d['added'])} new, "
                                       f"{len(d['removed'])} no longer in Kronos, {len(d['state_changed'])} changed "

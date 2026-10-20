@@ -23,9 +23,25 @@ def local(dt):
     return timezone.localtime(dt).strftime("%Y-%m-%dT%H:%M:%S") if dt else ""
 
 
+FORMULA_START = ("=", "+", "-", "@", "\t", "\r")
+
+
+def safe_cell(value):
+    """A text cell that Excel would run as a formula (=, +, -, @ first) gets a leading quote; numbers stay as they are."""
+    if isinstance(value, str) and value.startswith(FORMULA_START):
+        try:
+            float(value)
+            return value  # "-12.5" is a number, not a formula
+        except ValueError:
+            return "'" + value
+    return value
+
+
 def save_csv(path, dataset):
-    with open(path, "w", newline="", encoding="utf-8") as f:
-        f.write(dataset.export("csv"))
+    """Write a CSV that Excel opens with the right characters (UTF-8 with BOM) and without running formulas."""
+    safe = tablib.Dataset(*[[safe_cell(v) for v in row] for row in dataset], headers=dataset.headers)
+    with open(path, "w", newline="", encoding="utf-8-sig") as f:
+        f.write(safe.export("csv"))
     return path
 
 
@@ -78,7 +94,7 @@ def merge_session(session):
     for report in [r for r in REPORTS if r in parts]:
         loaded = []
         for cid, path in parts[report]:
-            with open(path, newline="", encoding="utf-8") as f:
+            with open(path, newline="", encoding="utf-8-sig") as f:
                 loaded.append((cid, tablib.Dataset().load(f.read(), format="csv")))
         header = []  # centers can differ in columns: keep the union, in the order seen
         for _, ds in loaded:
@@ -108,15 +124,17 @@ def export_reports(session):
         queryset = model.objects.filter(session=session).select_related("center", "session").order_by("center_id")
         csv_file(f"{name}.csv", resource().export(queryset))
 
-    by_center, metrics = {}, set()
-    for cid, name, metric, value in PerfMetric.objects.filter(session=session).order_by("center_id") \
-            .values_list("center_id", "center__name", "metric", "value"):
-        by_center.setdefault((cid, name), {})[metric] = value
+    by_center, metrics = {}, set()  # one row per center and date (a run split by day/week/month has several)
+    for cid, name, day, metric, value in PerfMetric.objects.filter(session=session) \
+            .order_by("center_id", "metric_date", "metric", "id") \
+            .values_list("center_id", "center__name", "metric_date", "metric", "value"):
+        by_center.setdefault((cid, name, day), {})[metric] = value
         metrics.add(metric)
     metrics = sorted(metrics)
     csv_file("perf_pivot.csv", tablib.Dataset(
-        *([cid, name] + [values.get(m) for m in metrics] for (cid, name), values in by_center.items()),
-        headers=["center_id", "center_name"] + metrics))
+        *([cid, name, day.isoformat() if day else ""] + [values.get(m) for m in metrics]
+          for (cid, name, day), values in by_center.items()),
+        headers=["center_id", "center_name", "metric_date"] + metrics))
 
     for report in GENERIC:
         columns = CardColumns.objects.filter(report=report).values_list("columns", flat=True).first()
@@ -149,13 +167,18 @@ def _dashboard_html(session, result):
                   "new": [r[7] for r in rows], "repeat": [r[8] for r in rows]}})
 
 
-def write_coverage(session, stats):
-    """coverage.csv for the folder; returns the rows (also stored on the Session)."""
-    rows = [{"report": report, "requested": st["requested"], "already_done": st["already_done"],
+def coverage_rows(stats):
+    """One summary row per report of a run (stored on the Session and written to coverage.csv)."""
+    return [{"report": report, "requested": st["requested"], "already_done": st["already_done"],
              "scraped": st["ok"], "empty": len(st["empty"]), "known_empty": len(st["known_empty"]),
              "failed": len(st["failed"]), "slow": len(st["slow"]), "possibly_truncated": len(st["capped"]),
              "skipped_after_failures": st["skipped"], "empty_center_ids": st["empty"],
              "failed_center_ids": st["failed"]} for report, st in stats.items()]
+
+
+def write_coverage(session, stats):
+    """coverage.csv for the folder; returns the rows (also stored on the Session)."""
+    rows = coverage_rows(stats)
     headers = list(rows[0]) if rows else ["report"]
     save_csv(os.path.join(session.folder, "coverage.csv"), tablib.Dataset(
         *([" ".join(map(str, v)) if isinstance(v, list) else v for v in row.values()] for row in rows),

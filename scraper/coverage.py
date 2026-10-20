@@ -68,6 +68,14 @@ def center_ids(list_name):
     return services.list_ids(list_name)
 
 
+def without_known_empty(ids):
+    """The centers minus those registered as always empty for the sales card: they are never asked (so never
+    stored) and would otherwise count as missing for ever."""
+    from centers.models import KnownEmpty
+    skip = set(KnownEmpty.objects.filter(report="sales").values_list("center_id", flat=True))
+    return [i for i in ids if i not in skip]
+
+
 def window_days(today=None):
     """Every day of the 90-day window that is already over: the days that can be stored."""
     today = today or timezone.localdate()
@@ -75,8 +83,9 @@ def window_days(today=None):
 
 
 def missing_by_day(ids, today=None):
-    """[{day, stored, missing}] for the days of the window, newest first, for these centers."""
+    """[{day, stored, missing}] for the days of the window, newest first, for these centers (known-empty ones left out)."""
     from django.db.models import Count
+    ids = without_known_empty(ids)
     stored = {}
     first = window_start(today)
     for i in range(0, len(ids), 900):
@@ -87,10 +96,11 @@ def missing_by_day(ids, today=None):
 
 
 def missing_by_center(ids, today=None):
-    """[{id, name, group, stored, missing}] for these centers, most missing first."""
+    """[{id, name, group, stored, missing}] for these centers (known-empty ones left out), most missing first."""
     from django.db.models import Count
 
     from centers.models import Center, CenterGroup
+    ids = without_known_empty(ids)
     first, total = window_start(today), len(window_days(today))
     stored = {}
     for i in range(0, len(ids), 900):
@@ -121,9 +131,14 @@ def fetch_missing(list_name="actual", center_ids_=None, day=None, today=None):
     today = today or timezone.localdate()
     first, last = (day, day) if day else (window_start(today), today - ONE_DAY)
     if not auth.logged_in(fresh=True):
-        raise CannotFetch("Not logged in to Kronos: log in on the Run page first.")
+        raise CannotFetch(auth.not_logged_in_message("fetch the missing days"))
+    picked = list(center_ids_) if center_ids_ else center_ids(list_name)
+    ids = without_known_empty(picked) or None  # None with an empty list: enqueue says the list is empty
+    if picked and not ids:
+        raise CannotFetch("Nothing to fetch: every center picked is registered as always empty for sales "
+                          "(see Known empty).")
     spec = {"start": first.isoformat(), "end": last.isoformat(), "list": list_name,
-            "center_ids": list(center_ids_) if center_ids_ else None, "only": ["sales"],
+            "center_ids": ids, "only": ["sales"],  # the window is 90 days: within the one-day-at-a-time limit
             "workers": SPEED_PROFILES["normal"], "speed": "normal", "granularity": Session.MONTH,
             "sales_chunk": Session.DAY, "fill_missing": True}
     try:

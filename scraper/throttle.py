@@ -12,6 +12,10 @@ GROW_AFTER = 8      # healthy answers in a row before one more request is allowe
 COOLDOWN = 30       # seconds between two reductions
 
 
+class Stopped(Exception):
+    """The run was stopped while this request waited (for a slot or for Metabase): nothing was fetched."""
+
+
 class Gate:
     def __init__(self, start, maximum, adaptive=False):
         self.limit, self.maximum, self.adaptive = start, maximum, adaptive
@@ -20,11 +24,15 @@ class Gate:
         self._last_cut = float("-inf")
 
     @contextmanager
-    def slot(self):
-        """Hold one of the `limit` request slots while talking to Curefit."""
+    def slot(self, should_stop=None):
+        """Hold one of the `limit` request slots while talking to Curefit.
+
+        should_stop: checked every second while waiting; when it says yes, Stopped is raised instead of waiting on."""
         with self._cond:
             while self._active >= self.limit:
-                self._cond.wait()
+                self._cond.wait(timeout=1)
+                if should_stop is not None and should_stop():
+                    raise Stopped("stopped while waiting for a free request slot")
             self._active += 1
         try:
             yield

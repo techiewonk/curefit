@@ -2,6 +2,7 @@
 {% load unfold humanize formats %}
 
 {% block page %}
+<p class="text-sm text-font-subtle-light dark:text-font-subtle-dark">Monthly Franchise Performance metrics across gyms: trends per group and one metric compared month to month, year to year, range to range or against the group average. Every control applies at once; the month ranges need <em>Show</em>. Rates are averaged across gyms and the rest added up, unless you choose otherwise.</p>
 {# every control applies at once; only the month ranges need the Show button #}
 <form method="get" id="analysis-form" class="flex flex-col gap-2">
   {% component "unfold/components/card.html" with title="Filters" %}
@@ -60,6 +61,7 @@
     {% for c in cards %}
       {% component "unfold/components/card.html" %}
         {% component "unfold/components/chart/line.html" with data=c.data options=c.options height=240 %}{% endcomponent %}
+        <span class="block mt-1 text-xs text-font-subtle-light dark:text-font-subtle-dark">{% if c.how == "avg" %}Average per gym: the gyms' values are averaged (a rate or rating).{% else %}Sum: the gyms' values are added up.{% endif %}</span>
         <a class="inline-block mt-1 text-primary-600 text-sm" href="?{% for k, v in request.GET.items %}{% if k != 'metric' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}metric={{ c.metric|urlencode }}">Compare this metric ↓</a>
       {% endcomponent %}
     {% empty %}

@@ -2,6 +2,7 @@
 {% load unfold %}
 
 {% block page %}
+<p class="text-sm text-font-subtle-light dark:text-font-subtle-dark">One square per center and report of a run, updated every few seconds while it is going. Pick a session; click a square for that result. Stop and Pause are on the Run page.</p>
 <form method="get" class="flex flex-row flex-wrap gap-3 items-end">
   <div class="w-96">{% include "unfold/helpers/field.html" with field=picker.session %}</div>
 </form>

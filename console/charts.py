@@ -5,8 +5,25 @@ group) could not be read. Passing these options replaces Unfold's defaults, so t
 light and the dark theme are repeated here.
 """
 import json
+import math
 
 TEXT = "#9ca3af"
+
+
+def _finite(value):
+    """NaN and infinity become null: json.dumps would write NaN, which is not JSON, and Chart.js would not draw."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict):
+        return {k: _finite(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_finite(v) for v in value]
+    return value
+
+
+def dumps(data):
+    """Chart data as strict JSON."""
+    return json.dumps(_finite(data), allow_nan=False)
 PALETTE = ["#7c3aed", "#22c55e", "#f97316", "#3b82f6", "#ef4444", "#14b8a6", "#eab308", "#ec4899", "#8b5cf6", "#06b6d4"]
 
 
@@ -46,4 +63,4 @@ def options(title="", x="", y="", legend=True, stacked=False, aspect=2.2):
                      "bar": {"borderRadius": 2}},
         "scales": {"x": axis(x), "y": axis(y, begin_at_zero=True)},
     }
-    return json.dumps(config)
+    return dumps(config)

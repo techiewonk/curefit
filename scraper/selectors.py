@@ -113,7 +113,7 @@ def analytics(session):
                 "new_pct": r[9], "repeat_pct": r[10],
                 "active_pct": round(100 * sales[r[0]]["active"] / sales[r[0]]["n"], 1) if r[0] in sales else None}
                for r in rows]
-    return {"centers": centers, "packs": packs,
+    return {"centers": centers, "packs": packs, "rows_pruned": session.rows_pruned,
             "totals": {"centers": len(rows), "sales_count": sales_count, "sales_revenue": sales_revenue,
                        "total_revenue": sum(r[6] or 0 for r in rows), "new_revenue": sum(r[7] or 0 for r in rows),
                        "repeat_revenue": sum(r[8] or 0 for r in rows),
@@ -122,7 +122,10 @@ def analytics(session):
 
 
 def compare(a, b):
-    """Per-center sales and revenue in two sessions, with the change from a to b."""
+    """Per-center sales and revenue in two sessions, with the change from a to b.
+
+    A gym found in only one session (`one_sided`) has no a or b figures; its change counts the missing side as 0, so
+    the change totals include gyms that were added or dropped."""
     merged = {}
     for tag, session in (("a", a), ("b", b)):
         for r in analysis.build_analysis(session)["rows"]:
@@ -131,13 +134,97 @@ def compare(a, b):
     rows = []
     for cid in sorted(merged):
         row = merged[cid]
-        row["diff"] = {k: (row["b"][k] or 0) - (row["a"][k] or 0) for k in row["a"]} \
-            if "a" in row and "b" in row else None
+        row["one_sided"] = not ("a" in row and "b" in row)
+        mine, theirs = row.get("a") or {}, row.get("b") or {}
+        row["diff"] = {k: _change(mine.get(k), theirs.get(k), k) for k in COMPARE_KEYS}
         rows.append(row)
     return rows
 
 
+COMPARE_KEYS = ("sales", "sales_revenue", "total_revenue")
+PRUNED_HELP = ("Session {} had its per-run sales rows deleted to save space (Settings > Keep run rows), so its sales "
+               "show as 0 here; the all-runs tables still hold them.")
+
+
+def _change(a, b, key):
+    change = (b or 0) - (a or 0)
+    return change if key == "sales" else round(change, 2)
+
+
+def compare_totals(rows):
+    """Totals of a comparison over every gym, including gyms found in only one of the two sessions:
+    {key: {"a": total, "b": total, "change": b - a}} for sales, sales_revenue and total_revenue."""
+    out = {}
+    for k in COMPARE_KEYS:
+        a = sum(((r.get("a") or {}).get(k) or 0) for r in rows)
+        b = sum(((r.get("b") or {}).get(k) or 0) for r in rows)
+        out[k] = {"a": a, "b": b, "change": _change(a, b, k)}
+    return out
+
+
+def compare_notices(a, b):
+    """Why a comparison may mislead: a session whose sales rows were pruned shows no sales."""
+    return [PRUNED_HELP.format(s.session_id) for s in (a, b) if s.rows_pruned]
+
+
 # ------------------------------------------------------------------ home
+RECENT_DAYS = 7  # failures older than this are no longer 'needs attention'
+
+
+def _kronos_state():
+    """'ok', 'logged_out' or 'unreachable' (auth.state() when it exists, else the plain yes/no of logged_in)."""
+    state = getattr(auth, "state", None)
+    if not callable(state):
+        return "ok" if auth.logged_in() else "logged_out"
+    answer = state()
+    if answer == getattr(auth, "OK", "ok"):
+        return "ok"
+    return "unreachable" if answer == getattr(auth, "UNREACHABLE", "unreachable") else "logged_out"
+
+
+def _recent_failures(since, latest_job, shown_session=None):
+    """Needs-attention items for failed jobs, failed job-runner tasks and failed post-processing since `since`
+    (`shown_session`'s findings are already listed by the caller)."""
+    alerts = []
+    errors = Job.objects.filter(state=Job.ERROR, created_at__gte=since)
+    if latest_job:
+        errors = errors.exclude(pk=latest_job.pk)  # the latest job has its own alert
+    n = errors.count()
+    if n:
+        alerts.append({"level": "danger", "url": "admin:scraper_job_changelist",
+                       "text": f"{n} other job(s) ended in error in the last {RECENT_DAYS} days; "
+                               f"latest: {errors.first().error or errors.first().pk}."})
+    try:
+        from django_q.models import Failure
+        failed = Failure.objects.filter(stopped__gte=since)
+        n = failed.count()
+        if n:
+            alerts.append({"level": "danger", "url": "admin:django_q_failure_changelist",
+                           "text": f"{n} job-runner task(s) failed in the last {RECENT_DAYS} days; "
+                                   f"latest: {failed.order_by('-stopped').first().name}."})
+    except Exception:  # noqa: BLE001 - the job runner's tables are optional for this page
+        pass
+    for s in Session.objects.filter(created_at__gte=since).exclude(pk=getattr(shown_session, "pk", None)) \
+            .only("session_id", "checks"):
+        for finding in s.checks or []:
+            if _post_processing(finding):
+                alerts.append({**finding, "level": "danger", "text": f"Session {s.session_id}: {finding.get('text', '')}"})
+    return alerts
+
+
+def _post_processing(finding):
+    """A finding that says an after-run step failed: checks.post_processing_error(), or an engine step that failed
+    (it carries the step name and level 'error')."""
+    return isinstance(finding, dict) and (finding.get("kind") == "post_processing"
+                                          or (finding.get("step") and finding.get("level") in ("error", "danger")))
+
+
+def _level(finding):
+    """The page knows danger / warning / info: an 'error' finding is shown as danger."""
+    level = finding.get("level") or "info"
+    return "danger" if level == "error" else level
+
+
 def home():
     """Everything the Home dashboard shows."""
     job = Job.objects.first()
@@ -145,7 +232,13 @@ def home():
     if job and job.state in (Job.ERROR, Job.INTERRUPTED):
         alerts.append({"level": "danger", "text": job.error or f"The last job ended as {job.state}.",
                        "url": "console:run"})
-    if not auth.logged_in():
+    covered = Session.objects.exclude(coverage__isnull=True).first()
+    alerts += _recent_failures(timezone.now() - timedelta(days=RECENT_DAYS), job, covered)
+    kronos = _kronos_state()
+    if kronos == "unreachable":
+        alerts.append({"level": "warning", "url": "console:run",
+                       "text": "Cannot reach Kronos (network or Kronos down); the login itself may still be fine."})
+    elif kronos != "ok":
         alerts.append({"level": "warning", "text": "Not logged in to Kronos - a scrape needs a fresh OTP.",
                        "url": "console:run"})
     unfinished = Session.objects.unfinished()
@@ -155,20 +248,20 @@ def home():
                        "text": f"{unfinished.count()} unfinished session(s); latest {latest.session_id} "
                                f"({latest.start_date} to {latest.end_date}) is missing "
                                f"{latest.missing_count} center/section pairs."})
-    covered = Session.objects.exclude(coverage__isnull=True).first()
     if covered:
-        alerts += [{**finding, "text": f"Session {covered.session_id}: {finding['text']}"} for finding in covered.checks]
-        cov = covered.coverage
+        alerts += [{**finding, "level": _level(finding), "text": f"Session {covered.session_id}: {finding.get('text', '')}"}
+                   for finding in covered.checks or [] if isinstance(finding, dict)]
+        cov = [x for x in covered.coverage or [] if isinstance(x, dict)]
         for key, text, level in (("failed", "failed center/section pairs", "danger"),
                                  ("slow", "slow (timed-out) sections", "warning"),
                                  ("possibly_truncated", "results that hit the row cap", "warning")):
-            n = sum(x.get(key, 0) for x in cov)
+            n = sum(x.get(key) or 0 for x in cov)
             if n:
                 alerts.append({"level": level, "text": f"Session {covered.session_id}: {n} {text}."})
-        skipped = [x["report"] for x in cov if x["skipped_after_failures"]]
+        skipped = [x.get("report", "?") for x in cov if x.get("skipped_after_failures")]
         if skipped:
             alerts.append({"level": "danger", "text": f"Reports skipped after repeated failures: {', '.join(skipped)}."})
-        empty = sum(x["empty"] for x in cov)
+        empty = sum(x.get("empty") or 0 for x in cov)
         if empty:
             alerts.append({"level": "info", "text": f"Session {covered.session_id}: {empty} empty sections "
                                                     f"({KnownEmpty.objects.count()} registered as known-empty)."})
@@ -180,7 +273,7 @@ def home():
             alerts.append({"level": "warning", "text": f"Automatic run '{a.name}': {a.last_message}",
                            "url": "console:run"})
     from . import revenue  # also late: revenue reads the perf tables
-    group_cards = revenue.matrix(months=3)["summary"]
+    group_cards = revenue.matrix(months=3, stored=True)["summary"]  # once, from the stored monthly table
     latest = Session.objects.filter(status=Session.COMPLETE).first() or Session.objects.first()
     return {"job": job, "alerts": alerts, "autoruns": autoruns, "group_cards": group_cards,
             "groups_defined": CenterGroup.objects.count(), "sessions": Session.objects.all()[:6],

@@ -12,9 +12,9 @@ from django_q.models import Schedule
 
 from centers import services
 
-from . import auth, coverage, engine, jobs
+from . import auth, coverage, jobs
 from .conf import SPEED_PROFILES
-from .models import AutoRun, Session
+from .models import AutoRun, Job, Session
 from .reports import REPORTS
 
 TASK = "scraper.tasks.auto_run"
@@ -87,13 +87,35 @@ def schedule_name(auto):
     return f"autorun-{auto.pk}"
 
 
+def fits(auto, when):
+    """True if `when` is a moment this AutoRun's timing could fire at (so a planned next run can be kept)."""
+    local = timezone.localtime(when)
+    if auto.frequency == AutoRun.CRON:
+        return bool(auto.cron) and croniter.is_valid(auto.cron) and croniter.match(auto.cron, local)
+    if local.time().replace(second=0, microsecond=0) != auto.run_at.replace(second=0, microsecond=0):
+        return False
+    if auto.frequency == AutoRun.WEEKLY:
+        return local.weekday() == auto.weekday
+    if auto.frequency == AutoRun.MONTHLY:
+        return local.day == auto.month_day
+    return True
+
+
 def sync_schedule(auto):
-    """Keep the django-q2 schedule in step with the AutoRun (it exists while the run is enabled)."""
+    """Keep the django-q2 schedule in step with the AutoRun (it exists while the run is enabled).
+
+    The planned next run is only recalculated when the schedule is new or its timing changed: saving a campaign
+    for another reason (its gyms, its reports) keeps a run that is due, even one that is overdue."""
     if not auto.enabled:
         return remove_schedule(auto)
-    Schedule.objects.update_or_create(name=schedule_name(auto), defaults={
-        "func": TASK, "args": f"({auto.pk},)", "schedule_type": SCHEDULE_TYPE[auto.frequency], "repeats": -1,
-        "cron": auto.cron if auto.frequency == AutoRun.CRON else None, "next_run": next_occurrence(auto)})
+    stype, cron = SCHEDULE_TYPE[auto.frequency], auto.cron if auto.frequency == AutoRun.CRON else None
+    existing = Schedule.objects.filter(name=schedule_name(auto)).first()
+    defaults = {"func": TASK, "args": f"({auto.pk},)", "schedule_type": stype, "repeats": -1, "cron": cron}
+    keep = existing is not None and existing.next_run is not None and existing.schedule_type == stype \
+        and (existing.cron or None) == cron and fits(auto, existing.next_run)
+    if not keep:
+        defaults["next_run"] = next_occurrence(auto)
+    Schedule.objects.update_or_create(name=schedule_name(auto), defaults=defaults)
 
 
 def remove_schedule(auto):
@@ -108,23 +130,32 @@ def next_run(auto):
 def run(auto, force=False, inline=False):
     """Start this automatic run. Returns (status, message); both are also kept on the AutoRun.
 
-    force=True is the "Run now" button: it ignores the on/off switch and the once-a-day guard.
+    force=True is the "Run now" button: it ignores the on/off switch and does not wait for another scrape.
     inline=True does the whole scrape in this process (for `manage.py auto_run --wait`, started by
     Task Scheduler or cron) instead of queueing it for the job runner.
+
+    last_status afterwards: started (queued; becomes finished / incomplete / failed when the job ends),
+    waiting (another scrape was running: it starts by itself when that one ends), skipped or failed.
     """
     start, end = period(auto)
     if not auto.enabled and not force:
         return _record(auto, "skipped", "Switched off.")
-    if not force and auto.last_status == "started" and auto.last_run_at and \
-            timezone.localdate(auto.last_run_at) == timezone.localdate():
-        return _record(auto, "skipped", "Already started today.", auto.last_session, keep_time=True)
+    if not force and auto.last_status == "started" and auto.last_session_id:
+        jobs.refresh_states()  # a job whose runner died no longer counts as going
+        if Job.objects.active().filter(session_id=auto.last_session_id).exists():
+            return "skipped", "The last start of this run is still going: not started twice."  # row left as it is
     ids = center_ids(auto)
     if not ids:
         return _record(auto, "failed", "No gyms: pick a center list, groups or gyms for this campaign.")
     if not auth.logged_in(fresh=True):
+        if auth.last_state() == auth.UNREACHABLE:
+            return _record(auto, "skipped", "Kronos could not be reached (offline, or Kronos is down): "
+                                            "not started. It runs again at its next time, or press Run now.")
         return _record(auto, "skipped", "Not logged in to Kronos: log in on the Run page, then run again.")
     if jobs.active_job():
-        return _record(auto, "skipped", "Another scrape is still running.")
+        if force or inline:
+            return _record(auto, "skipped", "Another scrape is still running.")
+        return _record(auto, "waiting", "Waiting: another scrape is running; this run starts by itself when it ends.")
     missing = auto.period_rule == AutoRun.MISSING_SALES
     reports = ["sales"] if missing else auto.reports
     spec = {"start": start.isoformat(), "end": end.isoformat(), "list": auto.centers.name if auto.centers_id else "campaign",
@@ -155,7 +186,11 @@ def _unfinished(auto, start, end):
 
 
 def _record(auto, status, message, session=None, keep_time=False):
-    fields = {"last_status": status, "last_message": message[:300], "last_session": session}
+    """Keep the outcome on the AutoRun. Without a session the last one is left in place (so an unfinished
+    session can still be continued after a skipped or failed start)."""
+    fields = {"last_status": status, "last_message": message[:300]}
+    if session is not None:
+        fields["last_session"] = session
     if not keep_time:
         fields["last_run_at"] = timezone.now()
     AutoRun.objects.filter(pk=auto.pk).update(**fields)  # update(): no save(), so the schedule is not reset
@@ -163,16 +198,39 @@ def _record(auto, status, message, session=None, keep_time=False):
     return status, message
 
 
-def _run_inline(auto, spec, start, end):
-    if spec.get("session"):
-        session = Session.objects.get(pk=spec["session"])
+def _ended(session, job_state, error=""):
+    """(last_status, message) for a session whose job has ended."""
+    if job_state == Job.ERROR:
+        status = "failed"
     else:
-        session = engine.new_session(start, end, spec["center_ids"], spec["only"] or list(REPORTS), speed=spec["speed"],
-                                     workers=spec["workers"], granularity=spec["granularity"],
-                                     sales_chunk=spec["sales_chunk"], fill_missing=spec["fill_missing"])
-    _record(auto, "started", f"Running session {session.session_id} for {start} to {end}.", session)
-    session = engine.run_session(session, workers=spec["workers"], adaptive=spec["speed"] == "adaptive",
-                                 recheck_known=spec["recheck_known"])
-    status = "finished" if session.status == session.COMPLETE else "incomplete"
-    return _record(auto, status, f"Session {session.session_id} {session.status}: {session.missing_count} "
-                                 f"center/section pairs missing.", session)
+        status = "finished" if session.status == Session.COMPLETE else "incomplete"
+    message = f"Session {session.session_id} {session.status}: {session.missing_count} center/section pairs missing."
+    return status, (f"{message} {error}" if error else message)
+
+
+def job_finished(session, job_state, error=""):
+    """Called when a job ends: the AutoRun that started this session shows how it ended (not 'started' forever)."""
+    status, message = _ended(session, job_state, error)
+    AutoRun.objects.filter(last_session=session, last_status="started").update(
+        last_status=status, last_message=message[:300])
+
+
+def start_waiting():
+    """Start the automatic runs that were waiting for another scrape to end (one at a time)."""
+    for auto in AutoRun.objects.filter(enabled=True, last_status="waiting").order_by("last_run_at"):
+        if jobs.active_job():
+            return
+        run(auto)
+
+
+def _run_inline(auto, spec, start, end):
+    """The whole scrape in this process, through a Job like any other run (one scrape at a time, retry-empty, a
+    session left 'running' by a killed process is seen as interrupted)."""
+    _record(auto, "started", f"Running in this process for {start} to {end}.")
+    try:
+        job = jobs.enqueue(spec, sync=True)
+    except jobs.JobError as e:
+        return _record(auto, "failed", str(e))
+    job.refresh_from_db()
+    session = Session.objects.get(pk=job.session_id)
+    return _record(auto, *_ended(session, job.state, job.error), session=session)

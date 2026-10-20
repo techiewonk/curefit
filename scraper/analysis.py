@@ -60,18 +60,29 @@ def build_analysis(session):
 def revenue_metrics(metrics):
     """Names of the total / new / repeat revenue metrics among the perf metric names.
 
-    'Total Revenue' must not be mistaken for 'Total Online Revenue' or 'Total Offline Revenue': the name is matched
-    as a whole (an optional '1.' / '1.a.' numbering, then the words), the old substring match is only a fallback.
+    'Total Revenue' must not be mistaken for 'Total Online Revenue', 'Net Total Revenue' or 'Last Month Total
+    Revenue': the name is matched as a whole, with only a numbering in front ('1.', '1.a', '1.a.'); a numbered
+    name is preferred. The old substring match is only a fallback when no name matches that way.
     """
     names = sorted(metrics)
+    numbering = r"^(?:(\d+(?:\.[a-z0-9]*)*\.?)\s*)?"
 
     def exact(words):
-        pattern = re.compile(r"^[\d.a-z\s]*?" + words + r"$", re.I)
-        return next((m for m in names if pattern.match(m.strip()) and not re.search(r"online|offline", m, re.I)), None)
+        pattern = re.compile(numbering + words + r"$", re.I)
+        found = [(m, pattern.match(m.strip())) for m in names]
+        found = [(m, hit) for m, hit in found if hit]
+        return next((m for m, hit in found if hit.group(1)), found[0][0] if found else None)
 
-    return (exact("total revenue") or find_metric(names, "total", "revenue") or find_metric(names, "1.", "total"),
-            exact("new revenue") or find_metric(names, "new", "revenue"),
-            exact("repeat revenue") or find_metric(names, "repeat", "revenue"))
+    def loose(first, *rest):
+        """Fallback: a name that STARTS with the word (after a numbering), e.g. 'Total Revenue (INR)'; only then any
+        name holding the words, so 'Net Total Revenue' or 'Renewal Revenue' are a last resort."""
+        start = re.compile(numbering + re.escape(first) + r"\b", re.I)
+        return next((m for m in names if start.match(m.strip()) and all(w in m.lower() for w in rest)), None) \
+            or find_metric(names, first, *rest)
+
+    return (exact("total revenue") or loose("total", "revenue") or find_metric(names, "1.", "total"),
+            exact("new revenue") or loose("new", "revenue"),
+            exact("repeat revenue") or loose("repeat", "revenue"))
 
 
 def trend(session):

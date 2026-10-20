@@ -36,3 +36,19 @@ test_*.sqlite3*
 *.err
 serve_pid.txt
 old/
+
+# login in progress / crashed writes (they can hold a live token)
+session.tmp
+session.*.tmp
+session.json.*.tmp
+session.pending.json
+runner.pid
+
+# management sheets, root exports, logs, backups, imports
+*.xls
+*.xlsx
+/*.csv
+logs/
+backups/
+imports/
+*.log

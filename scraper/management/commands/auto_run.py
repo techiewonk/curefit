@@ -6,8 +6,10 @@ Start an automatic run from the command line, for Windows Task Scheduler or cron
     python manage.py auto_run "Daily report (actual list)" --wait   # do the whole scrape in this process
 
 --wait needs no job runner and returns when the scrape is done (exit code 0 = complete, 1 = something
-is missing or it failed, 2 = skipped, for instance not logged in). Without --wait it only queues the
-run, so `manage.py serve` (the job runner) has to be running.
+is missing or it failed, 2 = skipped, for instance not logged in or another scrape running). It runs as a
+normal job, so it shows on the Run page and the "one scrape at a time" rule covers it. Without --wait it
+only queues the run, so `manage.py serve` (the job runner) has to be running; if another scrape is running
+then, it waits and starts by itself when that one ends (exit code 2).
 
 The run reports on the period its own settings give (yesterday, last week, last month, ...).
 
@@ -31,7 +33,7 @@ class Command(BaseCommand):
         parser.add_argument("--list", action="store_true", help="show the automatic runs and exit")
         parser.add_argument("--wait", action="store_true", help="do the scrape in this process and wait for it")
         parser.add_argument("--force", action="store_true",
-                            help="run even if it is switched off or already started today")
+                            help="run even if it is switched off or its last start is still going")
 
     def handle(self, *args, **opts):
         if opts["list"] or not opts["name"]:
@@ -46,4 +48,4 @@ class Command(BaseCommand):
             raise CommandError(f"No automatic run named {opts['name']!r}. Use --list.")
         status, message = autorun.run(auto, force=opts["force"], inline=opts["wait"])
         self.stdout.write(f"{status}: {message}")
-        raise SystemExit({"started": 0, "finished": 0, "skipped": 2}.get(status, 1))
+        raise SystemExit({"started": 0, "finished": 0, "skipped": 2, "waiting": 2}.get(status, 1))

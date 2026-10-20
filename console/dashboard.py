@@ -7,7 +7,7 @@ from . import charts
 
 
 def home_charts():
-    data = revenue.matrix(months=12)
+    data = revenue.matrix(months=12, stored=True)  # the stored monthly table: Home never reads the raw perf rows
     if not data["has_data"]:
         return {"has_data": False}
     months, latest = data["months"], data["latest_month"]

@@ -2,6 +2,7 @@
 {% load unfold humanize %}
 
 {% block page %}
+<p class="text-sm text-font-subtle-light dark:text-font-subtle-dark">The numbers of one run (session): totals, revenue charts and a per-center table. Pick a session; <em>Browse the rows</em> opens its raw sales rows and the download links give the per-center table.</p>
 <form method="get" class="flex flex-row flex-wrap gap-3 items-end">
   <div class="w-96">{% include "unfold/helpers/field.html" with field=picker.session %}</div>
   {% if session %}
@@ -10,6 +11,10 @@
     <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:analytics_csv' %}?session={{ session.pk }}&format=xlsx">Download XLSX</a>
   {% endif %}
 </form>
+
+{% if rows_pruned %}
+  {% component "unfold/components/card.html" %}<p class="text-orange-600">This session's per-run sales or gym rows were removed to save space (<em>Keep run rows</em> in Settings), so the sales figures below are incomplete. The data is still in the all-runs tables (Expired packs / Gym members → All).</p>{% endcomponent %}
+{% endif %}
 
 {% if totals %}
   <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">

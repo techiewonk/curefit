@@ -10,6 +10,40 @@ from centers.models import Center, CenterGroup
 from scraper.testing import FakeKronosMixin
 
 
+class CenterSyncTests(FakeKronosMixin, TransactionTestCase):
+    """Centers 1..4 exist (ACTIVE, named Cult 1..4)."""
+
+    def test_bad_records_are_skipped_blanks_never_wipe_and_missing_centers_are_marked_removed(self):
+        diff = services.upsert_from_kronos([
+            {"id": 1, "state": "ACTIVE"},                 # no name in this answer
+            {"id": "2", "name": "Cult 2 new", "state": ""},
+            {"id": 2, "name": "duplicate", "state": "INACTIVE"},  # the same id again: counts once
+            {"name": "no id"}, {"id": "abc"}, {"id": None},
+            {"id": 9, "name": "New gym", "state": "ACTIVE"}])
+        self.assertEqual(Center.objects.get(pk=1).name, "Cult 1")
+        self.assertEqual((Center.objects.get(pk=2).name, Center.objects.get(pk=2).state), ("Cult 2 new", "ACTIVE"))
+        self.assertEqual(diff["total"], 3)
+        self.assertEqual({r["id"] for r in diff["removed"]}, {3, 4})
+        self.assertEqual(set(Center.objects.filter(state=Center.REMOVED).values_list("pk", flat=True)), {3, 4})
+        again = services.upsert_from_kronos([{"id": 1, "state": "ACTIVE"}, {"id": 2}, {"id": 9}, {"id": 3, "state": "ACTIVE"}])
+        self.assertEqual(again["removed"], [])  # 4 was already marked
+        self.assertEqual(Center.objects.get(pk=3).state, "ACTIVE")  # back in Kronos: active again
+        services.upsert_from_kronos([{"id": 1}, {"id": 2}, {"id": 9}, {"id": 3}, {"id": 4}])  # 4 back, state unknown
+        self.assertEqual(Center.objects.get(pk=4).state, "")
+        self.assertEqual(Center.objects.get(pk=3).state, "ACTIVE")  # a known state is still never blanked
+
+    def test_an_empty_or_tiny_answer_changes_nothing(self):
+        from unittest import mock
+        with self.assertRaises(ValueError):
+            services.upsert_from_kronos([{"name": "no id"}])
+        Center.objects.bulk_create([Center(center_id=100 + i, name=f"G{i}", state="ACTIVE") for i in range(30)])
+        with mock.patch.object(services, "CenterSyncLog") as logged, self.assertRaises(ValueError):
+            services.upsert_from_kronos([{"id": 1, "name": "x", "state": "ACTIVE"}])
+        logged.objects.create.assert_not_called()
+        self.assertFalse(Center.objects.filter(state=Center.REMOVED).exists())
+        self.assertEqual(Center.objects.get(pk=1).name, "Cult 1")
+
+
 class GroupSeedTests(FakeKronosMixin, TransactionTestCase):
     def setUp(self):
         super().setUp()
@@ -47,6 +81,13 @@ class GroupSeedTests(FakeKronosMixin, TransactionTestCase):
     def test_the_bundled_list_has_the_three_groups_of_the_sheet(self):
         seed = json.loads(services.GROUP_SEED.read_text(encoding="utf-8"))
         self.assertEqual({k: len(v) for k, v in seed.items()}, {"GYMS": 8, "HYBRIDS": 12, "Gym Hybrid": 14})
+
+    def test_ungrouped_is_a_reserved_group_name(self):
+        from django.core.exceptions import ValidationError
+        for name in ("Ungrouped", " ungrouped "):
+            with self.assertRaises(ValidationError):
+                CenterGroup(name=name).full_clean()
+        CenterGroup(name="Ungrouped gyms").full_clean()
 
     def test_the_command_and_the_migration(self):
         from importlib import import_module

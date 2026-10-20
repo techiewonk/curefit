@@ -7,7 +7,8 @@ class Center(models.Model):
     center_id = models.PositiveIntegerField(primary_key=True, verbose_name="ID")
     name = models.CharField(max_length=255, blank=True)
     code = models.CharField(max_length=32, blank=True)
-    state = models.CharField(max_length=16, blank=True, db_index=True)  # ACTIVE / INACTIVE
+    REMOVED = "REMOVED"  # no longer in Kronos' center list (set by the sync; past data still refers to it)
+    state = models.CharField(max_length=16, blank=True, db_index=True)  # ACTIVE / INACTIVE / REMOVED
     center_type = models.CharField(max_length=32, blank=True)
     locality = models.CharField(max_length=128, blank=True)
     cluster = models.CharField(max_length=128, blank=True, db_index=True)
@@ -47,11 +48,18 @@ class CenterGroup(models.Model):
     position = models.PositiveSmallIntegerField(default=0, help_text="Order on the report pages (small first).")
     updated_at = models.DateTimeField(auto_now=True)
 
+    RESERVED = "Ungrouped"  # the reports' name for gyms in no group
+
     class Meta:
         ordering = ["position", "name"]
 
     def __str__(self):
         return self.name
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if (self.name or "").strip().lower() == self.RESERVED.lower():
+            raise ValidationError({"name": f"'{self.RESERVED}' is reserved for gyms in no group: pick another name."})
 
 
 class CenterList(models.Model):

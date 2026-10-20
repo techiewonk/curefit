@@ -22,15 +22,13 @@ if not exist ".venv\Scripts\python.exe" (
     echo      already there.
 )
 
-echo [3/5] Installing packages from requirements.txt...
+echo [3/5] Installing packages from requirements.txt (versions from constraints.txt)...
 ".venv\Scripts\python" -m pip install --quiet --upgrade pip
-".venv\Scripts\python" -m pip install --quiet -r requirements.txt
+call update_packages.bat force
 if errorlevel 1 goto :fail
 
 echo [4/5] Database migrations...
 ".venv\Scripts\python" manage.py migrate --noinput
-if errorlevel 1 goto :fail
-".venv\Scripts\python" manage.py seed_groups
 if errorlevel 1 goto :fail
 ".venv\Scripts\python" manage.py collectstatic --noinput --verbosity 0
 if errorlevel 1 goto :fail

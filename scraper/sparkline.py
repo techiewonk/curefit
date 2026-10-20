@@ -4,11 +4,15 @@ from django.utils.safestring import mark_safe
 
 from console.templatetags.formats import inr
 
+from .numbers import finite
+
 UP, DOWN, FLAT = "#22c55e", "#ef4444", "#9ca3af"
 
 
 def svg(values, labels=None, width=96, height=26):
-    """values: numbers (None = no data) oldest first; labels: the month of each value (shown on hover)."""
+    """values: numbers (None = no data) oldest first; labels: the month of each value (shown on hover).
+    NaN and infinity count as no data."""
+    values = [finite(v) for v in values]
     points = [(i, v) for i, v in enumerate(values) if v is not None]
     if len(points) < 2:
         return "-"
