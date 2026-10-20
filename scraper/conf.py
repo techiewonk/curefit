@@ -8,6 +8,9 @@ from constance import config
 
 # centers at a time; "adaptive" starts at 2 and adjusts itself (see throttle.py)
 SPEED_PROFILES = {"gentle": 1, "normal": 2, "fast": 4, "adaptive": 2}
+SPEED_CHOICES = [("gentle", "Gentle — 1 center at a time"), ("normal", "Normal — 2 at a time"),
+                 ("fast", "Fast — 4 at a time"),
+                 ("adaptive", "Adaptive — starts at 2, slows down or speeds up by itself")]
 
 
 @dataclass(frozen=True)

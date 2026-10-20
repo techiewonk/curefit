@@ -119,7 +119,7 @@ Q_CLUSTER = {
     "poll": 1,
     "queue_limit": 20,
     "save_limit": 250,
-    "catch_up": False,
+    "catch_up": True,  # a missed automatic run fires when the runner starts again (once a day at most)
 }
 
 from django.templatetags.static import static  # noqa: E402
@@ -184,11 +184,14 @@ UNFOLD = {
                 {"title": "Known empty", "icon": "block", "link": _ADMIN("centers_knownempty")},
                 {"title": "Sync history", "icon": "update", "link": _ADMIN("centers_centersynclog")},
             ]},
+            {"title": "Automation", "separator": True, "items": [
+                {"title": "Automatic runs", "icon": "event_repeat", "link": _ADMIN("scraper_autorun")},
+                {"title": "Schedules", "icon": "schedule", "link": _ADMIN("django_q_schedule")},
+            ]},
             {"title": "System", "separator": True, "items": [
                 {"title": "Jobs", "icon": "work", "link": _ADMIN("scraper_job")},
                 {"title": "Queued tasks", "icon": "queue", "link": _ADMIN("django_q_ormq")},
                 {"title": "Failed tasks", "icon": "error", "link": _ADMIN("django_q_failure")},
-                {"title": "Schedules", "icon": "schedule", "link": _ADMIN("django_q_schedule")},
                 {"title": "Settings", "icon": "settings", "link": reverse_lazy("admin:constance_config_changelist")},
             ]},
         ],

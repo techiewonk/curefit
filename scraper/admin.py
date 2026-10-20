@@ -1,24 +1,31 @@
 import os
 import shutil
 
+from django import forms
 from django.contrib import admin, messages
+from django.shortcuts import redirect
 from django.utils.html import format_html
-from import_export.admin import ExportActionMixin
 from unfold.admin import ModelAdmin
-from unfold.contrib.import_export.forms import ExportForm
+from unfold.contrib.filters.admin import (AllValuesCheckboxFilter, AutocompleteSelectFilter, BooleanRadioFilter,
+                                          ChoicesDropdownFilter, FieldTextFilter, RangeDateFilter,
+                                          RangeDateTimeFilter, RangeNumericFilter, RelatedDropdownFilter)
 from unfold.decorators import action, display
+from unfold.widgets import UnfoldAdminCheckboxSelectMultipleWidget, UnfoldAdminSelectWidget
 
 from centers.models import KnownEmpty
+from config.admin_base import ExportModelAdmin
 
-from . import files, jobs
+from . import autorun, files, jobs
+from .conf import SPEED_CHOICES
+from .models import (AutoRun, CardColumns, CardRow, GymMember, Job, PerfMetric, SalesRecord, SectionResult,
+                     Session)
+from .reports import report_choices
 from .resources import GymMemberResource, PerfMetricResource, SalesRecordResource
-from .models import (CardColumns, CardRow, GymMember, Job, PerfMetric, SalesRecord,
-                     SectionResult, Session)
 
-STATUS_LABELS = {"complete": "success", "ok": "success", "done": "success", "incomplete": "warning",
-                 "slow": "warning", "empty": "info", "running": "info", "queued": "info",
-                 "interrupted": "danger", "failed": "danger", "error": "danger",
-                 "skipped": "danger"}
+STATUS_LABELS = {"complete": "success", "ok": "success", "done": "success", "finished": "success",
+                 "incomplete": "warning", "slow": "warning", "cancelled": "warning", "empty": "info",
+                 "running": "info", "queued": "info", "started": "info", "interrupted": "danger",
+                 "failed": "danger", "error": "danger", "skipped": "danger"}
 
 
 def _inside_runs(path):
@@ -29,13 +36,15 @@ def _inside_runs(path):
 
 
 @admin.register(Session)
-class SessionAdmin(ModelAdmin):
-    list_display = ("session_id", "period", "status_badge", "created_at", "centers", "results_link",
+class SessionAdmin(ExportModelAdmin):
+    list_display = ("session_id", "period", "granularity", "status_badge", "created_at", "centers", "results_link",
                     "missing_count")
-    list_filter = ("status",)
+    list_filter = [("status", ChoicesDropdownFilter), ("granularity", ChoicesDropdownFilter),
+                   ("start_date", RangeDateFilter), ("end_date", RangeDateFilter),
+                   ("created_at", RangeDateTimeFilter), ("finished_at", RangeDateTimeFilter)]
     search_fields = ("session_id",)
     readonly_fields = ("session_id", "folder", "coverage", "missing", "checks", "created_at", "finished_at")
-    actions = ["continue_session", "merge_files"]
+    actions = ["continue_session", "stop_running", "merge_files"]
 
     @display(description="Period")
     def period(self, obj):
@@ -60,11 +69,21 @@ class SessionAdmin(ModelAdmin):
             return messages.error(request, "Pick exactly one session to continue.")
         session = queryset.get()
         try:
-            job = jobs.enqueue({"session": session.session_id, "workers": session.workers or 2})
+            job = jobs.enqueue({"session": session.session_id, "workers": session.workers or 2,
+                                "speed": session.speed})
         except jobs.JobError as e:
             return messages.error(request, str(e))
         messages.success(request, f"Job {job.id} queued for session {session.session_id}. "
                                   "Watch it on the Run page; the job runner (qcluster) must be running.")
+
+    @action(description="Stop the running job of the selected session")
+    def stop_running(self, request, queryset):
+        stopped = 0
+        for job in Job.objects.active().filter(session__in=queryset):
+            jobs.request_stop(job)
+            stopped += 1
+        (messages.success if stopped else messages.info)(
+            request, "Stop requested." if stopped else "None of the selected sessions has a running job.")
 
     @action(description="Rebuild merged files (one file per report)")
     def merge_files(self, request, queryset):
@@ -89,13 +108,15 @@ class SessionAdmin(ModelAdmin):
 
 
 @admin.register(SectionResult)
-class SectionResultAdmin(ModelAdmin):
+class SectionResultAdmin(ExportModelAdmin):
     list_display = ("session", "center", "report", "status_badge", "row_count", "seconds", "scraped_at")
-    list_filter = ("status", "report", "session")
+    list_filter = [("session", RelatedDropdownFilter), ("center", AutocompleteSelectFilter),
+                   ("status", ChoicesDropdownFilter), ("report", AllValuesCheckboxFilter),
+                   ("row_count", RangeNumericFilter), ("seconds", RangeNumericFilter),
+                   ("scraped_at", RangeDateTimeFilter)]
     search_fields = ("center__name", "center__code", "report", "error")
     list_select_related = ("session", "center")
     list_per_page = 100
-    show_full_result_count = False
     actions = ["mark_known_empty", "retry_selected"]
 
     @display(description="Status", label=STATUS_LABELS)
@@ -128,14 +149,11 @@ class SectionResultAdmin(ModelAdmin):
         return False
 
 
-class DataAdmin(ExportActionMixin, ModelAdmin):
-    """Read-only browser for scraped rows, with CSV / XLSX export."""
+class DataAdmin(ExportModelAdmin):
+    """Read-only browser for scraped rows. Filter, then Export to download exactly those rows."""
 
-    export_form_class = ExportForm
     list_per_page = 50
-    show_full_result_count = False
     list_select_related = ("session", "center")
-    list_filter = ("session",)
 
     def has_add_permission(self, request):
         return False
@@ -158,7 +176,11 @@ class DataAdmin(ExportActionMixin, ModelAdmin):
 class SalesRecordAdmin(DataAdmin):
     resource_classes = [SalesRecordResource]
     list_display = ("center", "name", "phone", "pack_name", "member_end_date", "renewed", "revenue", "session")
-    list_filter = ("session", "renewed", "active_last_30d")
+    list_filter = [("session", RelatedDropdownFilter), ("center", AutocompleteSelectFilter),
+                   ("revenue", RangeNumericFilter), ("member_end_date", RangeDateFilter),
+                   ("renewed", AllValuesCheckboxFilter), ("active_last_30d", AllValuesCheckboxFilter),
+                   ("pack_name", FieldTextFilter), ("name", FieldTextFilter), ("phone", FieldTextFilter),
+                   ("scraped_at", RangeDateTimeFilter)]
     search_fields = ("name", "phone", "user_id", "center__name", "pack_name")
 
 
@@ -166,36 +188,49 @@ class SalesRecordAdmin(DataAdmin):
 class PerfMetricAdmin(DataAdmin):
     resource_classes = [PerfMetricResource]
     list_display = ("center", "metric_date", "metric", "value", "session")
-    list_filter = ("session", "metric")
+    list_filter = [("session", RelatedDropdownFilter), ("center", AutocompleteSelectFilter),
+                   ("metric_date", RangeDateFilter), ("value", RangeNumericFilter),
+                   ("metric", AllValuesCheckboxFilter), ("scraped_at", RangeDateTimeFilter)]
     search_fields = ("center__name", "metric")
+    ordering = ("-metric_date", "center_id")
 
 
 @admin.register(GymMember)
 class GymMemberAdmin(DataAdmin):
     resource_classes = [GymMemberResource]
     list_display = ("center", "username", "pack_name", "final_amount_paid", "status", "new_vs_repeat", "session")
-    list_filter = ("session", "status", "new_vs_repeat", "offline_vs_online")
+    list_filter = [("session", RelatedDropdownFilter), ("center", AutocompleteSelectFilter),
+                   ("final_amount_paid", RangeNumericFilter), ("purchase_date", RangeDateFilter),
+                   ("pack_start_date", RangeDateFilter), ("pack_end_date", RangeDateFilter),
+                   ("last_class_date", RangeDateFilter), ("status", AllValuesCheckboxFilter),
+                   ("new_vs_repeat", AllValuesCheckboxFilter), ("offline_vs_online", AllValuesCheckboxFilter),
+                   ("class_level", AllValuesCheckboxFilter), ("pack_name", FieldTextFilter),
+                   ("username", FieldTextFilter), ("scraped_at", RangeDateTimeFilter)]
     search_fields = ("username", "user_id", "center__name", "pack_name")
 
 
 @admin.register(CardRow)
 class CardRowAdmin(DataAdmin):
     list_display = ("center", "report", "row_num", "data", "session")
-    list_filter = ("session", "report")
+    list_filter = [("session", RelatedDropdownFilter), ("center", AutocompleteSelectFilter),
+                   ("report", AllValuesCheckboxFilter), ("row_num", RangeNumericFilter),
+                   ("scraped_at", RangeDateTimeFilter)]
     search_fields = ("center__name", "report")
 
 
 @admin.register(CardColumns)
-class CardColumnsAdmin(ModelAdmin):
+class CardColumnsAdmin(ExportModelAdmin):
     list_display = ("report", "columns")
 
 
 @admin.register(Job)
-class JobAdmin(ModelAdmin):
+class JobAdmin(ExportModelAdmin):
     list_display = ("id", "state_badge", "session", "progress", "started_at", "finished_at")
-    list_filter = ("state",)
+    list_filter = [("state", ChoicesDropdownFilter), ("session", RelatedDropdownFilter),
+                   ("created_at", RangeDateTimeFilter), ("started_at", RangeDateTimeFilter),
+                   ("finished_at", RangeDateTimeFilter)]
     readonly_fields = [f.name for f in Job._meta.fields]
-    actions = ["request_stop"]
+    actions = ["request_stop", "force_stop"]
 
     @display(description="State", label=STATUS_LABELS)
     def state_badge(self, obj):
@@ -205,11 +240,66 @@ class JobAdmin(ModelAdmin):
     def progress(self, obj):
         return f"{obj.done}/{obj.total}" if obj.total else "-"
 
-    @action(description="Ask selected running jobs to stop")
+    @action(description="Stop selected jobs (after the requests in flight; a queued job is cancelled)")
     def request_stop(self, request, queryset):
         for j in queryset:
             jobs.request_stop(j)
         messages.success(request, "Stop requested.")
 
+    @action(description="Stop selected jobs NOW (abandons the request in progress)")
+    def force_stop(self, request, queryset):
+        for j in queryset:
+            jobs.force_stop(j)
+        messages.success(request, "Stopped. Continue the session later to finish it.")
+
     def has_add_permission(self, request):
         return False
+
+
+class AutoRunForm(forms.ModelForm):
+    reports = forms.MultipleChoiceField(choices=report_choices, widget=UnfoldAdminCheckboxSelectMultipleWidget)
+    speed = forms.ChoiceField(choices=SPEED_CHOICES, widget=UnfoldAdminSelectWidget)
+
+    class Meta:
+        model = AutoRun
+        fields = "__all__"
+
+
+@admin.register(AutoRun)
+class AutoRunAdmin(ExportModelAdmin):
+    """Runs that start by themselves. Switch one on, or press Run now to test it with yesterday's data."""
+
+    form = AutoRunForm
+    list_display = ("name", "enabled", "frequency", "centers", "granularity", "next_run_at", "last_run_at",
+                    "last_status_badge", "last_message")
+    list_editable = ("enabled",)
+    list_filter = [("enabled", BooleanRadioFilter), ("frequency", ChoicesDropdownFilter),
+                   ("granularity", ChoicesDropdownFilter), ("centers", RelatedDropdownFilter),
+                   ("last_run_at", RangeDateTimeFilter)]
+    readonly_fields = ("last_run_at", "last_session", "last_status", "last_message")
+    actions = ["run_selected"]
+    actions_row = ["run_now"]
+    actions_detail = ["run_now"]
+
+    @display(description="Next run")
+    def next_run_at(self, obj):
+        when = autorun.next_run(obj)
+        return when.strftime("%d %b %H:%M") if when else "-"
+
+    @display(description="Last result", label=STATUS_LABELS)
+    def last_status_badge(self, obj):
+        return obj.last_status or "-"
+
+    def _run(self, request, auto):
+        status, message = autorun.run(auto, force=True)
+        (messages.success if status == "started" else messages.warning)(request, f"{auto.name}: {message}")
+
+    @action(description="Run now (test it with the period it would report on)", url_path="run-now")
+    def run_now(self, request, object_id):
+        self._run(request, AutoRun.objects.get(pk=object_id))
+        return redirect(request.META.get("HTTP_REFERER") or "admin:scraper_autorun_changelist")
+
+    @action(description="Run the selected automatic runs now")
+    def run_selected(self, request, queryset):
+        for auto in queryset:
+            self._run(request, auto)

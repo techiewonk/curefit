@@ -87,13 +87,13 @@ def warm_up(mb, token, cfg):
             log.warning("warm-up failed %s: %s", url.split("?")[0], e)
 
 
-def get_rows(mb, rep, token, start, end, cfg):
+def get_rows(mb, rep, token, start, end, cfg, granularity="month"):
     """Return (rows, column_names) once Metabase reports the query completed.
 
     A 200 or a 202 body can already be the finished result; anything else is polled until
     `cfg.poll_seconds`, then SlowQuery is raised.
     """
-    params = urllib.parse.quote(json.dumps(rep["data_params"](start, end)))
+    params = urllib.parse.quote(json.dumps(rep["data_params"](start, end, granularity)))
     url = (f"https://metabase.curefit.co/api/embed/dashboard/{token}"
            f"/dashcard/{rep['dashcard']}/card/{rep['card']}?parameters={params}")
     hdr = {**embed_headers(token), "x-metabase-guest-embed": "true"}

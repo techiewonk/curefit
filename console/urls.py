@@ -16,6 +16,8 @@ urlpatterns = [
     path("monitor/", page(views.MonitorView), name="monitor"),
     path("analytics/", page(views.AnalyticsView), name="analytics"),
     path("compare/", page(views.CompareView), name="compare"),
+    path("analytics/csv/", views.AnalyticsCsv.as_view(), name="analytics_csv"),
+    path("compare/csv/", views.CompareCsv.as_view(), name="compare_csv"),
     path("centers/", page(views.CentersView), name="centers"),
     # fragments that HTMX swaps into the pages above
     path("run/login/", views.LoginPanel.as_view(), name="login"),

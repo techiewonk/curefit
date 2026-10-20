@@ -1,16 +1,20 @@
 """Console pages: thin class-based views. Rules live in scraper/, display in the templates."""
 import json
 
+import tablib
+
 from django.contrib import admin, messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.http import Http404, HttpResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import FormView, TemplateView, View
 from unfold.views import UnfoldSiteViewMixin
 
 from centers import sync
 from centers.models import Center, CenterList, CenterSyncLog
-from scraper import auth, jobs, selectors
+from scraper import analysis, auth, jobs, selectors
 from scraper.models import Job, Session
 
 from .forms import CompareForm, OtpForm, RunForm, SessionPickForm
@@ -88,8 +92,13 @@ class JobPanel(Partial, TemplateView):
         job = jobs.active_job()
         if job and action == "stop":
             jobs.request_stop(job)
+        elif job and action == "force":
+            jobs.force_stop(job)
         elif job and action == "pause":
             jobs.set_pause(job, not job.pause_requested)
+        target = request.POST.get("next", "")
+        if not request.headers.get("HX-Request") and url_has_allowed_host_and_scheme(target, {request.get_host()}):
+            return redirect(target)  # plain form post from Home / Monitor
         return self.get(request)
 
 
@@ -117,7 +126,8 @@ class ResumePanel(Partial, TemplateView):
         form.is_valid()
         ctx = super().get_context_data(**kwargs)
         start, end = form.cleaned_data.get("start"), form.cleaned_data.get("end")
-        ctx["sessions"] = Session.objects.for_period(start, end).unfinished() if start and end else []
+        ctx["sessions"] = Session.objects.for_period(start, end, form.cleaned_data.get("granularity")) \
+            .unfinished() if start and end else []
         ctx["form"] = form
         return ctx
 
@@ -164,7 +174,12 @@ class AnalyticsView(ConsolePage, TemplateView):
             data = selectors.analytics(session)
             c = data["centers"]
             names = [x["name"] or str(x["id"]) for x in c]
-            ctx.update(data, revenue_chart=json.dumps({
+            points = analysis.trend(session)
+            trend_chart = json.dumps({"labels": [str(p["date"]) for p in points], "datasets": [
+                {"label": label, "data": [p.get(key) for p in points], "borderColor": color}
+                for key, label, color in (("total", "Total revenue", "#7c3aed"), ("new", "New", "#22c55e"),
+                                          ("repeat", "Repeat", "#f97316"))]}) if len(points) > 1 else None
+            ctx.update(data, trend_chart=trend_chart, revenue_chart=json.dumps({
                 "labels": names, "datasets": [{"label": "Total revenue", "data": [x["total_revenue"] for x in c],
                                                "backgroundColor": "#7c3aed"}]}),
                 mix_chart=json.dumps({"labels": names, "datasets": [
@@ -203,6 +218,50 @@ class CompareView(ConsolePage, FormView):
             ctx.update(rows=rows, totals={k: sum((r["diff"] or {}).get(k, 0) for r in rows)
                                           for k in ("sales", "sales_revenue", "total_revenue")})
         return ctx
+
+
+def _download(request, name, headers, rows):
+    """A tablib download: CSV by default, ?format=xlsx for Excel."""
+    book = tablib.Dataset(*rows, headers=headers)
+    if request.GET.get("format") == "xlsx":
+        response = HttpResponse(book.export("xlsx"), content_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+        response["Content-Disposition"] = f'attachment; filename="{name}.xlsx"'
+        return response
+    response = HttpResponse(book.export("csv"), content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{name}.csv"'
+    return response
+
+
+class AnalyticsCsv(Partial, View):
+    """The per-center analysis table of the picked session."""
+
+    def get(self, request):
+        session = _picked_session(request)
+        if not session:
+            raise Http404("No session")
+        data = selectors.analytics(session)
+        headers = ["center_id", "center", "sales", "sales_revenue", "renewals", "renewal_pct", "total_revenue",
+                   "new_revenue", "repeat_revenue", "new_pct", "repeat_pct", "active_pct"]
+        rows = [[x["id"], x["name"], x["sales"], x["sales_revenue"], x["renewals"], x["renewal_pct"],
+                 x["total_revenue"], x["new_revenue"], x["repeat_revenue"], x["new_pct"], x["repeat_pct"],
+                 x["active_pct"]] for x in data["centers"]]
+        return _download(request, f"analytics_{session.session_id}", headers, rows)
+
+
+class CompareCsv(Partial, View):
+    def get(self, request):
+        form = CompareForm(request.GET)
+        if not form.is_valid():
+            raise Http404("Pick two sessions")
+        rows = selectors.compare(form.cleaned_data["a"], form.cleaned_data["b"])
+        keys = ("sales", "sales_revenue", "total_revenue")
+        headers = ["center_id", "center"] + [f"{k}_{t}" for k in keys for t in ("a", "b", "change")]
+        body = [[r["id"], r["name"]] + [v for k in keys for v in
+                                        ((r.get("a") or {}).get(k), (r.get("b") or {}).get(k), (r["diff"] or {}).get(k))]
+                for r in rows]
+        return _download(request, f"compare_{form.cleaned_data['a'].session_id}_{form.cleaned_data['b'].session_id}",
+                         headers, body)
 
 
 # ------------------------------------------------------------------ centers

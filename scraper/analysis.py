@@ -9,7 +9,7 @@ HEADER = ["center_id", "center_name", "sales_count", "sales_revenue", "renewals"
           "total_revenue", "new_revenue", "repeat_revenue", "new_%", "repeat_%"]
 
 
-def _find_metric(metrics, *needles):
+def find_metric(metrics, *needles):
     for m in metrics:
         low = m.lower()
         if all(n in low for n in needles):
@@ -21,9 +21,7 @@ def build_analysis(session):
     """{'header': [...], 'rows': [[...]]} — one row per center that has sales or perf data."""
     metrics = list(PerfMetric.objects.filter(session=session).order_by("metric")
                    .values_list("metric", flat=True).distinct())
-    m_total = _find_metric(metrics, "total", "revenue") or _find_metric(metrics, "1.", "total")
-    m_new = _find_metric(metrics, "new", "revenue")
-    m_repeat = _find_metric(metrics, "repeat", "revenue")
+    m_total, m_new, m_repeat = revenue_metrics(metrics)
 
     sales = {r["center_id"]: r for r in SalesRecord.objects.filter(session=session)
              .values("center_id").annotate(n=Count("id"), rev=Sum("revenue"),
@@ -55,3 +53,22 @@ def build_analysis(session):
             round(100.0 * rep / total, 1) if total and rep is not None else None,
         ])
     return {"header": HEADER, "rows": rows}
+
+
+def revenue_metrics(metrics):
+    """Names of the total / new / repeat revenue metrics among the perf metric names."""
+    return (find_metric(metrics, "total", "revenue") or find_metric(metrics, "1.", "total"),
+            find_metric(metrics, "new", "revenue"), find_metric(metrics, "repeat", "revenue"))
+
+
+def trend(session):
+    """Revenue over time: one point per day / week / month the session was split by, all centers added."""
+    names = list(PerfMetric.objects.filter(session=session).order_by("metric")
+                 .values_list("metric", flat=True).distinct())
+    series = {}
+    for key, metric in zip(("total", "new", "repeat"), revenue_metrics(names)):
+        if metric:
+            for row in PerfMetric.objects.filter(session=session, metric=metric, metric_date__isnull=False) \
+                    .values("metric_date").annotate(v=Sum("value")):
+                series.setdefault(row["metric_date"], {})[key] = row["v"]
+    return [{"date": day, **series[day]} for day in sorted(series)]

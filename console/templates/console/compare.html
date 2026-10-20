@@ -9,7 +9,10 @@
       {% include "unfold/helpers/field.html" with field=form.b %}
       {% include "unfold/helpers/field.html" with field=form.only_changed %}
     </div>
-    <button type="submit" class="bg-primary-600 border border-transparent font-medium px-4 py-2 rounded-default text-white">Compare</button>
+    <div class="flex flex-row gap-3 items-center">
+      <button type="submit" class="bg-primary-600 border border-transparent font-medium px-4 py-2 rounded-default text-white">Compare</button>
+      {% if rows %}<a class="text-primary-600" href="{% url 'console:compare_csv' %}?{{ request.GET.urlencode }}">Download CSV</a>{% endif %}
+    </div>
   {% endcomponent %}
 </form>
 

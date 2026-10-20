@@ -10,7 +10,8 @@ def _perf_card(dashcard, card, label):
         "label": label, "dashboard": 1750, "dashcard": dashcard, "card": card,
         "referer": PERF_REFERER,
         "iframe_query": lambda cid, s, e: {"start": s, "end": e},
-        "data_params": lambda s, e: {"start": s, "end": e, "granular": "month"},
+        # the perf dashboard splits its numbers by day, week or month
+        "data_params": lambda s, e, granularity="month": {"start": s, "end": e, "granular": granularity},
     }
 
 
@@ -20,7 +21,7 @@ def _sales_card(dashcard, card, label):
         "referer": SALES_REFERER,
         # the Kronos iframeUrl query and the Metabase data-call parameters differ per dashboard
         "iframe_query": lambda cid, s, e: {"start_date": s, "end_date": e, "center_id": str(cid)},
-        "data_params": lambda s, e: {"start_date": s, "end_date": e},
+        "data_params": lambda s, e, granularity=None: {"start_date": s, "end_date": e},  # not split
     }
 
 
@@ -55,6 +56,12 @@ GROUPS = {
     "Perf cards": [r for r in GENERIC if r.startswith("perf_")],
     "Sales cards": [r for r in GENERIC if r.startswith("sales_")],
 }
+
+def report_choices():
+    """Reports grouped for a checkbox list: Core / Perf cards / Sales cards."""
+    return [(group, [(name, f"{REPORTS[name]['label']} ({name})") for name in names])
+            for group, names in GROUPS.items()]
+
 
 # column names for the per-center CSV files of the typed reports (Metabase supplies the others)
 TYPED_COLUMNS = {

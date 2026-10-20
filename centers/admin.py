@@ -1,17 +1,23 @@
 from django.contrib import admin, messages
-from unfold.admin import ModelAdmin
+from unfold.contrib.filters.admin import (AllValuesCheckboxFilter, AutocompleteSelectFilter, BooleanRadioFilter,
+                                          RangeDateFilter, RangeDateTimeFilter, RangeNumericFilter)
 from unfold.decorators import action, display
+
+from config.admin_base import ExportModelAdmin
 
 from .models import Center, CenterList, CenterSyncLog, KnownEmpty
 
 
 @admin.register(Center)
-class CenterAdmin(ModelAdmin):
+class CenterAdmin(ExportModelAdmin):
     list_display = ("center_id", "name", "code", "state_badge", "center_type", "cluster", "in_lists")
-    list_filter = ("state", "cluster", "center_type", "upcoming")
+    list_filter = [("state", AllValuesCheckboxFilter), ("cluster", AllValuesCheckboxFilter),
+                   ("center_type", AllValuesCheckboxFilter), ("capacity", RangeNumericFilter),
+                   ("launch_date", RangeDateFilter), ("shutdown_date", RangeDateFilter),
+                   ("upcoming", BooleanRadioFilter), ("is_published", BooleanRadioFilter),
+                   ("lists__name", AllValuesCheckboxFilter)]
     search_fields = ("name", "code", "center_id", "locality", "cluster")
     list_per_page = 100
-    show_full_result_count = False
     actions = ["add_to_actual", "add_to_test", "remove_from_actual", "remove_from_test"]
 
     @display(description="State", label={"ACTIVE": "success", "INACTIVE": "danger"})
@@ -48,8 +54,9 @@ class CenterAdmin(ModelAdmin):
 
 
 @admin.register(CenterList)
-class CenterListAdmin(ModelAdmin):
+class CenterListAdmin(ExportModelAdmin):
     list_display = ("name", "description", "center_count", "updated_at")
+    list_filter = [("updated_at", RangeDateTimeFilter)]
     autocomplete_fields = ("centers",)
 
     @display(description="Centers")
@@ -58,8 +65,9 @@ class CenterListAdmin(ModelAdmin):
 
 
 @admin.register(CenterSyncLog)
-class CenterSyncLogAdmin(ModelAdmin):
+class CenterSyncLogAdmin(ExportModelAdmin):
     list_display = ("synced_at", "total", "active", "added_count", "removed_count", "changed_count")
+    list_filter = [("synced_at", RangeDateTimeFilter), ("total", RangeNumericFilter)]
     readonly_fields = [f.name for f in CenterSyncLog._meta.fields]
 
     @display(description="New")
@@ -79,8 +87,9 @@ class CenterSyncLogAdmin(ModelAdmin):
 
 
 @admin.register(KnownEmpty)
-class KnownEmptyAdmin(ModelAdmin):
+class KnownEmptyAdmin(ExportModelAdmin):
     list_display = ("center", "report", "note", "since", "last_checked")
-    list_filter = ("report",)
+    list_filter = [("center", AutocompleteSelectFilter), ("report", AllValuesCheckboxFilter),
+                   ("since", RangeDateTimeFilter), ("last_checked", RangeDateTimeFilter)]
     search_fields = ("center__name", "report", "note")
     autocomplete_fields = ("center",)

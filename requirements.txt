@@ -7,3 +7,4 @@ waitress>=3.0.0
 whitenoise>=6.7.0
 requests>=2.31.0
 openpyxl>=3.1.0
+croniter>=2.0.0

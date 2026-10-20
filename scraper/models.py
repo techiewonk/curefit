@@ -1,15 +1,19 @@
+import datetime
+
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
-from centers.models import Center
+from centers.models import Center, CenterList
 
 
 class SessionQuerySet(models.QuerySet):
     def unfinished(self):
         return self.exclude(status=Session.COMPLETE)
 
-    def for_period(self, start, end):
-        return self.filter(start_date=start, end_date=end)
+    def for_period(self, start, end, granularity=None):
+        qs = self.filter(start_date=start, end_date=end)
+        return qs.filter(granularity=granularity) if granularity else qs
 
 
 class Session(models.Model):
@@ -17,6 +21,8 @@ class Session(models.Model):
 
     RUNNING, INCOMPLETE, COMPLETE, INTERRUPTED = "running", "incomplete", "complete", "interrupted"
     STATUS_CHOICES = [(s, s) for s in (RUNNING, INCOMPLETE, COMPLETE, INTERRUPTED)]
+    DAY, WEEK, MONTH = "day", "week", "month"
+    GRANULARITY_CHOICES = [(DAY, "Day"), (WEEK, "Week"), (MONTH, "Month")]
 
     session_id = models.CharField(max_length=40, primary_key=True)
     start_date = models.DateField()
@@ -29,6 +35,9 @@ class Session(models.Model):
     center_ids = models.JSONField(default=list, blank=True)
     speed = models.CharField(max_length=16, default="normal")
     workers = models.PositiveSmallIntegerField(default=1)
+    granularity = models.CharField(
+        max_length=5, choices=GRANULARITY_CHOICES, default=MONTH,
+        help_text="How the perf cards split the period: one row per day, week or month.")
     coverage = models.JSONField(null=True, blank=True)
     missing = models.JSONField(default=dict, blank=True)
     checks = models.JSONField(default=list, blank=True, help_text="Automatic findings after the run")
@@ -39,7 +48,7 @@ class Session(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.session_id} · {self.start_date} → {self.end_date}"
+        return f"{self.session_id} · {self.start_date} → {self.end_date} · by {self.granularity}"
 
     @property
     def is_unfinished(self):
@@ -93,7 +102,7 @@ class SalesRecord(_Record):
     name = models.CharField(max_length=255, blank=True, null=True)
     phone = models.CharField(max_length=40, blank=True, null=True)
     pack_name = models.CharField(max_length=255, blank=True, null=True)
-    member_end_date = models.CharField(max_length=40, blank=True, null=True)
+    member_end_date = models.DateField(blank=True, null=True)
     active_last_30d = models.CharField(max_length=8, blank=True, null=True)
     renewed = models.CharField(max_length=8, blank=True, null=True)
     revenue = models.FloatField(null=True, blank=True)
@@ -105,7 +114,7 @@ class SalesRecord(_Record):
 class PerfMetric(_Record):
     """'Total Revenue and Split': one row per metric and month."""
 
-    metric_date = models.CharField(max_length=40)
+    metric_date = models.DateField(blank=True, null=True)
     metric = models.CharField(max_length=255)
     value = models.FloatField(null=True, blank=True)
 
@@ -121,14 +130,14 @@ class GymMember(_Record):
     username = models.CharField(max_length=255, blank=True, null=True)
     pack_name = models.CharField(max_length=255, blank=True, null=True)
     final_amount_paid = models.FloatField(null=True, blank=True)
-    purchase_date = models.CharField(max_length=40, blank=True, null=True)
-    pack_start_date = models.CharField(max_length=40, blank=True, null=True)
-    pack_end_date = models.CharField(max_length=40, blank=True, null=True)
+    purchase_date = models.DateField(blank=True, null=True)
+    pack_start_date = models.DateField(blank=True, null=True)
+    pack_end_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=32, blank=True, null=True)
     offline_vs_online = models.CharField(max_length=16, blank=True, null=True)
     new_vs_repeat = models.CharField(max_length=32, blank=True, null=True)
     class_level = models.CharField(max_length=64, blank=True, null=True)
-    last_class_date = models.CharField(max_length=40, blank=True, null=True)
+    last_class_date = models.DateField(blank=True, null=True)
 
     class Meta:
         indexes = [models.Index(fields=["session", "center"])]
@@ -166,8 +175,9 @@ class JobQuerySet(models.QuerySet):
 class Job(models.Model):
     """A queued/running scrape. The job runner updates it; the admin pages read it."""
 
-    QUEUED, RUNNING, DONE, ERROR, INTERRUPTED = "queued", "running", "done", "error", "interrupted"
-    STATE_CHOICES = [(s, s) for s in (QUEUED, RUNNING, DONE, ERROR, INTERRUPTED)]
+    QUEUED, RUNNING, DONE, ERROR, INTERRUPTED, CANCELLED = (
+        "queued", "running", "done", "error", "interrupted", "cancelled")
+    STATE_CHOICES = [(s, s) for s in (QUEUED, RUNNING, DONE, ERROR, INTERRUPTED, CANCELLED)]
 
     id = models.CharField(max_length=40, primary_key=True)
     state = models.CharField(max_length=12, choices=STATE_CHOICES, default=QUEUED, db_index=True)
@@ -213,3 +223,62 @@ class Job(models.Model):
             return None
         elapsed = (timezone.now() - self.started_at).total_seconds()
         return elapsed / self.done * (self.total - self.done)
+
+
+class AutoRun(models.Model):
+    """A scrape that starts by itself every day, for the days up to yesterday (a daily report)."""
+
+    DAILY, WEEKLY, MONTHLY, CRON = "daily", "weekly", "monthly", "cron"
+    FREQUENCY_CHOICES = [(DAILY, "Daily: the days up to yesterday"), (WEEKLY, "Weekly: last week, Monday to Sunday"),
+                         (MONTHLY, "Monthly: last calendar month"),
+                         (CRON, "Cron expression: your own schedule (reports the days up to yesterday)")]
+    WEEKDAYS = [(0, "Monday"), (1, "Tuesday"), (2, "Wednesday"), (3, "Thursday"), (4, "Friday"),
+                (5, "Saturday"), (6, "Sunday")]
+
+    name = models.CharField(max_length=80, unique=True)
+    enabled = models.BooleanField(default=False)
+    frequency = models.CharField(max_length=8, choices=FREQUENCY_CHOICES, default=DAILY)
+    cron = models.CharField(
+        max_length=60, blank=True,
+        help_text="Cron runs only: minute hour day-of-month month weekday, in local time. "
+                  "For example 30 6 * * * = every day at 06:30, 0 7 * * 1-5 = weekdays at 07:00.")
+    run_at = models.TimeField(default=datetime.time(6, 30), help_text="Local time of day.")
+    weekday = models.PositiveSmallIntegerField(default=0, choices=WEEKDAYS, help_text="Weekly runs: which day.")
+    month_day = models.PositiveSmallIntegerField(
+        default=1, validators=[MinValueValidator(1), MaxValueValidator(28)],
+        help_text="Monthly runs: day of the month (1-28).")
+    centers = models.ForeignKey(CenterList, on_delete=models.PROTECT, related_name="auto_runs")
+    reports = models.JSONField(default=list)
+    speed = models.CharField(max_length=16, default="adaptive")
+    granularity = models.CharField(
+        max_length=5, choices=Session.GRANULARITY_CHOICES, default=Session.DAY,
+        help_text="How the perf cards split the period: one row per day, week or month.")
+    days = models.PositiveSmallIntegerField(
+        default=1, validators=[MinValueValidator(1), MaxValueValidator(31)],
+        help_text="Daily runs: 1 = yesterday only; 7 = the last seven days up to yesterday.")
+    last_run_at = models.DateTimeField(null=True, blank=True)
+    last_session = models.ForeignKey(Session, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    last_status = models.CharField(max_length=10, blank=True)  # started / skipped / failed
+    last_message = models.CharField(max_length=300, blank=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+        from croniter import croniter
+        from django.core.exceptions import ValidationError
+        if self.frequency == self.CRON and not croniter.is_valid(self.cron or ""):
+            raise ValidationError({"cron": "Enter a valid cron expression, for example 30 6 * * *."})
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        from . import autorun
+        autorun.sync_schedule(self)  # keep django-q2's schedule in step with enabled / run_at
+
+    def delete(self, *args, **kwargs):
+        from . import autorun
+        autorun.remove_schedule(self)
+        return super().delete(*args, **kwargs)

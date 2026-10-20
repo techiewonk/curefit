@@ -57,3 +57,12 @@ def run_job(job_id):
             state=state, error=error, finished_at=timezone.now(), heartbeat=timezone.now(),
             done=status.get("done", 0), total=status.get("total", 0), desc="",
             log=list(status["log"])[-200:], cells=dict(status["cells"]), active=[])
+
+
+def auto_run(pk):
+    """django-q2 schedule entry point: start the automatic run `pk`."""
+    from . import autorun
+    from .models import AutoRun
+    auto = AutoRun.objects.filter(pk=pk).first()
+    if auto:
+        autorun.run(auto)

@@ -15,7 +15,7 @@ class FakeKronosMixin:
         for i in range(1, 5):
             Center.objects.create(center_id=i, name=f"Cult {i}", code=f"C{i}", state="ACTIVE")
         self.tmp = tempfile.mkdtemp()
-        self.calls, self.mode = [], {}
+        self.calls, self.mode, self.params = [], {}, []
         self.by_card = {v["card"]: k for k, v in REPORTS.items()}
         for p in (
             mock.patch.object(files, "RUNS_DIR", self.tmp),
@@ -29,10 +29,11 @@ class FakeKronosMixin:
             p.start()
             self.addCleanup(p.stop)
 
-    def fake_rows(self, mb, rep, token, start, end, cfg=None):
+    def fake_rows(self, mb, rep, token, start, end, cfg=None, granularity="month"):
         cid = int(token.split(":")[1])
         name = self.by_card[rep["card"]]
         self.calls.append((name, cid))
+        self.params.append(rep["data_params"](start, end, granularity))
         hook = self.mode.get("hook")
         if hook:
             hook(name, cid)

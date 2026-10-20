@@ -4,6 +4,9 @@ Starting, watching, pausing and stopping scrape jobs (used by the admin pages).
 A job is a `Job` row plus a django-q2 task. The task runs in the `qcluster` process, so a running
 scrape survives web-server restarts. Progress, pause and stop all travel through the Job row.
 """
+import os
+import signal
+import subprocess
 import time
 import uuid
 from datetime import timedelta
@@ -75,7 +78,8 @@ def enqueue(spec, sync=False):
         if not spec.get("start") or not spec.get("end") or spec["start"] > spec["end"]:
             raise JobError("Give a valid period (start on or before end)")
         session = engine.new_session(spec["start"], spec["end"], ids, only or list(REPORTS),
-                                     speed=spec.get("speed", "normal"), workers=workers)
+                                     speed=spec.get("speed", "normal"), workers=workers,
+                                     granularity=spec.get("granularity") or Session.MONTH)
 
     job = Job.objects.create(
         id=time.strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:4], session=session,
@@ -86,8 +90,57 @@ def enqueue(spec, sync=False):
 
 
 def request_stop(job):
-    if job.state in ACTIVE:
+    """Stop a job. Queued: cancelled at once. Running: it ends cleanly after the requests in flight."""
+    if job.state == Job.QUEUED:
+        return cancel(job)
+    if job.state == Job.RUNNING:
         Job.objects.filter(pk=job.pk).update(stop_requested=True, pause_requested=False)
+
+
+def cancel(job):
+    """A job that has not started (for instance the job runner is not running): it never will."""
+    now = timezone.now()
+    if Job.objects.filter(pk=job.pk, state=Job.QUEUED).update(
+            state=Job.CANCELLED, finished_at=now, error="Cancelled before it started."):
+        if job.session_id:  # a session nothing ran in is just waiting to be continued
+            Session.objects.filter(pk=job.session_id, status=Session.RUNNING).update(status=Session.INCOMPLETE)
+
+
+def force_stop(job):
+    """Stop right now: end the job runner's worker even if it is waiting on a slow Metabase request.
+
+    The session is left 'interrupted' (continue it to finish); what was already saved is kept.
+    """
+    job.refresh_from_db()
+    if job.state != Job.RUNNING:
+        return request_stop(job)
+    Job.objects.filter(pk=job.pk).update(stop_requested=True)
+    _kill(job.pid)
+    Job.objects.filter(pk=job.pk).update(
+        state=Job.INTERRUPTED, finished_at=timezone.now(), pause_requested=False,
+        error="Stopped immediately: the request in progress was abandoned. Continue the session to finish it.")
+    if job.session_id:
+        Session.objects.filter(pk=job.session_id, status=Session.RUNNING).update(status=Session.INTERRUPTED)
+
+
+def _kill(pid):
+    if not pid or pid == os.getpid():
+        return
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True)
+    else:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
+def stop_active(force=False):
+    """Stop whatever is running or queued. Returns the job it acted on (or None)."""
+    job = active_job()
+    if job:
+        (force_stop if force else request_stop)(job)
+    return job
 
 
 def set_pause(job, on):

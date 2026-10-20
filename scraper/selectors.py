@@ -9,7 +9,7 @@ from django.utils.timesince import timesince
 from centers.models import Center, CenterList, KnownEmpty
 
 from . import analysis, auth
-from .models import Job, SalesRecord, SectionResult, Session
+from .models import AutoRun, Job, SalesRecord, SectionResult, Session
 from .reports import REPORTS
 
 PAIR_OVERHEAD = 2.0   # average polite delay between two requests (seconds)
@@ -168,8 +168,15 @@ def home():
         if empty:
             alerts.append({"level": "info", "text": f"Session {covered.session_id}: {empty} empty sections "
                                                     f"({KnownEmpty.objects.count()} registered as known-empty)."})
+    from . import autorun  # here, not at the top: autorun imports the engine
+    autoruns = list(AutoRun.objects.select_related("centers", "last_session"))
+    for a in autoruns:
+        a.next_at = autorun.next_run(a)
+        if a.enabled and a.last_status in ("failed", "skipped", "incomplete"):
+            alerts.append({"level": "warning", "text": f"Automatic run '{a.name}': {a.last_message}",
+                           "url": "console:run"})
     latest = Session.objects.filter(status=Session.COMPLETE).first() or Session.objects.first()
-    return {"job": job, "alerts": alerts, "sessions": Session.objects.all()[:6],
+    return {"job": job, "alerts": alerts, "autoruns": autoruns, "sessions": Session.objects.all()[:6],
             "latest": latest,
             "kpis": analytics(latest)["totals"] if latest and SalesRecord.objects.filter(session=latest).exists() else None,
             "lists": CenterList.objects.all(), "active_centers": Center.objects.filter(state="ACTIVE").count(),

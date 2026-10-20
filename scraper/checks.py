@@ -23,7 +23,7 @@ def run(session):
             findings.append({"level": "warning", "text": _named(
                 f"{silent.count()} ACTIVE center(s) returned no sales rows", silent)})
 
-    previous = Session.objects.for_period(session.start_date, session.end_date) \
+    previous = Session.objects.for_period(session.start_date, session.end_date, session.granularity) \
         .filter(created_at__lt=session.created_at, status=Session.COMPLETE).first()
     if previous and sales:
         before = dict(SalesRecord.objects.filter(session=previous).values_list("center_id")

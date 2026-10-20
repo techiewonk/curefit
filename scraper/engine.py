@@ -31,19 +31,19 @@ DONE_STATES = (SectionResult.OK, SectionResult.EMPTY)  # failed/slow sections ar
 
 
 # ------------------------------------------------------------------ sessions
-def new_session(start, end, center_ids, reports, speed="normal", workers=1):
+def new_session(start, end, center_ids, reports, speed="normal", workers=1, granularity=Session.MONTH):
     sid = uuid.uuid4().hex[:6]
     session = Session.objects.create(
         session_id=sid, start_date=start, end_date=end, status=Session.RUNNING,
         folder=files.session_folder(start, end, sid), reports=list(reports),
-        center_ids=[int(c) for c in center_ids], speed=speed, workers=workers)
+        center_ids=[int(c) for c in center_ids], speed=speed, workers=workers, granularity=granularity)
     files.write_session_json(session)
     return session
 
 
-def find_unfinished(start, end):
-    """Latest session for exactly this period that did not complete."""
-    return Session.objects.for_period(start, end).unfinished().first()
+def find_unfinished(start, end, granularity=None):
+    """Latest session for exactly this period (and split) that did not complete."""
+    return Session.objects.for_period(start, end, granularity).unfinished().first()
 
 
 # ------------------------------------------------------------------ run
@@ -156,7 +156,7 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
                                 if token is None:
                                     token = kronos.get_token(http, rep, cid, start, end, cfg)
                                     kronos.warm_up(tmb, token, cfg)
-                                rows, cols = kronos.get_rows(tmb, rep, token, start, end, cfg)
+                                rows, cols = kronos.get_rows(tmb, rep, token, start, end, cfg, session.granularity)
                             if rows:
                                 break
                             log.info("empty result, retrying: %s center %s (attempt %d)", rep_name, cid, attempt)

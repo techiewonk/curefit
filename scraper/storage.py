@@ -1,4 +1,6 @@
 """Saving one center/report result: data rows + the SectionResult, together or not at all."""
+import datetime
+
 from django.db import transaction
 from django.utils import timezone
 
@@ -12,21 +14,29 @@ def _f(value):
         return None
 
 
+def _day(value):
+    """A date from Metabase text ('2026-06-11T00:00:00Z' or '2026-06-11'); None when there is none."""
+    try:
+        return datetime.date.fromisoformat(str(value)[:10]) if value else None
+    except ValueError:
+        return None
+
+
 def _typed_rows(report, session, center_id, rows, now):
     base = {"session": session, "center_id": center_id, "scraped_at": now}
     if report == "sales":  # [user_id, name, phone, pack, end, active, renewed, revenue]
         return SalesRecord, [SalesRecord(
-            **base, user_id=str(r[0]), name=r[1], phone=r[2], pack_name=r[3], member_end_date=r[4],
+            **base, user_id=str(r[0]), name=r[1], phone=r[2], pack_name=r[3], member_end_date=_day(r[4]),
             active_last_30d=r[5], renewed=r[6], revenue=_f(r[7])) for r in rows]
     if report == "perf":  # [date, metric, value]
         return PerfMetric, [PerfMetric(
-            **base, metric_date=r[0], metric=(r[1] or "").strip(), value=_f(r[2])) for r in rows]
+            **base, metric_date=_day(r[0]), metric=(r[1] or "").strip(), value=_f(r[2])) for r in rows]
     if report == "gym":  # [userid, username, pack, amount, purchased, start, end, status, ...]
         return GymMember, [GymMember(
             **base, user_id=str(r[0]), username=r[1], pack_name=r[2], final_amount_paid=_f(r[3]),
-            purchase_date=r[4], pack_start_date=r[5], pack_end_date=r[6], status=r[7],
+            purchase_date=_day(r[4]), pack_start_date=_day(r[5]), pack_end_date=_day(r[6]), status=r[7],
             offline_vs_online=r[8], new_vs_repeat=r[9], class_level=r[10],
-            last_class_date=r[11]) for r in rows]
+            last_class_date=_day(r[11])) for r in rows]
     return None, None
 
 

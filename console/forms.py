@@ -7,19 +7,9 @@ from unfold.widgets import (UnfoldAdminCheckboxSelectMultipleWidget, UnfoldAdmin
                             UnfoldAdminTextInputWidget, UnfoldBooleanSwitchWidget)
 
 from centers.models import CenterList
-from scraper.conf import SPEED_PROFILES
+from scraper.conf import SPEED_CHOICES, SPEED_PROFILES
 from scraper.models import Session
-from scraper.reports import GROUPS, REPORTS
-
-SPEED_CHOICES = [("gentle", "Gentle — 1 center at a time"), ("normal", "Normal — 2 at a time"),
-                 ("fast", "Fast — 4 at a time"),
-                 ("adaptive", "Adaptive — starts at 2, slows down or speeds up by itself")]
-
-
-def report_choices():
-    """Reports grouped for the checkbox list: Core / Perf cards / Sales cards."""
-    return [(group, [(name, f"{REPORTS[name]['label']} ({name})") for name in names])
-            for group, names in GROUPS.items()]
+from scraper.reports import REPORTS, report_choices
 
 
 def last_month():
@@ -39,6 +29,9 @@ class RunForm(forms.Form):
     reports = forms.MultipleChoiceField(choices=report_choices, initial=list(REPORTS),
                                         widget=UnfoldAdminCheckboxSelectMultipleWidget)
     speed = forms.ChoiceField(choices=SPEED_CHOICES, initial="normal", widget=UnfoldAdminSelectWidget)
+    granularity = forms.ChoiceField(
+        choices=Session.GRANULARITY_CHOICES, initial=Session.MONTH, widget=UnfoldAdminSelectWidget, required=False,
+        label="Split by", help_text="The perf cards give one row per day, week or month. Sales cards are not split.")
     session = forms.ModelChoiceField(Session.objects.unfinished(), required=False,
                                      empty_label="Start a new session", widget=UnfoldAdminRadioSelectWidget)
     retry_empty = forms.BooleanField(required=False, label="Also retry empty results",
@@ -68,7 +61,8 @@ class RunForm(forms.Form):
         every_report = set(d["reports"]) == set(REPORTS)
         return {"start": d["start"].isoformat(), "end": d["end"].isoformat(), "list": d["centers"].name,
                 "only": None if every_report else d["reports"], "workers": self.workers,
-                "speed": d["speed"], "session": d["session"].pk if d["session"] else None,
+                "speed": d["speed"], "granularity": d["granularity"] or Session.MONTH,
+                "session": d["session"].pk if d["session"] else None,
                 "retry_empty": d["retry_empty"], "recheck_known": d["recheck_known"]}
 
 
@@ -89,4 +83,5 @@ class CompareForm(forms.Form):
 class SessionPickForm(forms.Form):
     """Pick one session (Monitor and Analytics)."""
 
-    session = forms.ModelChoiceField(Session.objects.all(), widget=UnfoldAdminSelectWidget)
+    session = forms.ModelChoiceField(
+        Session.objects.all(), widget=UnfoldAdminSelectWidget(attrs={"onchange": "this.form.submit()"}))

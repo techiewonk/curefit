@@ -28,7 +28,14 @@
           {% if job.pause_requested %}Resume{% else %}Pause{% endif %}
         </button>
         <button hx-post="{% url 'console:job_action' 'stop' %}" hx-target="#job-panel"
-                class="border border-red-500 font-medium px-3 py-2 rounded-default text-red-600">Stop</button>
+                class="border border-red-500 font-medium px-3 py-2 rounded-default text-red-600">
+          {% if job.state == 'queued' %}Cancel{% else %}Stop{% endif %}
+        </button>
+        {% if job.stop_requested and job.state == 'running' %}
+        <button hx-post="{% url 'console:job_action' 'force' %}" hx-target="#job-panel"
+                title="Do not wait for the request in progress; the session can be continued later"
+                class="bg-red-600 font-medium px-3 py-2 rounded-default text-white">Stop now</button>
+        {% endif %}
         <a class="px-3 py-2 text-primary-600" href="{% url 'console:monitor' %}?session={{ job.session_id }}">Open the live monitor →</a>
       </div>
     {% endif %}

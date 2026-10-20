@@ -51,6 +51,44 @@ stops both; a scrape that was in flight shows as *interrupted* and can be contin
 Curefit's servers struggle, creeps back up while answers are fast; never above the *Max workers*
 setting). Be considerate: this is Curefit's production reporting system.
 
+### Stopping a run
+
+*Stop* (Run page, Home, or the Sessions/Jobs admin actions) ends the run cleanly after the requests in
+flight, and a run that is still queued is simply cancelled. If a Metabase request is stuck, *Stop now*
+ends the job runner's worker at once; the session is marked *interrupted* and **Continue** finishes it later.
+Everything already saved is kept.
+
+### Daily, weekly, monthly numbers
+
+The Run page's **Split by** setting (day, week or month) is sent to the Franchise Performance cards, so every
+metric (Total Revenue, new/repeat split, ...) is stored as one number per day, week or month in *Perf metrics*
+(`metric_date` is a real date; filter it with a from/to range). Analytics draws the trend. The sales cards are not
+split (they list individual sales). Sessions for the same period but different splits are kept apart.
+
+### Filters and downloads
+
+Every admin list has range filters (numbers, dates, date-times), text filters, value check-boxes and
+dropdowns; press *Filter* to apply. **Export** on any list downloads exactly the filtered rows as CSV or XLSX.
+Analytics and Compare have their own *Download CSV / XLSX* links.
+
+### Automatic runs (schedules)
+
+*Automation → Automatic runs* holds ready-made, switched-off runs: **Daily** (yesterday), **Weekly** (last
+Monday–Sunday), **Monthly** (the previous calendar month) on the actual list, and a **Daily test** on the test
+list. Switch one on and the job runner starts it at the time set (daily, weekly, monthly, or any **cron
+expression** such as `30 6 * * 1-5`). Use *Run now* on a row to test it with the period it would report on.
+A run is skipped, and the reason shown on Home, when Kronos is not logged in (the OTP is still manual), another
+scrape is running, or it already started today. The job runner must be running (`run.bat` does that).
+
+Prefer the operating system's scheduler? This does the whole scrape in one process and needs no job runner:
+
+    .venv\Scripts\python manage.py auto_run --list
+    .venv\Scripts\python manage.py auto_run "Daily report (actual list)" --wait
+    schtasks /Create /SC DAILY /ST 06:30 /TN "Curefit daily" /TR "\"D:\path\.venv\Scripts\python.exe\" \"D:\path\manage.py\" auto_run \"Daily report (actual list)\" --wait"
+    30 6 * * *  cd /path && .venv/bin/python manage.py auto_run "Daily report (actual list)" --wait    # crontab
+
+Exit code 0 = finished, 1 = incomplete or failed, 2 = skipped.
+
 ## What a run leaves behind
 
 Database tables (SQLite `db.sqlite3`) and files under `runs/<date>/<period>_<id>/`:

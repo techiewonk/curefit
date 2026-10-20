@@ -4,9 +4,10 @@
 {% block page %}
 <form method="get" class="flex flex-row flex-wrap gap-3 items-end">
   <div class="w-96">{% include "unfold/helpers/field.html" with field=picker.session %}</div>
-  <button type="submit" class="border border-base-200 font-medium mb-4 px-3 py-2 rounded-default dark:border-base-700">Show</button>
   {% if session %}
     <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'admin:scraper_salesrecord_changelist' %}?session__session_id__exact={{ session.pk }}">Browse the rows →</a>
+    <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:analytics_csv' %}?session={{ session.pk }}">Download CSV</a>
+    <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:analytics_csv' %}?session={{ session.pk }}&format=xlsx">Download XLSX</a>
   {% endif %}
 </form>
 
@@ -21,6 +22,12 @@
     {% component "unfold/components/card.html" with title="Average ticket" %}<span class="text-2xl font-semibold">₹{{ totals.avg_ticket|intcomma }}</span>{% endcomponent %}
     {% component "unfold/components/card.html" with title="Active rate" %}<span class="text-2xl font-semibold">{{ totals.active_rate }}%</span>{% endcomponent %}
   </div>
+
+  {% if trend_chart %}
+    {% component "unfold/components/card.html" with title="Revenue over time" %}
+      {% component "unfold/components/chart/line.html" with data=trend_chart height=260 %}{% endcomponent %}
+    {% endcomponent %}
+  {% endif %}
 
   <div class="grid gap-4 lg:grid-cols-2">
     {% component "unfold/components/card.html" with title="Revenue by center" %}
