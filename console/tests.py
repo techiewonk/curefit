@@ -36,7 +36,8 @@ class ConsoleViewTests(FakeKronosMixin, TransactionTestCase):
             r = self.client.get(BASE + url)
             self.assertEqual(r.status_code, 200, url)
             self.assertContains(r, "htmx.js")
-        self.assertContains(self.client.get("/admin/"), "Needs attention")
+        self.assertContains(self.client.get(BASE + "status/"), "Needs attention")
+        self.assertEqual(self.client.get("/admin/").status_code, 200)
 
     def test_analytics_and_monitor_show_the_picked_session(self):
         r = self.client.get(BASE + "analytics/", {"session": self.session.pk})

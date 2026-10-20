@@ -14,6 +14,7 @@
 </form>
 
 {% component "unfold/components/card.html" %}
+  <a class="text-primary-600" href="{% url 'admin:scraper_salescoverage_changelist' %}">See the table of every gym and day →</a><br>
   Expired Pack User Details only keeps the <strong>last 90 days</strong>, so these are the days you can still fetch.
   A day counts as stored for a center once it was fetched (a day with no expiries counts too). Run the Run page with
   <em>Ask for sales by: day</em> and <em>only fetch days not stored yet</em> to fill the gaps.

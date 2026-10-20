@@ -25,16 +25,16 @@
 
   {% if trend_chart %}
     {% component "unfold/components/card.html" with title="Revenue over time" %}
-      {% component "unfold/components/chart/line.html" with data=trend_chart height=260 %}{% endcomponent %}
+      {% component "unfold/components/chart/line.html" with data=trend_chart options=trend_options height=300 %}{% endcomponent %}
     {% endcomponent %}
   {% endif %}
 
   <div class="grid gap-4 lg:grid-cols-2">
     {% component "unfold/components/card.html" with title="Revenue by center" %}
-      {% component "unfold/components/chart/bar.html" with data=revenue_chart height=260 %}{% endcomponent %}
+      {% component "unfold/components/chart/bar.html" with data=revenue_chart options=revenue_options height=300 %}{% endcomponent %}
     {% endcomponent %}
     {% component "unfold/components/card.html" with title="New vs repeat revenue" %}
-      {% component "unfold/components/chart/bar.html" with data=mix_chart height=260 %}{% endcomponent %}
+      {% component "unfold/components/chart/bar.html" with data=mix_chart options=mix_options height=300 %}{% endcomponent %}
     {% endcomponent %}
   </div>
 
@@ -44,7 +44,7 @@
 
   <div class="grid gap-4 lg:grid-cols-2">
     {% component "unfold/components/card.html" with title="Pack mix — revenue share" %}
-      {% component "unfold/components/chart/bar.html" with data=pack_chart height=260 %}{% endcomponent %}
+      {% component "unfold/components/chart/bar.html" with data=pack_chart options=pack_options height=300 %}{% endcomponent %}
     {% endcomponent %}
     {% component "unfold/components/card.html" with title="Packs" %}
       <div class="max-h-72 overflow-auto">

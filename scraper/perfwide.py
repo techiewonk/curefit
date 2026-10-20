@@ -194,9 +194,14 @@ def analyse(metric, group="", mode="mom", agg="sum", month=None, a=None, b=None,
             before = (sum(ys) if agg == "sum" else sum(ys) / len(ys)) if ys else None
         else:  # group
             now, before = val(cid, month), None
+        cells = [val(cid, mm) for mm in months]
+        full = [v for mm, v in zip(months, cells) if mm < current and v is not None]
+        last_full, before_last = (cells[-2], cells[-3]) if len(cells) >= 3 else (None, None)
         rows.append({"id": cid, "name": c.name, "group": ", ".join(members.get(cid) or ["Ungrouped"]),
                      "groups": members.get(cid) or ["Ungrouped"], "now": now, "before": before,
-                     "delta": None if now is None or before is None else now - before, "pct": _pct(now, before)})
+                     "delta": None if now is None or before is None else now - before, "pct": _pct(now, before),
+                     "cells": cells, "average": sum(full) / len(full) if full else None,
+                     "mom_pct": _pct(last_full, before_last)})
     if mode == "group":
         averages = {}
         for r in rows:
@@ -214,5 +219,100 @@ def analyse(metric, group="", mode="mom", agg="sum", month=None, a=None, b=None,
     before_done = [r["before"] for r in rows if r["before"] is not None and mode != "group"]
     total_now = (sum(done) if agg == "sum" else sum(done) / len(done)) if done else None
     total_before = (sum(before_done) if agg == "sum" else sum(before_done) / len(before_done)) if before_done else None
-    return {"months": months, "lines": lines, "rows": rows, "month": month, "mode": mode, "agg": agg,
+    totals = []
+    for i in range(len(months)):
+        got = [r["cells"][i] for r in rows if r["cells"][i] is not None]
+        totals.append(None if not got else (sum(got) if agg == "sum" else sum(got) / len(got)))
+    return {"months": months, "lines": lines, "rows": rows, "month": month, "mode": mode, "agg": agg, "totals": totals,
             "total_now": total_now, "total_before": total_before, "total_pct": _pct(total_now, total_before)}
+
+
+AVERAGE = "Average per gym"
+RATE_WORDS = ("%", "rate", "rating", "ratio", "retention", "conversion", "average", "avg")
+
+
+def is_rate(name):
+    """Rates and ratings are averaged across gyms, counts and money are added up."""
+    low = name.lower()
+    return any(w in low for w in RATE_WORDS)
+
+
+def available_months():
+    """The months that have data, oldest first."""
+    from .models import CenterMonth
+    return list(CenterMonth.objects.order_by().values_list("month", flat=True).distinct().order_by("month"))
+
+
+def all_series(group="", agg="auto", months_back=12, today=None):
+    """One chart per metric: {metric, lines: {group: [value per month]}}, over the last `months_back` months.
+
+    agg: auto (rates averaged, the rest added up), sum, or avg.
+    """
+    from django.utils import timezone
+    today = today or timezone.localdate()
+    current = month_of(today)
+    first = current
+    for _ in range(months_back - 1):
+        first = month_of(first - dt.timedelta(days=1))
+    months, m = [], first
+    while m <= current:
+        months.append(m)
+        m = next_month(m)
+    values = month_values(first, None, center_ids_for(group))
+    members = group_members()
+    names = ordered_metrics(sorted({k for v in values.values() for k in v}))
+    series = []
+    for metric in names:
+        how = ("avg" if is_rate(metric) else "sum") if agg == "auto" else agg
+        buckets = {}
+        for (cid, month), vals in values.items():
+            if metric in vals:
+                for g in members.get(cid) or ["Ungrouped"]:
+                    buckets.setdefault(g, {}).setdefault(month, []).append(vals[metric])
+        lines = {}
+        for g, per_month in buckets.items():
+            lines[g] = [None if not per_month.get(mm) else
+                        (sum(per_month[mm]) if how == "sum" else sum(per_month[mm]) / len(per_month[mm]))
+                        for mm in months]
+        every = {}
+        for (cid, month), vals in values.items():
+            if metric in vals:
+                every.setdefault(month, []).append(vals[metric])
+        if lines:  # the mean over all gyms in the selection, so a group line can be read against it
+            lines[AVERAGE] = [None if not every.get(mm) else sum(every[mm]) / len(every[mm]) for mm in months]
+        series.append({"metric": metric, "how": how, "lines": lines})
+    return months, series
+
+
+def gym_series(center_id, months_back=6, today=None):
+    """Every metric of one gym over the last months, next to the average of the gyms in its first group.
+
+    Returns (months, rows): rows = [{metric, values, group_average, average, change_pct}], one per metric.
+    """
+    from django.utils import timezone
+    today = today or timezone.localdate()
+    current = month_of(today)
+    first = current
+    for _ in range(months_back - 1):
+        first = month_of(first - dt.timedelta(days=1))
+    months, m = [], first
+    while m <= current:
+        months.append(m)
+        m = next_month(m)
+    mine = month_values(first, None, [center_id])
+    groups = group_members().get(center_id) or []
+    peer_ids = [cid for cid, names in group_members().items() if groups and groups[0] in names]
+    peers = month_values(first, None, peer_ids) if peer_ids else {}
+    names = ordered_metrics(sorted({k for v in mine.values() for k in v}))
+    rows = []
+    for metric in names:
+        values = [mine.get((center_id, mm), {}).get(metric) for mm in months]
+        group_avg = []
+        for mm in months:
+            got = [peers[(cid, mm)][metric] for cid in peer_ids if (cid, mm) in peers and metric in peers[(cid, mm)]]
+            group_avg.append(sum(got) / len(got) if got else None)
+        full = [v for mm, v in zip(months, values) if mm < current and v is not None]
+        last_full, before_last = (values[-2], values[-3]) if len(values) >= 3 else (None, None)
+        rows.append({"metric": metric, "values": values, "group_average": group_avg,
+                     "average": sum(full) / len(full) if full else None, "change_pct": _pct(last_full, before_last)})
+    return months, rows, (groups[0] if groups else "")

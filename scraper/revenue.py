@@ -45,8 +45,10 @@ def _ranks(values):
 ALL_MONTHS, MOST_MONTHS = 0, 48
 
 
-def matrix(group="", months=12, today=None):
-    """months: how many to show ending with the current one; 0 = from the first month that has data."""
+def matrix(group="", months=12, today=None, since=None, until=None):
+    """months: how many to show ending with the current one; 0 = from the first month that has data.
+
+    since / until (first-of-month dates) narrow the months shown."""
     today = today or timezone.localdate()
     current = month_of(today)
     names = PerfMetric.objects.order_by().values_list("metric", flat=True).distinct()
@@ -56,6 +58,8 @@ def matrix(group="", months=12, today=None):
             .values_list("metric_date", flat=True).first() if total_metric else None
         months = 1 if first is None else min(MOST_MONTHS, (current.year - first.year) * 12 + current.month - first.month + 1)
     shown = _months(current, months)
+    narrowed = [m for m in shown if (not since or m >= since) and (not until or m <= until)]
+    shown = narrowed or shown
     complete = [m for m in shown if m < current]
     latest_month = complete[-1] if complete else None
     prev_month = complete[-2] if len(complete) > 1 else None

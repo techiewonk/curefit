@@ -17,8 +17,8 @@ class PerfWideTests(FakeKronosMixin, TransactionTestCase):
         super().setUp()
         self.month_run = engine.new_session("2025-06-01", "2026-08-31", [1, 2], ["perf"], granularity="month")
         self.day_run = engine.new_session("2026-08-01", "2026-08-31", [1, 2], ["perf"], granularity="day")
-        CenterGroup.objects.create(name="GYMS").centers.add(1)
-        CenterGroup.objects.create(name="HYBRIDS").centers.add(2)
+        CenterGroup.objects.get_or_create(name="GYMS")[0].centers.add(1)
+        CenterGroup.objects.get_or_create(name="HYBRIDS")[0].centers.add(2)
         for cid, base in ((1, 1000), (2, 400)):
             for month, factor in ((D(2025, 8, 1), 1), (D(2026, 7, 1), 2), (D(2026, 8, 1), 3)):
                 self.put(self.month_run, cid, month, TOTAL, base * factor)
@@ -94,7 +94,7 @@ class PerfWideTests(FakeKronosMixin, TransactionTestCase):
                              fetch_redirect_response=False)
         home = self.client.get("/admin/")
         self.assertContains(home, "New group")
-        self.assertContains(home, "Perf analysis and compare")
+        self.assertContains(home, "Analysis and compare")
 
     def test_groups_by_month_table_and_download(self):
         from scraper import revenue
@@ -128,3 +128,143 @@ class PerfWideTests(FakeKronosMixin, TransactionTestCase):
         self.assertContains(page, "console/datatable.js")
         self.assertContains(page, "console/wide.css")
         self.assertContains(page, 'class="data-table')
+
+
+class StructureAndChartTests(FakeKronosMixin, TransactionTestCase):
+    def setUp(self):
+        super().setUp()
+        self.session = engine.new_session("2026-06-01", "2026-08-31", [1, 2], ["perf"], granularity="month")
+        CenterGroup.objects.get_or_create(name="GYMS", defaults={"position": 0})[0].centers.set([1])
+        CenterGroup.objects.get_or_create(name="HYBRIDS", defaults={"position": 1})[0].centers.set([2])
+        for cid, base in ((1, 1000), (2, 500)):
+            for month, f in ((D(2026, 6, 1), 1), (D(2026, 7, 1), 2), (D(2026, 8, 1), 3)):
+                for metric, value in ((TOTAL, base * f), ("Retention %", 60 + f * 5 + cid)):
+                    PerfMetric.objects.create(session=self.session, center_id=cid, metric_date=month, metric=metric, value=value)
+        perfwide.rebuild_months()
+
+    def test_sidebar_order_and_standard_names(self):
+        from django.conf import settings
+        sections = [s["title"] for s in settings.UNFOLD["SIDEBAR"]["navigation"]]
+        self.assertEqual(sections[:3], ["Performance", "Operate", "Results"])
+        titles = [i["title"] for s in settings.UNFOLD["SIDEBAR"]["navigation"] for i in s["items"]]
+        self.assertIn("Dashboard", titles)
+        self.assertIn("Monthly metrics", titles)
+        self.assertNotIn("Perf metrics (raw rows)", titles)
+
+    def test_every_chart_has_a_legend_title_and_axis_titles(self):
+        import json
+        from console import charts
+        o = json.loads(charts.options("Revenue by group", "Month", "Revenue (₹)"))
+        self.assertTrue(o["plugins"]["legend"]["display"])
+        self.assertEqual((o["plugins"]["title"]["text"], o["scales"]["x"]["title"]["text"], o["scales"]["y"]["title"]["text"]),
+                         ("Revenue by group", "Month", "Revenue (₹)"))
+        self.assertFalse(json.loads(charts.options(legend=False))["plugins"]["legend"]["display"])
+        for url in ("console:revenue", "console:perf_analysis", "console:analytics"):
+            page = self.client.get(reverse(url), {"session": self.session.pk}).content.decode()
+            self.assertIn("data-options=", page, url)
+            self.assertIn("&quot;legend&quot;", page, url)
+        self.assertIn("data-options=", self.client.get("/admin/").content.decode())
+
+    def test_home_is_group_revenue_charts_and_status_has_the_rest(self):
+        home = self.client.get("/admin/")
+        self.assertContains(home, "Revenue by group")
+        self.assertContains(home, "GYMS")
+        self.assertNotContains(home, "Needs attention")
+        status = self.client.get(reverse("console:status"))
+        self.assertContains(status, "Needs attention")
+
+    def test_perf_analysis_has_a_chart_for_every_metric(self):
+        months, series = perfwide.all_series(months_back=4, today=D(2026, 9, 15))
+        self.assertEqual([s["metric"] for s in series], [TOTAL, "Retention %"])
+        self.assertEqual([s["how"] for s in series], ["sum", "avg"])  # money is added up, a rate is averaged
+        total = next(s for s in series if s["metric"] == TOTAL)
+        self.assertEqual(total["lines"]["GYMS"], [1000, 2000, 3000, None])  # Jun..Sep, September has no data yet
+        self.assertEqual(total["lines"]["HYBRIDS"], [500, 1000, 1500, None])
+        page = self.client.get(reverse("console:perf_analysis"))
+        self.assertEqual(len(page.context["cards"]), 2)
+        self.assertContains(page, "Compare this metric")
+
+    def test_dynamic_filters(self):
+        url = reverse("admin:scraper_centermonth_changelist")
+        everything = self.client.get(url).context["cl"].result_count
+        self.assertEqual(everything, 6)
+        page = self.client.get(url)
+        self.assertContains(page, "Retention %")  # a filter for each metric in the data
+        high = self.client.get(url, {"m_retention___from": "76"})
+        self.assertEqual(high.context["cl"].result_count, 2)  # Aug (60+15+cid) for both gyms
+        low = self.client.get(url, {"m_retention___to": "70"})
+        self.assertEqual(low.context["cl"].result_count, 2)
+        self.assertEqual(self.client.get(url, {"m_retention___from": "x"}).context["cl"].result_count, 0)
+
+    def test_revenue_page_from_to_filters(self):
+        page = self.client.get(reverse("console:revenue"), {"from": "2026-07", "to": "2026-08"})
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual([m.month for m in page.context["data"]["months"]], [7, 8])
+        self.assertContains(page, 'name="from"')
+        csv = self.client.get(reverse("console:revenue_csv"), {"from": "2026-07", "to": "2026-08"}).content.decode()
+        self.assertIn("Jul-26", csv.splitlines()[0])
+        self.assertNotIn("Jun-26", csv.splitlines()[0])
+
+    # ------------------------------------------------------------------ trends, the gym page, the tables
+    def test_sparkline(self):
+        from scraper import sparkline
+        up = sparkline.svg([1, 2, 3, None, 5], ["a", "b", "c", "d", "e"])
+        self.assertIn("<svg", up)
+        self.assertIn("#22c55e", up)                      # rising = green
+        self.assertEqual(up.count("<polyline"), 2)        # the gap breaks the line
+        self.assertIn("#ef4444", sparkline.svg([5, 3]))
+        self.assertEqual(sparkline.svg([5]), "-")          # nothing to draw
+        self.assertIn("a: 1", up)                         # hover text names the month
+
+    def test_gym_page_shows_every_metric_against_the_group_average(self):
+        months, rows, group = perfwide.gym_series(1, 4, today=D(2026, 9, 15))
+        self.assertEqual((group, [r["metric"] for r in rows]), ("GYMS", [TOTAL, "Retention %"]))
+        total = rows[0]
+        self.assertEqual(total["values"], [1000, 2000, 3000, None])
+        self.assertEqual(total["average"], 2000)          # September (partial, empty) is left out
+        self.assertEqual(total["change_pct"], 50.0)       # August 3000 vs July 2000
+        page = self.client.get(reverse("console:gym", args=[1]), {"months": 6})
+        self.assertEqual(page.status_code, 200)
+        self.assertEqual(len(page.context["cards"]), 2)
+        self.assertContains(page, "Last 6 months" if False else "All metrics by month")
+        self.assertContains(page, "<svg")
+        self.assertEqual(self.client.get(reverse("console:gym", args=[999999])).status_code, 404)
+
+    def test_analysis_table_has_the_months_average_change_and_an_average_chart_line(self):
+        page = self.client.get(reverse("console:perf_analysis"), {"metric": TOTAL})
+        row = next(r for r in page.context["data"]["rows"] if r["id"] == 1)
+        self.assertEqual(len(row["cells"]), 12)            # a column per chart month
+        self.assertIsNotNone(row["average"])
+        self.assertIn("mom_pct", row)
+        self.assertEqual(len(page.context["data"]["totals"]), 12)
+        self.assertContains(page, "Gyms by month")
+        self.assertContains(page, "Last month vs previous")
+        self.assertContains(page, "borderDash")           # the dashed average line
+        self.assertContains(page, perfwide.AVERAGE.replace(" ", " "))
+
+    def test_monthly_list_has_trend_columns_and_a_gym_link(self):
+        page = self.client.get(reverse("admin:scraper_centermonth_changelist"))
+        self.assertContains(page, "Total, 6 mo")
+        self.assertContains(page, "<svg")
+        self.assertContains(page, reverse("console:gym", args=[1]))
+
+    def test_revenue_rows_have_a_six_month_trend_and_link_to_the_gym_page(self):
+        page = self.client.get(reverse("console:revenue"))
+        self.assertContains(page, "Last 6 full months")
+        self.assertContains(page, reverse("console:gym", args=[1]))
+        self.assertContains(page, "<svg")
+
+    def test_day_coverage_is_a_real_table(self):
+        from scraper.models import SalesCoverage
+        SalesCoverage.objects.create(center_id=1, day=D(2026, 9, 1), session=self.session)
+        url = reverse("admin:scraper_salescoverage_changelist")
+        page = self.client.get(url)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "GYMS")
+        self.assertEqual(self.client.get(url, {"day_from": "2026-09-01", "day_to": "2026-09-30"}).context["cl"].result_count, 1)
+        self.assertEqual(self.client.get(url, {"center__groups__name": "HYBRIDS"}).context["cl"].result_count, 0)
+        from django.conf import settings
+        titles = [i["title"] for s in settings.UNFOLD["SIDEBAR"]["navigation"] for i in s["items"]]
+        self.assertIn("Day coverage", titles)
+        self.assertIn("Missing days", titles)
+        self.assertEqual(self.client.get(reverse("console:coverage")).status_code, 200)

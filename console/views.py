@@ -6,7 +6,7 @@ import tablib
 from django.contrib import admin, messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.http import Http404, HttpResponse
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import FormView, TemplateView, View
@@ -14,9 +14,10 @@ from unfold.views import UnfoldSiteViewMixin
 
 from centers import sync
 from centers.models import Center, CenterGroup, CenterList, CenterSyncLog
-from scraper import analysis, auth, coverage, jobs, perfwide, revenue, selectors
+from scraper import analysis, auth, coverage, jobs, perfwide, revenue, selectors, sparkline
 from scraper.models import Job, Session
 
+from . import charts
 from .forms import CompareForm, OtpForm, RunForm, SessionPickForm
 
 
@@ -80,6 +81,16 @@ class LoginPanel(Partial, TemplateView):
             return self.render_to_response(self.get_context_data(
                 notice="Logged in." if ok else "The OTP was not accepted.", ok=ok))
         return self.render_to_response(self.get_context_data(form=form))
+
+
+class StatusView(ConsolePage, TemplateView):
+    """What is happening: the running job, what needs attention, the latest numbers, automatic runs."""
+
+    template_name = "console/status.html"
+    title = "Status"
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(home=selectors.home(), **kwargs)
 
 
 class JobPanel(Partial, TemplateView):
@@ -182,7 +193,11 @@ class AnalyticsView(ConsolePage, TemplateView):
                 {"label": label, "data": [p.get(key) for p in points], "borderColor": color}
                 for key, label, color in (("total", "Total revenue", "#7c3aed"), ("new", "New", "#22c55e"),
                                           ("repeat", "Repeat", "#f97316"))]}) if len(points) > 1 else None
-            ctx.update(data, trend_chart=trend_chart, revenue_chart=json.dumps({
+            ctx.update(data, revenue_options=charts.options("Total revenue by center", "Center", "Revenue (₹)", legend=False),
+                       mix_options=charts.options("New and repeat revenue by center", "Center", "Revenue (₹)"),
+                       pack_options=charts.options("Revenue by pack", "Pack", "Revenue (₹)", legend=False),
+                       trend_options=charts.options("Revenue over time", "Date", "Revenue (₹)"),
+                       trend_chart=trend_chart, revenue_chart=json.dumps({
                 "labels": names, "datasets": [{"label": "Total revenue", "data": [x["total_revenue"] for x in c],
                                                "backgroundColor": "#7c3aed"}]}),
                 mix_chart=json.dumps({"labels": names, "datasets": [
@@ -204,7 +219,7 @@ class CoverageView(ConsolePage, TemplateView):
     """Expired Pack User Details by day: how many centers of a list are stored, and which days are missing."""
 
     template_name = "console/coverage.html"
-    title = "Sales day coverage"
+    title = "Day coverage"
 
     def get_context_data(self, **kwargs):
         from django.db.models import Count
@@ -232,18 +247,18 @@ class CoverageView(ConsolePage, TemplateView):
 
 
 class PerfAnalysisView(ConsolePage, TemplateView):
-    """One metric over months: chart per group, and a comparison (vs previous month, last year, two ranges, group)."""
+    """A chart for every metric (a line per group), and a comparison table for one metric."""
 
     template_name = "console/perf_analysis.html"
-    title = "Perf analysis"
-    PALETTE = ["#7c3aed", "#22c55e", "#f97316", "#3b82f6", "#ef4444", "#14b8a6", "#eab308", "#ec4899"]
+    title = "Analysis and compare"
 
     def get_context_data(self, **kwargs):
         g = self.request.GET
         names = perfwide.ordered_metrics(perfwide.metric_names())
         metric = g.get("metric") if g.get("metric") in names else (names[0] if names else "")
         mode = g.get("mode") if g.get("mode") in ("mom", "yoy", "range", "group") else "mom"
-        agg = "avg" if g.get("agg") == "avg" else "sum"
+        agg = g.get("agg") if g.get("agg") in ("auto", "sum", "avg") else "auto"
+        table_agg = ("avg" if perfwide.is_rate(metric) else "sum") if agg == "auto" else agg
         month = perfwide.parse_month(g.get("month"))
         a = (perfwide.parse_month(g.get("a_from")), perfwide.parse_month(g.get("a_to")))
         b = (perfwide.parse_month(g.get("b_from")), perfwide.parse_month(g.get("b_to")))
@@ -252,47 +267,103 @@ class PerfAnalysisView(ConsolePage, TemplateView):
             months_back = min(max(int(g.get("months", 12)), 3), 48)
         except ValueError:
             months_back = 12
-        data = perfwide.analyse(metric, g.get("group", ""), mode, agg, month, *ranges, months_back=months_back) \
+        data = perfwide.analyse(metric, g.get("group", ""), mode, table_agg, month, *ranges, months_back=months_back) \
             if metric else None
-        chart = json.dumps({"labels": [revenue.label(m) for m in data["months"]], "datasets": [
-            {"label": name, "data": [None if v is None else round(v, 2) for v in points],
-             "borderColor": self.PALETTE[i % len(self.PALETTE)]} for i, (name, points) in enumerate(data["lines"].items())]}) \
-            if data and data["lines"] else None
+        months, series = perfwide.all_series(g.get("group", ""), agg, months_back)
+        labels = [revenue.label(m) for m in months]
+        cards = [{
+            "metric": s_["metric"], "how": s_["how"],
+            "data": json.dumps({"labels": labels, "datasets": [
+                ({"label": name, "data": [None if v is None else round(v, 2) for v in points],
+                  "borderColor": "#9ca3af", "backgroundColor": "#9ca3af", "borderDash": [6, 4]}
+                 if name == perfwide.AVERAGE else
+                 {"label": name, "data": [None if v is None else round(v, 2) for v in points],
+                  "borderColor": charts.colour(i), "backgroundColor": charts.colour(i)})
+                for i, (name, points) in enumerate(s_["lines"].items())]}),
+            "options": charts.options(s_["metric"], "Month", f"{'Average per gym' if s_['how'] == 'avg' else 'Total'}")}
+            for s_ in series if s_["lines"]]
+        available = perfwide.available_months()
+        if data:
+            for r in data["rows"]:
+                r["spark"] = sparkline.svg(r["cells"][:-1][-6:], labels[:-1][-6:])  # full months only
         return super().get_context_data(
-            data=data, chart=chart, metrics=names, metric=metric, mode=mode, agg=agg, months_back=months_back,
+            labels=labels, data=data, cards=cards, metrics=names, metric=metric, mode=mode, agg=agg, months_back=months_back,
             group=g.get("group", ""), groups=list(CenterGroup.objects.values_list("name", flat=True)),
             month=(data["month"].strftime("%Y-%m") if data else ""), a_from=g.get("a_from", ""), a_to=g.get("a_to", ""),
-            b_from=g.get("b_from", ""), b_to=g.get("b_to", ""), **kwargs)
+            b_from=g.get("b_from", ""), b_to=g.get("b_to", ""),
+            month_min=available[0].strftime("%Y-%m") if available else "",
+            month_max=available[-1].strftime("%Y-%m") if available else "", **kwargs)
+
+
+class GymTrendView(ConsolePage, TemplateView):
+    """One gym: every metric over the last months, against the average of its group."""
+
+    template_name = "console/gym.html"
+
+    def get_context_data(self, center_id, **kwargs):
+        center = get_object_or_404(Center, pk=center_id)
+        try:
+            months_back = min(max(int(self.request.GET.get("months", 6)), 3), 36)
+        except ValueError:
+            months_back = 6
+        months, rows, group = perfwide.gym_series(center.pk, months_back)
+        labels = [revenue.label(m) for m in months]
+        cards = []
+        for i, r in enumerate(rows):
+            for_chart = [None if v is None else round(v, 2) for v in r["values"]]
+            datasets = [{"label": center.name, "data": for_chart, "borderColor": charts.colour(0), "backgroundColor": charts.colour(0)}]
+            if group and any(v is not None for v in r["group_average"]):
+                datasets.append({"label": f"{group} average", "data": [None if v is None else round(v, 2) for v in r["group_average"]],
+                                 "borderColor": "#9ca3af", "backgroundColor": "#9ca3af", "borderDash": [6, 4]})
+            cards.append({"data": json.dumps({"labels": labels, "datasets": datasets}),
+                          "options": charts.options(r["metric"], "Month", "Value")})
+            r["spark"] = sparkline.svg(r["values"][:-1][-6:], labels[:-1][-6:])  # full months only
+        self.title = center.name
+        return super().get_context_data(center=center, group=group, rows=rows, labels=labels, cards=cards,
+                                        months_back=months_back, month_options=(3, 6, 12, 24), **kwargs)
 
 
 def _revenue_data(request):
+    g = request.GET
+    since, until = perfwide.parse_month(g.get("from")), perfwide.parse_month(g.get("to"))
     try:
-        months = min(max(int(request.GET.get("months", 0)), 0), 48)  # 0 = all months with data
+        months = min(max(int(g.get("months", 0)), 0), 48)  # 0 = all months with data
     except ValueError:
         months = 0
-    return revenue.matrix(request.GET.get("group", ""), months), months
+    if since or until:
+        months = 0
+    return revenue.matrix(g.get("group", ""), months, since=since, until=until), months
 
 
 class RevenueView(ConsolePage, TemplateView):
-    """Gyms x months: revenue, average, ranking, growth and target, filtered by group."""
+    """Gyms x months: revenue, average, ranking, growth and target, one table per group."""
 
     template_name = "console/revenue.html"
     title = "Revenue by gym"
 
     def get_context_data(self, **kwargs):
+        g = self.request.GET
         data, months = _revenue_data(self.request)
-        palette = ["#7c3aed", "#22c55e", "#f97316", "#3b82f6", "#ef4444", "#14b8a6"]
         chart = json.dumps({"labels": [revenue.label(m) for m in data["months"]], "datasets": [
-            {"label": g, "data": [round(series[m]) if series[m] else None for m in data["months"]],
-             "borderColor": palette[i % len(palette)]} for i, (g, series) in enumerate(data["group_totals"].items())]})
-        rows = data["rows"]
-        group_months = revenue.group_month_table(self.request.GET.get("group", ""))
-        sections = [{**sec, "rows": [{**r, "cells": [r["values"].get(m) for m in data["months"]]} for r in sec["rows"]]}
-                    for sec in data["sections"]]
+            {"label": name, "data": [round(series[m]) if series[m] else None for m in data["months"]],
+             "borderColor": charts.colour(i), "backgroundColor": charts.colour(i)}
+            for i, (name, series) in enumerate(data["group_totals"].items())]})
+        group_months = revenue.group_month_table(g.get("group", ""))
+        recent = [m for m in data["months"] if m < data["current"]][-6:]  # the current month is partial
+        sections = [{**sec, "rows": [{**r, "cells": [r["values"].get(m) for m in data["months"]],
+                                      "spark": sparkline.svg([r["values"].get(m) for m in recent],
+                                                             [revenue.label(m) for m in recent])}
+                                     for r in sec["rows"]]} for sec in data["sections"]]
+        available = perfwide.available_months()
         return super().get_context_data(
-            data=data, rows=rows, sections=sections, group_months=group_months, months_back=months, shown_months=len(data["months"]), group=self.request.GET.get("group", ""),
+            data=data, rows=data["rows"], sections=sections, group_months=group_months, months_back=months,
+            shown_months=len(data["months"]), group=g.get("group", ""),
             labels=[revenue.label(m) for m in data["months"]],
-            rank_labels=[revenue.label(m) + (" *" if m == data["current"] else "") for m in data["rank_months"]], chart=chart if len(data["months"]) > 1 else None,
+            rank_labels=[revenue.label(m) + (" *" if m == data["current"] else "") for m in data["rank_months"]],
+            chart=chart if len(data["months"]) > 1 else None,
+            chart_options=charts.options("Revenue by group", "Month", "Revenue (₹)"),
+            month_choices=[(m.strftime("%Y-%m"), revenue.label(m)) for m in available],
+            from_=g.get("from", ""), to=g.get("to", ""),
             latest_label=revenue.label(data["latest_month"]) if data["latest_month"] else "", **kwargs)
 
 

@@ -1,0 +1,54 @@
+{% extends "console/base.html" %}
+{% load unfold humanize formats %}
+
+{% block page %}
+<form method="get" class="flex flex-row flex-wrap gap-3 items-end">
+  <label class="mb-4 text-sm">Months
+    <select name="months" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+      {% for n in month_options %}<option value="{{ n }}" {% if n == months_back %}selected{% endif %}>Last {{ n }}</option>{% endfor %}
+    </select>
+  </label>
+  <span class="mb-4 py-2 text-sm">{{ center.name }} · {% if group %}group {{ group }}{% else %}no group{% endif %}</span>
+  <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'admin:scraper_centermonth_changelist' %}?center__center_id__exact={{ center.pk }}">Monthly metrics table →</a>
+  <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:revenue' %}{% if group %}?group={{ group|urlencode }}{% endif %}">Revenue by gym →</a>
+</form>
+
+{% if not rows %}
+  {% component "unfold/components/card.html" %}No monthly performance numbers for this gym yet.{% endcomponent %}
+{% else %}
+  {% component "unfold/components/card.html" with title="All metrics by month" %}
+    <div class="overflow-auto">
+      <table class="data-table text-sm w-full whitespace-nowrap">
+        <thead>
+          <tr><th rowspan="2" class="text-left">Metric</th>
+            <th colspan="{{ labels|length }}" class="border-b border-base-200 dark:border-base-700 text-center">Month</th>
+            <th rowspan="2" class="text-right">Average</th><th rowspan="2" class="text-right">Last month vs previous</th>
+            <th rowspan="2" class="text-left pl-3">Last 6 full months</th></tr>
+          <tr>{% for l in labels %}<th class="text-right">{{ l }}</th>{% endfor %}</tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+          <tr class="border-t border-base-100 dark:border-base-800">
+            <td class="font-medium">{{ r.metric }}</td>
+            {% for v in r.values %}<td class="text-right">{{ v|inr }}</td>{% endfor %}
+            <td class="text-right font-medium">{{ r.average|inr }}</td>
+            <td class="text-right {% if r.change_pct > 0 %}text-green-600{% elif r.change_pct < 0 %}text-red-600{% endif %}">{% if r.change_pct is not None %}{{ r.change_pct }}%{% endif %}</td>
+            <td class="pl-3">{{ r.spark }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-2 text-xs text-font-subtle-light dark:text-font-subtle-dark">The current month is partial and is left out of the average and the change.</p>
+  {% endcomponent %}
+
+  <h2 class="font-semibold text-lg">Every metric — this gym against the {% if group %}{{ group }} average{% else %}group average{% endif %}</h2>
+  <div class="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+    {% for c in cards %}
+      {% component "unfold/components/card.html" %}
+        {% component "unfold/components/chart/line.html" with data=c.data options=c.options height=220 %}{% endcomponent %}
+      {% endcomponent %}
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

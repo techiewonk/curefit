@@ -17,8 +17,8 @@ class RevenueTests(FakeKronosMixin, TransactionTestCase):
         self.a = engine.new_session("2026-06-01", "2026-08-31", [1, 2], ["perf"])
         self.b = engine.new_session("2026-08-01", "2026-09-30", [1, 2], ["perf"])
         Center.objects.filter(pk=1).update(monthly_target=2000)
-        CenterGroup.objects.create(name="GYMS").centers.add(1)
-        CenterGroup.objects.create(name="Gym Hybrid").centers.add(2)
+        CenterGroup.objects.get_or_create(name="GYMS")[0].centers.add(1)
+        CenterGroup.objects.get_or_create(name="Gym Hybrid")[0].centers.add(2)
 
     def put(self, session, cid, month, value):
         PerfMetric.objects.create(session=session, center_id=cid, metric_date=month, metric=TOTAL, value=value)
@@ -116,7 +116,7 @@ class SectionTests(FakeKronosMixin, TransactionTestCase):
         s = engine.new_session("2026-05-01", "2026-08-31", [1, 2, 3, 4], ["perf"])
         names = {"GYMS": [1, 2], "HYBRIDS": [3, 4]}
         for i, (g, ids) in enumerate(names.items()):
-            CenterGroup.objects.create(name=g, position=i).centers.add(*ids)
+            CenterGroup.objects.get_or_create(name=g, defaults={"position": i})[0].centers.add(*ids)
         for cid, values in {1: (500, 900), 2: (800, 100), 3: (50, 60), 4: (40, 90)}.items():
             for month, v in zip((D(2026, 7, 1), D(2026, 8, 1)), values):
                 PerfMetric.objects.create(session=s, center_id=cid, metric_date=month, metric=TOTAL, value=v)

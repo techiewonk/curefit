@@ -2,50 +2,52 @@
 {% load unfold humanize formats %}
 
 {% block page %}
-<form method="get" class="flex flex-col gap-2">
-  {% component "unfold/components/card.html" with title="What to look at" %}
+{# every control applies at once; only the month ranges need the Show button #}
+<form method="get" id="analysis-form" class="flex flex-col gap-2">
+  {% component "unfold/components/card.html" with title="Filters" %}
     <div class="flex flex-row flex-wrap gap-4 items-end">
-      <label class="text-sm">Metric
-        <select name="metric" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700 max-w-xs">
-          {% for m in metrics %}<option value="{{ m }}" {% if m == metric %}selected{% endif %}>{{ m }}</option>{% endfor %}
-        </select></label>
       <label class="text-sm">Group
-        <select name="group" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+        <select name="group" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
           <option value="">All groups</option>
           {% for g in groups %}<option value="{{ g }}" {% if g == group %}selected{% endif %}>{{ g }}</option>{% endfor %}
           <option value="Ungrouped" {% if group == "Ungrouped" %}selected{% endif %}>Ungrouped</option>
         </select></label>
+      <label class="text-sm">Gyms add up as
+        <select name="agg" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+          <option value="auto" {% if agg == "auto" %}selected{% endif %}>Automatic (rates averaged, the rest summed)</option>
+          <option value="sum" {% if agg == "sum" %}selected{% endif %}>Sum of gyms</option>
+          <option value="avg" {% if agg == "avg" %}selected{% endif %}>Average per gym</option>
+        </select></label>
+      <label class="text-sm">Chart months
+        <select name="months" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+          <option value="6" {% if months_back == 6 %}selected{% endif %}>6</option><option value="12" {% if months_back == 12 %}selected{% endif %}>12</option>
+          <option value="24" {% if months_back == 24 %}selected{% endif %}>24</option><option value="36" {% if months_back == 36 %}selected{% endif %}>36</option>
+        </select></label>
+      <a class="mb-2 text-primary-600" href="{% url 'admin:scraper_centermonth_changelist' %}">Monthly metrics table →</a>
+    </div>
+    <h3 class="font-semibold mt-4">Compare one metric</h3>
+    <div class="flex flex-row flex-wrap gap-4 items-end">
+      <label class="text-sm">Metric
+        <select name="metric" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700 max-w-xs">
+          {% for m in metrics %}<option value="{{ m }}" {% if m == metric %}selected{% endif %}>{{ m }}</option>{% endfor %}
+        </select></label>
       <label class="text-sm">Compare
-        <select name="mode" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+        <select name="mode" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
           <option value="mom" {% if mode == "mom" %}selected{% endif %}>Month vs previous month</option>
           <option value="yoy" {% if mode == "yoy" %}selected{% endif %}>Month vs same month last year</option>
           <option value="range" {% if mode == "range" %}selected{% endif %}>Range A vs range B</option>
           <option value="group" {% if mode == "group" %}selected{% endif %}>Gym vs its group average</option>
         </select></label>
-      <label class="text-sm">Month<input type="month" name="month" value="{{ month }}" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700"></label>
-      <label class="text-sm">Gyms add up as
-        <select name="agg" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
-          <option value="sum" {% if agg == "sum" %}selected{% endif %}>Sum</option>
-          <option value="avg" {% if agg == "avg" %}selected{% endif %}>Average per gym</option>
-        </select></label>
-      <label class="text-sm">Chart months
-        <select name="months" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
-          <option value="6" {% if months_back == 6 %}selected{% endif %}>6</option><option value="12" {% if months_back == 12 %}selected{% endif %}>12</option>
-          <option value="24" {% if months_back == 24 %}selected{% endif %}>24</option><option value="36" {% if months_back == 36 %}selected{% endif %}>36</option>
-        </select></label>
+      <label class="text-sm">Month<input type="month" name="month" value="{{ month }}" min="{{ month_min }}" max="{{ month_max }}" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700"></label>
     </div>
-    <div class="flex flex-row flex-wrap gap-4 items-end mt-3">
-      <span class="text-sm font-medium">Range A</span>
-      <input type="month" name="a_from" value="{{ a_from }}" class="border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
-      <input type="month" name="a_to" value="{{ a_to }}" class="border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
-      <span class="text-sm font-medium">Range B</span>
-      <input type="month" name="b_from" value="{{ b_from }}" class="border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
-      <input type="month" name="b_to" value="{{ b_to }}" class="border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
-      <span class="text-xs text-font-subtle-light dark:text-font-subtle-dark">(ranges are used by "Range A vs range B": A is the newer period)</span>
-    </div>
-    <div class="mt-3 flex flex-row gap-3 items-center">
-      <button type="submit" class="bg-primary-600 border border-transparent font-medium px-4 py-2 rounded-default text-white">Show</button>
-      <a class="text-primary-600" href="{% url 'admin:scraper_centermonth_changelist' %}">Data table →</a>
+    <div class="flex flex-row flex-wrap gap-4 items-end mt-3" {% if mode != "range" %}style="opacity:.55"{% endif %}>
+      <span class="text-sm font-medium">Range A (newer)</span>
+      <input type="month" name="a_from" value="{{ a_from }}" min="{{ month_min }}" max="{{ month_max }}" class="border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+      <input type="month" name="a_to" value="{{ a_to }}" min="{{ month_min }}" max="{{ month_max }}" class="border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+      <span class="text-sm font-medium">Range B (older)</span>
+      <input type="month" name="b_from" value="{{ b_from }}" min="{{ month_min }}" max="{{ month_max }}" class="border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+      <input type="month" name="b_to" value="{{ b_to }}" min="{{ month_min }}" max="{{ month_max }}" class="border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+      <button type="submit" class="bg-primary-600 border border-transparent font-medium px-4 py-2 rounded-default text-white">Show ranges</button>
     </div>
   {% endcomponent %}
 </form>
@@ -53,6 +55,19 @@
 {% if not data %}
   {% component "unfold/components/card.html" %}No performance numbers yet - run the performance cards split by month.{% endcomponent %}
 {% else %}
+  <h2 class="font-semibold text-lg">Every metric by month — a line per group</h2>
+  <div class="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+    {% for c in cards %}
+      {% component "unfold/components/card.html" %}
+        {% component "unfold/components/chart/line.html" with data=c.data options=c.options height=240 %}{% endcomponent %}
+        <a class="inline-block mt-1 text-primary-600 text-sm" href="?{% for k, v in request.GET.items %}{% if k != 'metric' %}{{ k }}={{ v|urlencode }}&{% endif %}{% endfor %}metric={{ c.metric|urlencode }}">Compare this metric ↓</a>
+      {% endcomponent %}
+    {% empty %}
+      {% component "unfold/components/card.html" %}No monthly numbers to chart for this selection.{% endcomponent %}
+    {% endfor %}
+  </div>
+
+  <h2 class="font-semibold text-lg mt-2">{{ metric }} — comparison</h2>
   <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
     {% component "unfold/components/card.html" with title="Now" %}<span class="text-2xl font-semibold">{{ data.total_now|inr }}</span>{% endcomponent %}
     {% component "unfold/components/card.html" with title="Compared with" %}<span class="text-2xl font-semibold">{{ data.total_before|inr }}</span>{% endcomponent %}
@@ -60,31 +75,44 @@
     {% component "unfold/components/card.html" with title="Gyms" %}<span class="text-2xl font-semibold">{{ data.rows|length }}</span>{% endcomponent %}
   </div>
 
-  {% if chart %}
-    {% component "unfold/components/card.html" with title=metric %}
-      {% component "unfold/components/chart/line.html" with data=chart height=300 %}{% endcomponent %}
-    {% endcomponent %}
-  {% endif %}
-
-  {% component "unfold/components/card.html" with title="Comparison per gym" %}
+  {% component "unfold/components/card.html" with title="Gyms by month" %}
     <div class="max-h-[75vh] overflow-auto">
       <table class="data-table text-sm w-full whitespace-nowrap" data-page-size="100">
-        <thead class="sticky top-0 bg-white dark:bg-base-900"><tr>
-          <th class="text-left">Gym</th><th class="text-left">Group</th>
-          <th class="text-right">{% if mode == "group" %}This month{% else %}Now{% endif %}</th>
-          <th class="text-right">{% if mode == "group" %}Group average{% else %}Before{% endif %}</th>
-          <th class="text-right">Change</th><th class="text-right">%</th>
-        </tr></thead>
+        <thead class="bg-white dark:bg-base-900">
+          <tr>
+            <th rowspan="2" class="text-left sticky left-0 z-10 bg-white dark:bg-base-900">Gym</th><th rowspan="2" class="text-left">Group</th>
+            <th colspan="{{ labels|length }}" class="border-b border-base-200 dark:border-base-700 text-center">{{ metric }}</th>
+            <th rowspan="2" class="text-right">Average</th><th rowspan="2" class="text-right">Last month vs previous</th>
+            <th rowspan="2" class="text-left pl-3">Last 6 full months</th>
+            <th colspan="4" class="border-b border-base-200 dark:border-base-700 text-center">
+              {% if mode == "mom" %}Month vs previous month{% elif mode == "yoy" %}Month vs last year{% elif mode == "range" %}Range A vs range B{% else %}Gym vs group average{% endif %}</th>
+          </tr>
+          <tr>
+            {% for l in labels %}<th class="text-right">{{ l }}</th>{% endfor %}
+            <th class="text-right">{% if mode == "group" %}This month{% else %}Now{% endif %}</th>
+            <th class="text-right">{% if mode == "group" %}Group average{% else %}Before{% endif %}</th>
+            <th class="text-right">Change</th><th class="text-right">%</th>
+          </tr>
+        </thead>
         <tbody>
         {% for r in data.rows %}
           <tr class="border-t border-base-100 dark:border-base-800">
-            <td class="font-medium">{{ r.name }}</td><td>{{ r.group }}</td>
+            <td class="sticky left-0 bg-white dark:bg-base-900 font-medium"><a class="text-primary-600" href="{% url 'console:gym' r.id %}" title="Every metric for this gym">{{ r.name }}</a></td><td>{{ r.group }}</td>
+            {% for v in r.cells %}<td class="text-right">{{ v|inr }}</td>{% endfor %}
+            <td class="text-right font-medium">{{ r.average|inr }}</td>
+            <td class="text-right {% if r.mom_pct > 0 %}text-green-600{% elif r.mom_pct < 0 %}text-red-600{% endif %}">{% if r.mom_pct is not None %}{{ r.mom_pct }}%{% endif %}</td>
+            <td class="pl-3">{{ r.spark }}</td>
             <td class="text-right">{{ r.now|inr }}</td><td class="text-right">{{ r.before|inr }}</td>
             <td class="text-right {% if r.delta > 0 %}text-green-600{% elif r.delta < 0 %}text-red-600{% endif %}">{{ r.delta|inr }}</td>
             <td class="text-right {% if r.pct > 0 %}text-green-600{% elif r.pct < 0 %}text-red-600{% endif %}">{% if r.pct is not None %}{{ r.pct }}%{% endif %}</td>
           </tr>
         {% endfor %}
         </tbody>
+        <tfoot><tr class="border-t-2 border-base-200 dark:border-base-700 font-semibold">
+          <td class="sticky left-0 bg-white dark:bg-base-900">{% if data.agg == "sum" %}All gyms (sum){% else %}All gyms (average){% endif %}</td><td></td>
+          {% for v in data.totals %}<td class="text-right">{{ v|inr }}</td>{% endfor %}
+          <td colspan="7"></td>
+        </tr></tfoot>
       </table>
     </div>
   {% endcomponent %}

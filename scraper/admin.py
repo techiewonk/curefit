@@ -7,7 +7,7 @@ from django.shortcuts import redirect
 from django.utils.html import format_html
 from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import (AllValuesCheckboxFilter, AutocompleteSelectFilter, BooleanRadioFilter,
-                                          ChoicesDropdownFilter, FieldTextFilter, RangeDateFilter,
+                                          ChoicesDropdownFilter, FieldTextFilter, RangeDateFilter, RangeNumericListFilter,
                                           RangeDateTimeFilter, RangeNumericFilter, RelatedDropdownFilter)
 from unfold.admin import TabularInline
 from unfold.decorators import action, display
@@ -16,7 +16,11 @@ from unfold.widgets import UnfoldAdminCheckboxSelectMultipleWidget, UnfoldAdminS
 from centers.models import KnownEmpty
 from config.admin_base import ExportModelAdmin
 
-from . import autorun, customers, files, jobs, perfwide
+import datetime as dt
+
+from django.urls import reverse
+
+from . import autorun, customers, files, jobs, perfwide, sparkline
 from .numbers import tidy
 from console.templatetags.formats import inr
 from .conf import SPEED_CHOICES
@@ -397,10 +401,46 @@ class SalesPackAdmin(DataAdmin):
 
 @admin.register(SalesCoverage)
 class SalesCoverageAdmin(DataAdmin):
-    list_display = ("center", "day", "session", "fetched_at")
-    list_filter = [("center", AutocompleteSelectFilter), ("day", RangeDateFilter),
-                   ("fetched_at", RangeDateTimeFilter)]
+    """Which days of Expired Pack User Details are stored for which gym. A day missing here is a gap to fill."""
+
+    list_display = ("center", "groups_column", "day", "session", "fetched_at")
+    list_filter = [("center", AutocompleteSelectFilter), ("center__groups__name", AllValuesCheckboxFilter),
+                   ("day", RangeDateFilter), ("fetched_at", RangeDateTimeFilter)]
+    search_fields = ("center__name", "center__code")
     list_select_related = ("center", "session")
+    ordering = ("-day", "center_id")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("center__groups")
+
+    @display(description="Groups")
+    def groups_column(self, obj):
+        return ", ".join(g.name for g in obj.center.groups.all())
+
+
+def metric_filter(metric):
+    """A from/to filter on one metric stored in CenterMonth.metrics."""
+    slug = "m_" + "".join(ch if ch.isalnum() else "_" for ch in metric.lower())
+
+    class MetricRangeFilter(RangeNumericListFilter):
+        title = metric
+        parameter_name = slug
+
+        def queryset(self, request, queryset):
+            filters = {}
+            low = self.used_parameters.get(f"{slug}_from")
+            high = self.used_parameters.get(f"{slug}_to")
+            try:
+                if low not in (None, ""):
+                    filters[f"metrics__{metric}__gte"] = float(low)
+                if high not in (None, ""):
+                    filters[f"metrics__{metric}__lte"] = float(high)
+            except ValueError:
+                return queryset.none()
+            return queryset.filter(**filters)
+
+    MetricRangeFilter.__name__ = f"MetricRangeFilter_{slug}"
+    return MetricRangeFilter
 
 
 @admin.register(CenterMonth)
@@ -415,12 +455,49 @@ class CenterMonthAdmin(DataAdmin):
                    ("new_revenue", RangeNumericFilter), ("repeat_revenue", RangeNumericFilter)]
     search_fields = ("center__name", "center__code")
 
+    def get_list_filter(self, request):
+        """The fixed filters, then a from/to range for every other metric the data has (the list follows the data)."""
+        return [*super().get_list_filter(request), *[metric_filter(name) for name in perfwide.extra_metric_names()]]
+
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("center__groups")
 
     def get_list_display(self, request):
-        return ["center", "groups_column", "month_column", "total_column", "new_column", "repeat_column",
+        trend = self._trend_columns()
+        return ["center", "groups_column", "month_column", "total_column", trend[0], "new_column", trend[1],
+                "repeat_column", trend[2], "gym_page",
                 *[self._metric_column(i, name) for i, name in enumerate(perfwide.extra_metric_names())]]
+
+    @staticmethod
+    def _trend_columns():
+        """A small trend line (the six months up to the row's month) for total, new and repeat revenue.
+        One query per page load: the revenue of every gym and month is read once and shared by all rows."""
+        cache = {}
+
+        def series(obj, which):
+            if not cache:
+                for cid, month, *vals in CenterMonth.objects.values_list(
+                        "center_id", "month", "total_revenue", "new_revenue", "repeat_revenue"):
+                    cache[(cid, month)] = vals
+            months, m = [], obj.month
+            for _ in range(6):
+                months.append(m)
+                m = (m - dt.timedelta(days=1)).replace(day=1)
+            months.reverse()
+            return [(cache.get((obj.center_id, mm)) or [None] * 3)[which] for mm in months], [mm.strftime("%b-%y") for mm in months]
+
+        def make(which, title):
+            def column(obj):
+                values, labels = series(obj, which)
+                return sparkline.svg(values, labels)
+            column.__name__ = f"trend_{which}"
+            return display(description=title)(column)
+
+        return [make(0, "Total, 6 mo"), make(1, "New, 6 mo"), make(2, "Repeat, 6 mo")]
+
+    @display(description="All metrics")
+    def gym_page(self, obj):
+        return format_html('<a href="{}">trends</a>', reverse("console:gym", args=[obj.center_id]))
 
     @display(description="Groups")
     def groups_column(self, obj):

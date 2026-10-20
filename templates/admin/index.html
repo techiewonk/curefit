@@ -1,114 +1,45 @@
 {% extends "admin/base.html" %}
-{% load i18n unfold humanize formats %}
+{% load i18n unfold humanize formats static %}
 
-{% block title %}Home | {{ site_title|default:_('Django site admin') }}{% endblock %}
+{% block title %}Dashboard | {{ site_title|default:_('Django site admin') }}{% endblock %}
 {% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
 {% block breadcrumbs %}{% endblock %}
 
 {% block content %}
 <div class="flex flex-col gap-6">
   <div class="flex flex-row flex-wrap gap-3 items-center">
-    <a href="{% url 'console:run' %}" class="bg-primary-600 border border-transparent font-medium px-4 py-2 rounded-default text-white">Run a scrape</a>
-    <a href="{% url 'console:monitor' %}" class="border border-base-200 font-medium px-4 py-2 rounded-default dark:border-base-700">Live monitor</a>
-    <a href="{% url 'console:centers' %}" class="border border-base-200 font-medium px-4 py-2 rounded-default dark:border-base-700">Update centers</a>
-    <a href="{% url 'console:analytics' %}" class="border border-base-200 font-medium px-4 py-2 rounded-default dark:border-base-700">Analytics</a>
-    <span class="ml-auto text-sm">Kronos:
-      {% if home.logged_in %}<strong class="text-green-600">logged in</strong>{% else %}<strong class="text-orange-600">not logged in</strong>{% endif %}
-    </span>
+    <a href="{% url 'console:revenue' %}" class="bg-primary-600 border border-transparent font-medium px-4 py-2 rounded-default text-white">Revenue by gym</a>
+    <a href="{% url 'console:perf_analysis' %}" class="border border-base-200 font-medium px-4 py-2 rounded-default dark:border-base-700">Analysis and compare</a>
+    <a href="{% url 'admin:centers_centergroup_add' %}" class="border border-base-200 font-medium px-4 py-2 rounded-default dark:border-base-700">New group</a>
+    <a href="{% url 'admin:centers_centergroup_changelist' %}" class="text-primary-600">Edit groups and their gyms →</a>
+    <a href="{% url 'console:status' %}" class="ml-auto text-primary-600">Run status and alerts →</a>
   </div>
 
-  {% if home.job.is_active %}
-    {% component "unfold/components/card.html" with title="Running now" %}
-      <p class="mb-2">Session <strong>{{ home.job.session_id }}</strong> · {{ home.job.done }} / {{ home.job.total }}
-        <span class="text-font-subtle-light dark:text-font-subtle-dark">{{ home.job.desc }}</span></p>
-      {% component "unfold/components/progress.html" with value=home.job.percent %}{% endcomponent %}
-      <div class="flex flex-row gap-3 items-center mt-3">
-        <form method="post" action="{% url 'console:job_action' 'stop' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'admin:index' %}">
-          <button class="border border-red-500 font-medium px-3 py-2 rounded-default text-red-600">{% if home.job.state == 'queued' %}Cancel{% else %}Stop{% endif %}</button></form>
-        {% if home.job.stop_requested and home.job.state == 'running' %}
-        <form method="post" action="{% url 'console:job_action' 'force' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'admin:index' %}">
-          <button class="bg-red-600 font-medium px-3 py-2 rounded-default text-white">Stop now</button></form>
-        {% endif %}
-        <a class="text-primary-600" href="{% url 'console:monitor' %}">Open the live monitor →</a>
-      </div>
+  {% if not home_charts.has_data %}
+    {% component "unfold/components/card.html" with title="Revenue by group" %}
+      No monthly revenue yet. Run <strong>Total Revenue and Split</strong> with <em>Split by: month</em> on the
+      <a class="text-primary-600" href="{% url 'console:run' %}">Run page</a>; the charts fill in as soon as a run finishes.
     {% endcomponent %}
+  {% else %}
+    <div class="grid gap-4 lg:grid-cols-3">
+      <div class="lg:col-span-2">
+        {% component "unfold/components/card.html" with title="Revenue by group — last 12 months" %}
+          {% component "unfold/components/chart/line.html" with data=home_charts.trend options=home_charts.trend_options height=300 %}{% endcomponent %}
+        {% endcomponent %}
+      </div>
+      {% component "unfold/components/card.html" with title="Latest full month by group" %}
+        {% component "unfold/components/chart/bar.html" with data=home_charts.share options=home_charts.share_options height=300 %}{% endcomponent %}
+      {% endcomponent %}
+    </div>
+
+    <div class="grid gap-4 xl:grid-cols-2">
+      {% for g in home_charts.per_group %}
+        {% component "unfold/components/card.html" with title=g.group %}
+          {% component "unfold/components/chart/bar.html" with data=g.data options=g.options height=280 %}{% endcomponent %}
+          <a class="inline-block mt-2 text-primary-600" href="{% url 'console:revenue' %}?group={{ g.group|urlencode }}">Open the {{ g.group }} table →</a>
+        {% endcomponent %}
+      {% endfor %}
+    </div>
   {% endif %}
-
-  {% component "unfold/components/card.html" with title="Groups" %}
-    <div class="flex flex-row flex-wrap gap-3 items-center mb-3">
-      <a href="{% url 'admin:centers_centergroup_add' %}" class="bg-primary-600 border border-transparent font-medium px-3 py-2 rounded-default text-white">New group</a>
-      <a href="{% url 'admin:centers_centergroup_changelist' %}" class="text-primary-600">Edit groups and their gyms →</a>
-      <a href="{% url 'console:revenue' %}" class="text-primary-600">Revenue by gym →</a>
-    </div>
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-    {% for g in home.group_cards %}
-      <div class="border border-base-200 dark:border-base-700 p-3 rounded-default">
-        <div class="flex flex-row items-center justify-between"><a class="font-semibold text-primary-600" href="{% url 'console:revenue' %}?group={{ g.group|urlencode }}">{{ g.group }}</a>
-          <span class="text-xs text-font-subtle-light dark:text-font-subtle-dark">{{ g.gyms }} gyms</span></div>
-        <div class="mt-1 text-2xl font-semibold">{% if g.latest %}₹{{ g.latest|inr }}{% else %}-{% endif %}</div>
-        <div class="text-sm">
-          {% if g.mom_pct is not None %}<span class="{% if g.mom_pct > 0 %}text-green-600{% elif g.mom_pct < 0 %}text-red-600{% endif %}">{{ g.mom_pct }}% vs prev month</span>{% endif %}
-          {% if g.achievement is not None %} · {{ g.achievement }}% of target{% endif %}
-        </div>
-        {% if g.best %}<div class="text-xs text-font-subtle-light dark:text-font-subtle-dark mt-1">Top: {{ g.best.name }}</div>{% endif %}
-      </div>
-    {% empty %}
-      <p>{% if home.groups_defined %}No monthly revenue for these groups yet - run the performance report split by month.{% else %}No groups yet. Create GYMS, HYBRIDS ... and add gyms to them.{% endif %}</p>
-    {% endfor %}
-    </div>
-  {% endcomponent %}
-
-  {% component "unfold/components/card.html" with title="Needs attention" %}
-    {% for a in home.alerts %}
-      <div class="border-l-4 mb-2 pl-3 py-1 {% if a.level == 'danger' %}border-red-500{% elif a.level == 'warning' %}border-orange-500{% else %}border-blue-500{% endif %}">
-        {{ a.text }}{% if a.url %} <a class="text-primary-600" href="{% url a.url %}">Open →</a>{% endif %}
-      </div>
-    {% empty %}Nothing needs attention.{% endfor %}
-  {% endcomponent %}
-
-  {% if home.kpis %}
-    <div class="grid gap-4 grid-cols-2 lg:grid-cols-5">
-      {% component "unfold/components/card.html" with title="Centers" %}<span class="text-2xl font-semibold">{{ home.kpis.centers }}</span>{% endcomponent %}
-      {% component "unfold/components/card.html" with title="Sales count" %}<span class="text-2xl font-semibold">{{ home.kpis.sales_count|intcomma }}</span>{% endcomponent %}
-      {% component "unfold/components/card.html" with title="Sales revenue" %}<span class="text-2xl font-semibold">₹{{ home.kpis.sales_revenue|floatformat:0|intcomma }}</span>{% endcomponent %}
-      {% component "unfold/components/card.html" with title="Total revenue" %}<span class="text-2xl font-semibold">₹{{ home.kpis.total_revenue|floatformat:0|intcomma }}</span>{% endcomponent %}
-      {% component "unfold/components/card.html" with title="Active rate" %}<span class="text-2xl font-semibold">{{ home.kpis.active_rate }}%</span>{% endcomponent %}
-    </div>
-    <p class="text-sm text-font-subtle-light dark:text-font-subtle-dark -mt-3">Latest session {{ home.latest.pk }} · {{ home.latest.start_date }} → {{ home.latest.end_date }}</p>
-  {% endif %}
-
-  <div class="grid gap-4 lg:grid-cols-2">
-    {% component "unfold/components/card.html" with title="Recent sessions" %}
-      <table class="w-full text-sm">
-        <thead><tr><th class="text-left">Session</th><th class="text-left">Period</th><th class="text-left">Status</th><th class="text-right">Missing</th></tr></thead>
-        <tbody>
-        {% for s in home.sessions %}
-          <tr><td><a class="text-primary-600" href="{% url 'admin:scraper_session_change' s.pk %}">{{ s.pk }}</a></td>
-              <td>{{ s.start_date }} → {{ s.end_date }}</td><td>{{ s.status }}</td>
-              <td class="text-right">{% if s.missing_count %}{{ s.missing_count }}{% endif %}</td></tr>
-        {% empty %}<tr><td colspan="4">No sessions yet.</td></tr>{% endfor %}
-        </tbody>
-      </table>
-      <a class="mt-3 inline-block text-primary-600" href="{% url 'admin:scraper_session_changelist' %}">All sessions →</a>
-    {% endcomponent %}
-    {% component "unfold/components/card.html" with title="Automatic runs" %}
-      <table class="w-full text-sm">
-        <thead><tr><th class="text-left">Name</th><th class="text-left">Next</th><th class="text-left">Last result</th></tr></thead>
-        <tbody>
-        {% for a in home.autoruns %}
-          <tr><td><a class="text-primary-600" href="{% url 'admin:scraper_autorun_change' a.pk %}">{{ a.name }}</a>{% if not a.enabled %} <span class="text-font-subtle-light dark:text-font-subtle-dark">(off)</span>{% endif %}</td>
-              <td>{% if a.next_at %}{{ a.next_at|date:"d M H:i" }}{% else %}-{% endif %}</td>
-              <td>{{ a.last_status|default:"-" }}</td></tr>
-        {% empty %}<tr><td colspan="3">None set up.</td></tr>{% endfor %}
-        </tbody>
-      </table>
-      <a class="mt-3 inline-block text-primary-600" href="{% url 'admin:scraper_autorun_changelist' %}">Switch on, edit or test →</a>
-    {% endcomponent %}
-    {% component "unfold/components/card.html" with title="Centers" %}
-      <p>{{ home.active_centers }} active centers.</p>
-      <ul class="mt-2">{% for l in home.lists %}<li><strong>{{ l.name }}</strong> list: {{ l.centers.count }}</li>{% endfor %}</ul>
-      <a class="mt-3 inline-block text-primary-600" href="{% url 'console:centers' %}">Update or edit the lists →</a>
-    {% endcomponent %}
-  </div>
 </div>
 {% endblock %}

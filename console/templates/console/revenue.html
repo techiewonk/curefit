@@ -10,17 +10,22 @@
       <option value="Ungrouped" {% if group == "Ungrouped" %}selected{% endif %}>Ungrouped</option>
     </select>
   </label>
-  <label class="mb-4 text-sm">Months
-    <select name="months" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
-      <option value="0" {% if months_back == 0 %}selected{% endif %}>All with data ({{ shown_months }})</option>
-      <option value="6" {% if months_back == 6 %}selected{% endif %}>Last 6</option>
-      <option value="12" {% if months_back == 12 %}selected{% endif %}>Last 12</option>
-      <option value="24" {% if months_back == 24 %}selected{% endif %}>Last 24</option>
+  <label class="mb-4 text-sm">From
+    <select name="from" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+      <option value="">Earliest</option>
+      {% for value, name in month_choices %}<option value="{{ value }}" {% if value == from_ %}selected{% endif %}>{{ name }}</option>{% endfor %}
     </select>
   </label>
+  <label class="mb-4 text-sm">To
+    <select name="to" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+      <option value="">Latest</option>
+      {% for value, name in month_choices %}<option value="{{ value }}" {% if value == to %}selected{% endif %}>{{ name }}</option>{% endfor %}
+    </select>
+  </label>
+  <span class="mb-4 py-2 text-sm text-font-subtle-light dark:text-font-subtle-dark">{{ shown_months }} months</span>
   {% if data.has_data %}
-    <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:revenue_csv' %}?group={{ group|urlencode }}&months={{ months_back }}">Download CSV</a>
-    <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:revenue_csv' %}?group={{ group|urlencode }}&months={{ months_back }}&format=xlsx">Download XLSX</a>
+    <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:revenue_csv' %}?group={{ group|urlencode }}&from={{ from_ }}&to={{ to }}">Download CSV</a>
+    <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:revenue_csv' %}?group={{ group|urlencode }}&from={{ from_ }}&to={{ to }}&format=xlsx">Download XLSX</a>
   {% endif %}
   <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'admin:centers_centergroup_changelist' %}">Edit groups →</a>
   <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'admin:centers_center_changelist' %}">Targets and notes →</a>
@@ -46,7 +51,7 @@
         <th class="text-right">Achieved</th><th class="text-left pl-4">Top gym</th></tr></thead>
       <tbody>
       {% for g in data.summary %}
-        <tr><td class="font-medium"><a class="text-primary-600" href="?group={{ g.group|urlencode }}&months={{ months_back }}">{{ g.group }}</a></td>
+        <tr><td class="font-medium"><a class="text-primary-600" href="?group={{ g.group|urlencode }}&from={{ from_ }}&to={{ to }}">{{ g.group }}</a></td>
           <td class="text-right">{{ g.gyms }}</td>
           <td class="text-right">{% if g.latest %}₹{{ g.latest|inr }}{% endif %}</td>
           <td class="text-right">{% if g.average %}₹{{ g.average|inr }}{% endif %}</td>
@@ -88,7 +93,7 @@
 
   {% if chart %}
     {% component "unfold/components/card.html" with title="Revenue by group" %}
-      {% component "unfold/components/chart/line.html" with data=chart height=260 %}{% endcomponent %}
+      {% component "unfold/components/chart/line.html" with data=chart options=chart_options height=280 %}{% endcomponent %}
     {% endcomponent %}
   {% endif %}
 
@@ -115,6 +120,7 @@
               <th rowspan="2" class="text-left sticky left-0 z-10 bg-white dark:bg-base-900">{{ sec.group }}</th>
               <th colspan="{{ labels|length }}" class="border-b border-base-200 dark:border-base-700 text-center">Revenue</th>
               <th rowspan="2" class="text-right">Average</th>
+              <th rowspan="2" class="text-left pl-3">Last 6 full months</th>
               <th colspan="{{ rank_labels|length|add:1 }}" class="border-b border-base-200 dark:border-base-700 text-center">Ranking</th>
               <th rowspan="2" class="text-right">vs prev</th><th rowspan="2" class="text-right">Target</th>
               <th rowspan="2" class="text-right">Achieved</th><th rowspan="2" class="text-left pl-3">Note</th>
@@ -127,9 +133,10 @@
           <tbody>
           {% for r in sec.rows %}
             <tr class="border-t border-base-100 dark:border-base-800">
-              <td class="sticky left-0 bg-white dark:bg-base-900 font-medium">{{ r.name }}</td>
+              <td class="sticky left-0 bg-white dark:bg-base-900 font-medium"><a class="text-primary-600" href="{% url 'console:gym' r.id %}" title="Every metric for this gym">{{ r.name }}</a></td>
               {% for v in r.cells %}<td class="text-right">{{ v|inr }}</td>{% endfor %}
               <td class="text-right font-medium">{{ r.average|inr }}</td>
+              <td class="pl-3">{{ r.spark }}</td>
               {% for k in r.ranks %}<td class="text-right">{{ k|default_if_none:"" }}</td>{% endfor %}<td class="text-right">{{ r.rank_average|default_if_none:"" }}</td>
               <td class="text-right {% if r.mom_pct > 0 %}text-green-600{% elif r.mom_pct < 0 %}text-red-600{% endif %}">{% if r.mom_pct is not None %}{{ r.mom_pct }}%{% endif %}</td>
               <td class="text-right">{{ r.target|inr }}</td>

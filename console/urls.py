@@ -13,6 +13,7 @@ def page(view):
 
 
 urlpatterns = [
+    path("status/", page(views.StatusView), name="status"),
     path("run/", page(views.RunView), name="run"),
     path("monitor/", page(views.MonitorView), name="monitor"),
     path("analytics/", page(views.AnalyticsView), name="analytics"),
@@ -20,6 +21,7 @@ urlpatterns = [
     path("coverage/", page(views.CoverageView), name="coverage"),
     path("perf/", RedirectView.as_view(pattern_name="admin:scraper_centermonth_changelist"), name="perf"),
     path("perf/analysis/", page(views.PerfAnalysisView), name="perf_analysis"),
+    path("gym/<int:center_id>/", page(views.GymTrendView), name="gym"),
     path("revenue/", page(views.RevenueView), name="revenue"),
     path("revenue/csv/", views.RevenueCsv.as_view(), name="revenue_csv"),
     path("analytics/csv/", views.AnalyticsCsv.as_view(), name="analytics_csv"),

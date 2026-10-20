@@ -172,13 +172,20 @@ UNFOLD = {
         "show_search": True,
         "show_all_applications": False,
         "navigation": [
-            {"title": "Operate", "separator": False, "items": [
-                {"title": "Home", "icon": "home", "link": reverse_lazy("admin:index")},
+            {"title": "Performance", "separator": False, "items": [
+                {"title": "Dashboard", "icon": "dashboard", "link": reverse_lazy("admin:index")},
+                {"title": "Revenue by gym", "icon": "leaderboard", "link": reverse_lazy("console:revenue")},
+                {"title": "Monthly metrics", "icon": "query_stats", "link": _ADMIN("scraper_centermonth")},
+                {"title": "Analysis and compare", "icon": "insights", "link": reverse_lazy("console:perf_analysis")},
+                {"title": "Other cards", "icon": "dataset", "link": _ADMIN("scraper_cardrow")},
+            ]},
+            {"title": "Operate", "separator": True, "items": [
+                {"title": "Status", "icon": "monitor_heart", "link": reverse_lazy("console:status")},
                 {"title": "Run a scrape", "icon": "play_arrow", "link": reverse_lazy("console:run")},
                 {"title": "Live monitor", "icon": "grid_view", "link": reverse_lazy("console:monitor")},
             ]},
             {"title": "Results", "separator": True, "items": [
-                {"title": "Analytics", "icon": "bar_chart", "link": reverse_lazy("console:analytics")},
+                {"title": "Session analytics", "icon": "bar_chart", "link": reverse_lazy("console:analytics")},
                 {"title": "Compare sessions", "icon": "compare_arrows", "link": reverse_lazy("console:compare")},
                 {"title": "Sessions", "icon": "history", "link": _ADMIN("scraper_session")},
                 {"title": "Section results", "icon": "fact_check", "link": _ADMIN("scraper_sectionresult")},
@@ -191,19 +198,14 @@ UNFOLD = {
             {"title": "Expired packs (sales)", "separator": True, "items": [
                 {"title": "All", "icon": "receipt_long", "link": _ADMIN("scraper_salespack")},
                 {"title": "Per run / session", "icon": "history", "link": _ADMIN("scraper_salesrecord")},
-                {"title": "Day coverage", "icon": "event_available", "link": reverse_lazy("console:coverage")},
-            ]},
-            {"title": "Performance", "separator": True, "items": [
-                {"title": "Perf metrics (by month)", "icon": "query_stats", "link": _ADMIN("scraper_centermonth")},
-                {"title": "Perf analysis and compare", "icon": "insights", "link": reverse_lazy("console:perf_analysis")},
-                {"title": "Revenue by gym", "icon": "leaderboard", "link": reverse_lazy("console:revenue")},
-                {"title": "Other cards", "icon": "dataset", "link": _ADMIN("scraper_cardrow")},
+                {"title": "Day coverage", "icon": "event_available", "link": _ADMIN("scraper_salescoverage")},
+                {"title": "Missing days", "icon": "event_busy", "link": reverse_lazy("console:coverage")},
             ]},
             {"title": "Centers", "separator": True, "items": [
                 {"title": "Update from Kronos", "icon": "sync", "link": reverse_lazy("console:centers")},
                 {"title": "Centers", "icon": "store", "link": _ADMIN("centers_center")},
-                {"title": "Center lists", "icon": "list_alt", "link": _ADMIN("centers_centerlist")},
                 {"title": "Center groups", "icon": "workspaces", "link": _ADMIN("centers_centergroup")},
+                {"title": "Center lists", "icon": "list_alt", "link": _ADMIN("centers_centerlist")},
                 {"title": "Known empty", "icon": "block", "link": _ADMIN("centers_knownempty")},
                 {"title": "Sync history", "icon": "update", "link": _ADMIN("centers_centersynclog")},
             ]},
