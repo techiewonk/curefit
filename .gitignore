@@ -14,3 +14,4 @@ dashboard_*.html
 __pycache__/
 *.pyc
 .venv/
+*.bak

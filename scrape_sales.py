@@ -83,7 +83,8 @@ def polite_sleep():
 def load_center_meta():
     meta = {}
     if os.path.exists(CENTERS_JSON):
-        data = json.load(open(CENTERS_JSON))
+        with open(CENTERS_JSON, encoding="utf-8") as f:
+            data = json.load(f)
         for c in data.get("centers", []):
             meta[str(c["id"])] = (c.get("name", "").strip(), c.get("centerCode", ""))
     return meta
@@ -91,7 +92,7 @@ def load_center_meta():
 
 def read_center_ids(path):
     ids = []
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         if reader.fieldnames and "center_id" in reader.fieldnames:
             for row in reader:
@@ -114,9 +115,9 @@ def init_db(conn):
         center_id TEXT, center_name TEXT, center_code TEXT,
         start_date TEXT, end_date TEXT,
         user_id TEXT, name TEXT, phone TEXT, pack_name TEXT, member_end_date TEXT,
-        active_last_30d TEXT, renewed TEXT, revenue REAL, scraped_at TEXT,
-        PRIMARY KEY (center_id, start_date, end_date, user_id, pack_name)
+        active_last_30d TEXT, renewed TEXT, revenue REAL, scraped_at TEXT
     );
+    CREATE INDEX IF NOT EXISTS idx_sales_period ON sales (center_id, start_date, end_date);
     CREATE TABLE IF NOT EXISTS perf_metrics (
         center_id TEXT, center_name TEXT, center_code TEXT,
         start_date TEXT, end_date TEXT,
@@ -129,7 +130,27 @@ def init_db(conn):
         PRIMARY KEY (report, center_id, start_date, end_date)
     );
     """)
+    _migrate_sales(conn)
     conn.commit()
+
+
+def _migrate_sales(conn):
+    """Old schema keyed sales on (center, period, user, pack), which merged repeat purchases."""
+    sql = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='sales'").fetchone()[0]
+    if "PRIMARY KEY" not in sql:
+        return
+    conn.executescript("""
+    ALTER TABLE sales RENAME TO sales_old;
+    CREATE TABLE sales (
+        center_id TEXT, center_name TEXT, center_code TEXT,
+        start_date TEXT, end_date TEXT,
+        user_id TEXT, name TEXT, phone TEXT, pack_name TEXT, member_end_date TEXT,
+        active_last_30d TEXT, renewed TEXT, revenue REAL, scraped_at TEXT
+    );
+    INSERT INTO sales SELECT * FROM sales_old;
+    DROP TABLE sales_old;
+    CREATE INDEX IF NOT EXISTS idx_sales_period ON sales (center_id, start_date, end_date);
+    """)
 
 
 # ------------------------- HTTP core -------------------------
@@ -175,7 +196,6 @@ def get_rows(mb, rep, token, start, end, tries=6):
     }
 
     def do():
-        j = {}
         for _ in range(tries):
             r = mb.get(url, headers=hdr, timeout=TIMEOUT)
             r.raise_for_status()
@@ -183,12 +203,14 @@ def get_rows(mb, rep, token, start, end, tries=6):
             if j.get("status") == "completed":
                 return j["data"]["rows"]
             time.sleep(1.5)  # metabase still computing
-        return j.get("data", {}).get("rows", [])
+        raise RuntimeError(f"metabase query not completed (status={j.get('status')!r})")
     return _with_retry(do, "data")
 
 
 # ------------------------- persistence -------------------------
 def store_sales(conn, cid, name, code, start, end, rows, now):
+    conn.execute("DELETE FROM sales WHERE center_id=? AND start_date=? AND end_date=?",
+                 (cid, start, end))
     for r in rows:  # [user_id,name,phone,pack,end,active,renewed,revenue]
         conn.execute("""INSERT OR REPLACE INTO sales VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                      (cid, name, code, start, end, str(r[0]), r[1], r[2], r[3], r[4],
@@ -196,6 +218,8 @@ def store_sales(conn, cid, name, code, start, end, rows, now):
 
 
 def store_perf(conn, cid, name, code, start, end, rows, now):
+    conn.execute("DELETE FROM perf_metrics WHERE center_id=? AND start_date=? AND end_date=?",
+                 (cid, start, end))
     for r in rows:  # [date, metric, value]
         conn.execute("""INSERT OR REPLACE INTO perf_metrics VALUES (?,?,?,?,?,?,?,?,?)""",
                      (cid, name, code, start, end, r[0], (r[1] or "").strip(), r[2], now))
@@ -460,6 +484,7 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
         f"db [dim]{db_path}[/dim]", border_style="cyan"))
 
     ok_count = fail_count = 0
+    empty = []
     progress = Progress(
         SpinnerColumn(),
         TextColumn("[bold]{task.fields[report]}[/bold]"),
@@ -488,6 +513,15 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                 try:
                     token = get_token(session, rep, cid, start, end)
                     rows = get_rows(mb, rep, token, start, end)
+                    if not rows:
+                        # don't mark as done: an empty result may be a transient miss
+                        conn.rollback()
+                        empty.append((rep_name, cid))
+                        log.warning("center_empty", report=rep_name, center_id=cid,
+                                    center=name or code)
+                        progress.advance(task)
+                        polite_sleep()
+                        continue
                     STORE[rep_name](conn, cid, name, code, start, end, rows, now)
                     conn.execute("INSERT OR REPLACE INTO scrape_log VALUES (?,?,?,?,?,?)",
                                  (rep_name, cid, start, end, len(rows), now))
@@ -496,12 +530,17 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                     log.info("center_ok", report=rep_name, center_id=cid,
                              center=name or code, rows=len(rows))
                 except Exception as e:
+                    conn.rollback()
                     fail_count += 1
                     log.error("center_failed", report=rep_name, center_id=cid, error=str(e))
                 progress.advance(task)
                 polite_sleep()
 
-    log.info("scrape_done", ok=ok_count, failed=fail_count)
+    log.info("scrape_done", ok=ok_count, failed=fail_count, empty=len(empty))
+    if empty:
+        console.print(f"[yellow]{len(empty)} center/report pairs returned no rows and will be "
+                      f"retried next run:[/yellow] "
+                      + ", ".join(f"{r}:{c}" for r, c in empty))
     written, analysis = export_reports(conn, start, end)
     print_analysis(analysis, start, end)
 
