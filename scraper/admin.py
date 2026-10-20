@@ -17,6 +17,7 @@ from centers.models import KnownEmpty
 from config.admin_base import ExportModelAdmin
 
 from . import autorun, customers, files, jobs, perfwide
+from console.templatetags.formats import inr
 from .conf import SPEED_CHOICES
 from .models import (AutoRun, CardColumns, CenterMonth, CardRow, Customer, CustomerPhone, GymMember, GymPack, Job, PerfMetric,
                      SalesCoverage, SalesPack, SalesRecord, SectionResult, Session)
@@ -423,7 +424,7 @@ class CenterMonthAdmin(DataAdmin):
         return super().get_queryset(request).prefetch_related("center__groups")
 
     def get_list_display(self, request):
-        return ["center", "groups_column", "month_column", "total_revenue", "new_revenue", "repeat_revenue",
+        return ["center", "groups_column", "month_column", "total_column", "new_column", "repeat_column",
                 *[self._metric_column(i, name) for i, name in enumerate(perfwide.extra_metric_names())]]
 
     @display(description="Groups")
@@ -433,6 +434,18 @@ class CenterMonthAdmin(DataAdmin):
     @display(description="Month", ordering="month")
     def month_column(self, obj):
         return obj.month.strftime("%b-%y")
+
+    @display(description="Total revenue", ordering="total_revenue")
+    def total_column(self, obj):
+        return inr(obj.total_revenue)
+
+    @display(description="New revenue", ordering="new_revenue")
+    def new_column(self, obj):
+        return inr(obj.new_revenue)
+
+    @display(description="Repeat revenue", ordering="repeat_revenue")
+    def repeat_column(self, obj):
+        return inr(obj.repeat_revenue)
 
     @staticmethod
     def _metric_column(index, name):

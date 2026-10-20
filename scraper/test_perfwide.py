@@ -111,3 +111,20 @@ class PerfWideTests(FakeKronosMixin, TransactionTestCase):
         self.assertContains(page, "Groups by month")
         csv = self.client.get(reverse("console:revenue_csv"), {"part": "groups"})
         self.assertTrue(csv.content.decode().startswith("group,gyms,"))
+
+    def test_a_ranking_column_for_each_of_the_last_six_months(self):
+        from scraper import revenue
+        data = revenue.matrix(months=0, today=D(2026, 9, 15))
+        self.assertEqual(len(data["rank_months"]), 6)
+        gyms = next(s for s in data["sections"] if s["group"] == "GYMS")
+        self.assertEqual(len(gyms["rows"][0]["ranks"]), 6)
+        headers, rows = revenue.table(data)
+        self.assertEqual([h for h in headers if h.startswith("ranking")][-2:], ["ranking Sep-26", "ranking"])
+        self.assertEqual(len(headers), len(rows[0]))
+        self.assertContains(self.client.get(reverse("console:revenue")), "Ranking ")
+
+    def test_report_tables_load_the_data_table_script(self):
+        page = self.client.get(reverse("console:revenue"))
+        self.assertContains(page, "console/datatable.js")
+        self.assertContains(page, "console/wide.css")
+        self.assertContains(page, 'class="data-table')

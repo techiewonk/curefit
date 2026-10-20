@@ -68,7 +68,7 @@
 
   {% component "unfold/components/card.html" with title="Comparison per gym" %}
     <div class="max-h-[75vh] overflow-auto">
-      <table class="text-sm w-full whitespace-nowrap">
+      <table class="data-table text-sm w-full whitespace-nowrap" data-page-size="100">
         <thead class="sticky top-0 bg-white dark:bg-base-900"><tr>
           <th class="text-left">Gym</th><th class="text-left">Group</th>
           <th class="text-right">{% if mode == "group" %}This month{% else %}Now{% endif %}</th>

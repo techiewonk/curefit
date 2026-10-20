@@ -291,7 +291,8 @@ class RevenueView(ConsolePage, TemplateView):
                     for sec in data["sections"]]
         return super().get_context_data(
             data=data, rows=rows, sections=sections, group_months=group_months, months_back=months, shown_months=len(data["months"]), group=self.request.GET.get("group", ""),
-            labels=[revenue.label(m) for m in data["months"]], chart=chart if len(data["months"]) > 1 else None,
+            labels=[revenue.label(m) for m in data["months"]],
+            rank_labels=[revenue.label(m) + (" *" if m == data["current"] else "") for m in data["rank_months"]], chart=chart if len(data["months"]) > 1 else None,
             latest_label=revenue.label(data["latest_month"]) if data["latest_month"] else "", **kwargs)
 
 

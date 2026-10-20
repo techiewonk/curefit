@@ -164,6 +164,7 @@ UNFOLD = {
     "SITE_SYMBOL": "monitoring",
     "SHOW_HISTORY": False,
     "STYLES": [lambda request: static("console/wide.css")],
+    "SCRIPTS": [lambda request: static("console/datatable.js")],
     "SITE_FAVICONS": [{"rel": "icon", "sizes": "32x32", "type": "image/svg+xml",
                        "href": lambda request: static("console/favicon.svg")}],
     "DASHBOARD_CALLBACK": "console.dashboard.callback",

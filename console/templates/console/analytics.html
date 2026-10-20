@@ -48,7 +48,7 @@
     {% endcomponent %}
     {% component "unfold/components/card.html" with title="Packs" %}
       <div class="max-h-72 overflow-auto">
-        <table class="w-full text-sm">
+        <table class="data-table w-full text-sm">
           <thead><tr><th class="text-left">Pack</th><th class="text-right">Sales</th><th class="text-right">Revenue</th></tr></thead>
           <tbody>{% for p in packs %}<tr><td>{{ p.pack_name }}</td><td class="text-right">{{ p.sales|intcomma }}</td><td class="text-right">₹{{ p.revenue|default:0|floatformat:0|intcomma }}</td></tr>{% endfor %}</tbody>
         </table>

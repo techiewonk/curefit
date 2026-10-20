@@ -103,14 +103,17 @@ def matrix(group="", months=12, today=None):
     # one table per group, like the sheet; ranks are within the group (a gym in two groups ranks in each)
     order = list(CenterGroup.objects.values_list("name", flat=True)) + [UNGROUPED]
     sections = []
+    rank_months = shown[-6:]  # a ranking column for each of the last six months (the current one is partial)
     for name in order:
         mine = [dict(r) for r in rows if name in r["groups"]]
         if not mine:
             continue
         rank_latest = _ranks({r["id"]: r["latest"] for r in mine})
         rank_avg = _ranks({r["id"]: r["average"] for r in mine})
+        by_month = {m: _ranks({r["id"]: r["values"].get(m) for r in mine}) for m in rank_months}
         for r in mine:
             r["rank_latest"], r["rank_average"] = rank_latest.get(r["id"]), rank_avg.get(r["id"])
+            r["ranks"] = [by_month[m].get(r["id"]) for m in rank_months]
         mine.sort(key=lambda r: (r["rank_latest"] is None, r["rank_latest"] or 0, r["name"]))
         sections.append({"group": name, "rows": mine})
 
@@ -134,7 +137,7 @@ def matrix(group="", months=12, today=None):
             "best": next(iter(sorted((r for r in mine if r["latest"] is not None), key=lambda r: -r["latest"])), None)})
     moving = sorted((r for r in rows if r["mom_pct"] is not None), key=lambda r: r["mom_pct"])
     return {"months": shown, "current": current, "latest_month": latest_month, "prev_month": prev_month,
-            "rows": rows, "sections": sections, "group_totals": group_totals, "summary": summary, "has_data": bool(rows),
+            "rows": rows, "sections": sections, "rank_months": rank_months, "group_totals": group_totals, "summary": summary, "has_data": bool(rows),
             "groups": list(CenterGroup.objects.values_list("name", flat=True)),
             "total_latest": sum(r["latest"] or 0 for r in rows),
             "total_average": sum(r["average"] or 0 for r in rows),
@@ -169,10 +172,10 @@ def table(data):
     """Headers and rows for a download: the sheet's columns, one block per group, ranks within the group."""
     months = data["months"]
     headers = (["group", "center_id", "gym"] + [label(m) for m in months] +
-               ["average", f"rank {label(data['latest_month'])}" if data["latest_month"] else "rank latest",
-                "rank average", "change_vs_prev_month_%", "monthly_target", "target_achieved_%", "note"])
+               ["average"] + [f"ranking {label(m)}" for m in data["rank_months"]] +
+               ["ranking", "change_vs_prev_month_%", "monthly_target", "target_achieved_%", "note"])
     rows = [[sec["group"], r["id"], r["name"]] + [r["values"].get(m) for m in months] +
-            [None if r["average"] is None else round(r["average"]), r["rank_latest"], r["rank_average"],
-             r["mom_pct"], r["target"], r["achievement"], r["note"]]
+            [None if r["average"] is None else round(r["average"])] + r["ranks"] +
+            [r["rank_average"], r["mom_pct"], r["target"], r["achievement"], r["note"]]
             for sec in data["sections"] for r in sec["rows"]]
     return headers, rows

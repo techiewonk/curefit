@@ -21,7 +21,7 @@
 
 {% component "unfold/components/card.html" with title="Days in the window" %}
   <div class="max-h-[70vh] overflow-auto">
-    <table class="w-full text-sm">
+    <table class="data-table w-full text-sm" data-page-size="50">
       <thead><tr><th class="text-left">Day</th><th class="text-right">Centers stored</th><th class="text-right">Missing</th></tr></thead>
       <tbody>
       {% for d in days %}

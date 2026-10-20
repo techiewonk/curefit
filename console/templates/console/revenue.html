@@ -40,7 +40,7 @@
   </div>
 
   {% component "unfold/components/card.html" with title="By group — "|add:latest_label %}
-    <table class="w-full text-sm">
+    <table class="data-table w-full text-sm">
       <thead><tr><th class="text-left">Group</th><th class="text-right">Gyms</th><th class="text-right">Revenue</th>
         <th class="text-right">Monthly average</th><th class="text-right">vs prev</th><th class="text-right">Target</th>
         <th class="text-right">Achieved</th><th class="text-left pl-4">Top gym</th></tr></thead>
@@ -61,7 +61,7 @@
 
   {% component "unfold/components/card.html" with title="Groups by month — last 12 months" %}
     <div class="overflow-auto">
-      <table class="text-sm w-full whitespace-nowrap">
+      <table class="data-table text-sm w-full whitespace-nowrap">
         <thead><tr><th class="text-left">Group</th><th class="text-right">Gyms</th>
           {% for l in group_months.labels %}<th class="text-right">{{ l }}</th>{% endfor %}<th class="text-right">Average</th></tr></thead>
         <tbody>
@@ -105,11 +105,11 @@
   {% for sec in sections %}
     {% component "unfold/components/card.html" with title=sec.group %}
       <div class="max-h-[75vh] overflow-auto">
-        <table class="text-sm w-full whitespace-nowrap">
+        <table class="data-table text-sm w-full whitespace-nowrap">
           <thead class="sticky top-0 z-10 bg-white dark:bg-base-900"><tr>
             <th class="text-left sticky left-0 bg-white dark:bg-base-900">{{ sec.group }}</th>
             {% for l in labels %}<th class="text-right">{{ l }}</th>{% endfor %}
-            <th class="text-right">Average</th><th class="text-right">Ranking {{ latest_label }}</th><th class="text-right">Ranking</th>
+            <th class="text-right">Average</th>{% for l in rank_labels %}<th class="text-right">Ranking {{ l }}</th>{% endfor %}<th class="text-right">Ranking</th>
             <th class="text-right">vs prev</th><th class="text-right">Target</th><th class="text-right">Achieved</th><th class="text-left pl-3">Note</th>
           </tr></thead>
           <tbody>
@@ -118,7 +118,7 @@
               <td class="sticky left-0 bg-white dark:bg-base-900 font-medium">{{ r.name }}</td>
               {% for v in r.cells %}<td class="text-right">{{ v|inr }}</td>{% endfor %}
               <td class="text-right font-medium">{{ r.average|inr }}</td>
-              <td class="text-right">{{ r.rank_latest|default_if_none:"" }}</td><td class="text-right">{{ r.rank_average|default_if_none:"" }}</td>
+              {% for k in r.ranks %}<td class="text-right">{{ k|default_if_none:"" }}</td>{% endfor %}<td class="text-right">{{ r.rank_average|default_if_none:"" }}</td>
               <td class="text-right {% if r.mom_pct > 0 %}text-green-600{% elif r.mom_pct < 0 %}text-red-600{% endif %}">{% if r.mom_pct is not None %}{{ r.mom_pct }}%{% endif %}</td>
               <td class="text-right">{{ r.target|inr }}</td>
               <td class="text-right">{% if r.achievement is not None %}{{ r.achievement }}%{% endif %}</td>
@@ -130,6 +130,6 @@
       </div>
     {% endcomponent %}
   {% endfor %}
-  <p class="text-xs text-font-subtle-light dark:text-font-subtle-dark">The current month is partial: it is shown but left out of the average and the rankings. Rankings are within each group; a gym in two groups ranks in both.</p>
+  <p class="text-xs text-font-subtle-light dark:text-font-subtle-dark">The current month is partial: it is shown but left out of the average and the rankings. Rankings are within each group (a gym in two groups ranks in both); * = the current, partial month. "Ranking" is by average.</p>
 {% endif %}
 {% endblock %}

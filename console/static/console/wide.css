@@ -1,2 +1,7 @@
 /* use the whole width of the screen: every list and page, so wide tables are visible without scrolling */
 #content, #content.container, .container { max-width: none !important; }
+
+/* report tables (console/datatable.js) */
+.data-table-bar { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin-bottom: .5rem; }
+table.data-table th[data-arrow]::after { content: attr(data-arrow); }
+table.data-table th { user-select: none; }
