@@ -197,7 +197,6 @@ UNFOLD = {
                 {"title": "Perf metrics (by month)", "icon": "query_stats", "link": _ADMIN("scraper_centermonth")},
                 {"title": "Perf analysis and compare", "icon": "insights", "link": reverse_lazy("console:perf_analysis")},
                 {"title": "Revenue by gym", "icon": "leaderboard", "link": reverse_lazy("console:revenue")},
-                {"title": "Perf metrics (raw rows)", "icon": "table_rows", "link": _ADMIN("scraper_perfmetric")},
                 {"title": "Other cards", "icon": "dataset", "link": _ADMIN("scraper_cardrow")},
             ]},
             {"title": "Centers", "separator": True, "items": [

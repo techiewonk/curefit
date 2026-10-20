@@ -1,5 +1,8 @@
 """Center list logic shared by the Kronos sync, the legacy import and the admin."""
 import datetime as dt
+import json
+import re
+from pathlib import Path
 
 from django.db import transaction
 
@@ -100,3 +103,38 @@ def set_list(name, ids):
     inactive = list(Center.objects.filter(center_id__in=ids).exclude(state="ACTIVE")
                     .values_list("center_id", flat=True))
     return {"count": len(ids), "inactive": inactive}
+
+
+GROUP_SEED = Path(__file__).with_name("group_seed.json")
+
+
+def _norm(text):
+    return re.sub(r"[^a-z0-9]", "", text.lower())
+
+
+def apply_group_seed(path=None):
+    """Put the gyms of the management sheet into their groups, matching by name.
+
+    Only groups that exist and are still empty are filled, so a gym you took out (or a group you deleted
+    or emptied on purpose) is not put back on the next start. A name that matches no center or more than one
+    is reported and left alone. Returns {"added": n, "groups": {name: n}, "unmatched": [...]}.
+    """
+    from .models import Center, CenterGroup
+    seed = json.loads(Path(path or GROUP_SEED).read_text(encoding="utf-8"))
+    by_name = {}
+    for c in Center.objects.all():
+        by_name.setdefault(_norm(c.name), []).append(c.pk)
+    done, unmatched = {}, []
+    for group in CenterGroup.objects.filter(name__in=list(seed)):
+        if group.centers.exists():
+            continue
+        ids = []
+        for name in seed[group.name]:
+            found = by_name.get(_norm(name), [])
+            if len(found) == 1:
+                ids.append(found[0])
+            else:
+                unmatched.append(f"{group.name}: {name} ({'no center' if not found else f'{len(found)} centers'})")
+        group.centers.add(*ids)
+        done[group.name] = len(ids)
+    return {"added": sum(done.values()), "groups": done, "unmatched": unmatched}

@@ -27,4 +27,6 @@ def sync_from_kronos(session=None):
     centers = data.get("centers") if isinstance(data, dict) else None
     if not isinstance(centers, list) or not centers or not all("id" in c for c in centers):
         raise ValueError("Unexpected response from Kronos - the center list was not changed")
-    return services.upsert_from_kronos(centers)
+    summary = services.upsert_from_kronos(centers)
+    services.apply_group_seed()  # the first sync gives the groups their gyms
+    return summary

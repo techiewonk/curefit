@@ -23,7 +23,7 @@ from .conf import SPEED_CHOICES
 from .models import (AutoRun, CardColumns, CenterMonth, CardRow, Customer, CustomerPhone, GymMember, GymPack, Job, PerfMetric,
                      SalesCoverage, SalesPack, SalesRecord, SectionResult, Session)
 from .reports import report_choices
-from .resources import (GymMemberResource, CenterMonthResource, GymPackResource, PerfMetricResource, SalesPackResource,
+from .resources import (GymMemberResource, CenterMonthResource, GymPackResource, SalesPackResource,
                         SalesRecordResource)
 
 STATUS_LABELS = {"complete": "success", "ok": "success", "done": "success", "finished": "success",
@@ -187,17 +187,6 @@ class SalesRecordAdmin(DataAdmin):
                    ("scraped_at", RangeDateTimeFilter)]
     search_fields = ("name", "phone", "user_id", "center__name", "pack_name")
     raw_id_fields = ("customer",)
-
-
-@admin.register(PerfMetric)
-class PerfMetricAdmin(DataAdmin):
-    resource_classes = [PerfMetricResource]
-    list_display = ("center", "metric_date", "metric", "value", "session")
-    list_filter = [("session", RelatedDropdownFilter), ("center", AutocompleteSelectFilter),
-                   ("metric_date", RangeDateFilter), ("value", RangeNumericFilter),
-                   ("metric", AllValuesCheckboxFilter), ("scraped_at", RangeDateTimeFilter)]
-    search_fields = ("center__name", "metric")
-    ordering = ("-metric_date", "center_id")
 
 
 @admin.register(GymMember)

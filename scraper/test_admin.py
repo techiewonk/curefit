@@ -47,7 +47,7 @@ class AdminTests(FakeKronosMixin, TransactionTestCase):
         self.assertEqual(r.context["cl"].result_count, 1)
 
     def test_export_pages_load(self):
-        for name in ("salesrecord", "perfmetric", "gymmember"):
+        for name in ("salesrecord", "gymmember"):
             r = self.client.get(reverse(f"admin:scraper_{name}_export"))
             self.assertEqual(r.status_code, 200, name)
 

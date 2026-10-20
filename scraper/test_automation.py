@@ -160,7 +160,7 @@ class DataTests(FakeKronosMixin, TransactionTestCase):
         self.assertIsNone(storage._day("n/a"))
 
     def test_range_filters_on_every_data_list(self):
-        for model in ("salesrecord", "perfmetric", "gymmember", "sectionresult"):
+        for model in ("salesrecord", "gymmember", "sectionresult"):
             url = reverse(f"admin:scraper_{model}_changelist")
             self.assertEqual(self.client.get(url).status_code, 200, model)
         url = reverse("admin:scraper_salesrecord_changelist")
@@ -171,7 +171,7 @@ class DataTests(FakeKronosMixin, TransactionTestCase):
                          .context["cl"].result_count, everything)
 
     def test_export_pages_open(self):
-        for model in ("salesrecord", "gymmember", "perfmetric", "sectionresult", "session"):
+        for model in ("salesrecord", "gymmember", "centermonth", "sectionresult", "session"):
             r = self.client.get(reverse(f"admin:scraper_{model}_export"))
             self.assertEqual(r.status_code, 200, model)
 

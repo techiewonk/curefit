@@ -105,6 +105,11 @@ group, and add or remove gyms (type to search). On the *Centers* list, select ce
 *Add to group: X* / *Remove from group: X* actions. A gym can be in several groups. Set each gym's
 **monthly target** in the same list. To start from a management sheet:
 
+The three groups of the management sheet (GYMS, HYBRIDS, Gym Hybrid) are created by a migration, and the first
+center sync (or `python manage.py seed_groups`, also run at start-up) puts the sheet's gyms into them by name. Only
+**empty** groups are filled, so gyms you add or remove, and groups you delete, are never put back. A name that matches
+two centers (for example *Cult Gym Indiranagar*) is listed and left for you to add by hand. For another sheet:
+
     python manage.py import_groups 20oct.xls            # preview
     python manage.py import_groups 20oct.xls --apply    # one group per section of the sheet (GYMS, HYBRIDS, Gym Hybrid)
 
