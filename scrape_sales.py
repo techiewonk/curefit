@@ -1,9 +1,10 @@
 """
 Curefit / Kronos multi-report scraper -> local SQLite + versioned CSV reports.
 
-Two reports are scraped per center (config-driven, add more in REPORTS):
-  - sales : member-level sales list   (dashboard 2536 / dashcard 19822 / card 39684)
-  - perf  : center KPI metrics        (dashboard 1750 / dashcard 13395 / card 24755)
+Three reports are scraped per center (config-driven, add more in REPORTS):
+  - sales : "Expired Pack User Details - Upto Last 90 Days" (dashboard 2536 / dashcard 19822 / card 39684)
+  - perf  : "Total Revenue and Split", monthly KPIs         (dashboard 1750 / dashcard 13395 / card 24755)
+  - gym   : "My Gym Member", member/pack list               (dashboard 1750 / dashcard 13454 / card 24811)
 
 Chain per (center, report):
   1. POST kronos /v1/metabase/iframeUrl (logged-in session)  -> signed metabase JWT
@@ -52,7 +53,7 @@ DELAY_MIN = 1.0          # min seconds between requests
 DELAY_MAX = 3.0          # max seconds between requests
 MAX_RETRIES = 4          # retries per failed request
 BACKOFF_BASE = 2.0       # exponential backoff base (seconds)
-ROW_CAP = 2000           # Metabase caps bare-row results here; >= this means possibly truncated
+ROW_CAP = 10000          # Metabase's default result cap; a 3,293-row result was seen intact, so 2,000 is not the limit
 TIMEOUT = 300            # per-request read timeout (seconds) - metabase can be slow
 
 # report definitions -- add a new dict here to scrape another dashboard
@@ -66,6 +67,12 @@ REPORTS = {
     },
     "perf": {
         "dashboard": 1750, "dashcard": 13395, "card": 24755,
+        "referer": "https://kronos.curefit.co/reports/perf-dashboard",
+        "iframe_query": lambda cid, s, e: {"start": s, "end": e},
+        "data_params": lambda s, e: {"start": s, "end": e, "granular": "month"},
+    },
+    "gym": {
+        "dashboard": 1750, "dashcard": 13454, "card": 24811,
         "referer": "https://kronos.curefit.co/reports/perf-dashboard",
         "iframe_query": lambda cid, s, e: {"start": s, "end": e},
         "data_params": lambda s, e: {"start": s, "end": e, "granular": "month"},
@@ -125,6 +132,15 @@ def init_db(conn):
         metric_date TEXT, metric TEXT, value REAL, scraped_at TEXT,
         PRIMARY KEY (center_id, start_date, end_date, metric_date, metric)
     );
+    CREATE TABLE IF NOT EXISTS gym_members (
+        center_id TEXT, center_name TEXT, center_code TEXT,
+        start_date TEXT, end_date TEXT,
+        user_id TEXT, username TEXT, pack_name TEXT, final_amount_paid REAL,
+        purchase_date TEXT, pack_start_date TEXT, pack_end_date TEXT, status TEXT,
+        offline_vs_online TEXT, new_vs_repeat TEXT, class_level TEXT, last_class_date TEXT,
+        scraped_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_gym_period ON gym_members (center_id, start_date, end_date);
     CREATE TABLE IF NOT EXISTS scrape_log (
         report TEXT, center_id TEXT, start_date TEXT, end_date TEXT,
         row_count INTEGER, scraped_at TEXT,
@@ -244,7 +260,16 @@ def store_perf(conn, cid, name, code, start, end, rows, now):
                      (cid, name, code, start, end, r[0], (r[1] or "").strip(), r[2], now))
 
 
-STORE = {"sales": store_sales, "perf": store_perf}
+def store_gym(conn, cid, name, code, start, end, rows, now):
+    conn.execute("DELETE FROM gym_members WHERE center_id=? AND start_date=? AND end_date=?",
+                 (cid, start, end))
+    for r in rows:  # [userid, username, pack, amount, purchased, pack_start, pack_end, status,
+        #             offline_vs_online, new_vs_repeat, class_level, last_class_date]
+        conn.execute("INSERT INTO gym_members VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                     (cid, name, code, start, end, str(r[0]), *r[1:12], now))
+
+
+STORE = {"sales": store_sales, "perf": store_perf, "gym": store_gym}
 
 
 # --------------------------- reports ---------------------------
@@ -303,6 +328,17 @@ def export_reports(conn, start, end):
         pivot_rows.append([cid, cname] + [vals.get(m) for m in metrics])
     p = versioned_path(os.path.join(HERE, f"perf_pivot_{start}_{end}_{ts}"))
     _write_csv(p, ["center_id", "center_name"] + metrics, pivot_rows); written.append(p)
+
+    # 3b) gym members (member/pack list)
+    gcols = ["center_id", "center_name", "center_code", "start_date", "end_date",
+             "user_id", "username", "pack_name", "final_amount_paid", "purchase_date",
+             "pack_start_date", "pack_end_date", "status", "offline_vs_online",
+             "new_vs_repeat", "class_level", "last_class_date", "scraped_at"]
+    grows = conn.execute(
+        f"SELECT {','.join(gcols)} FROM gym_members WHERE start_date=? AND end_date=? "
+        f"ORDER BY CAST(center_id AS INT), username", (start, end)).fetchall()
+    p = versioned_path(os.path.join(HERE, f"gym_members_{start}_{end}_{ts}"))
+    _write_csv(p, gcols, grows); written.append(p)
 
     # 4) analysis: revenue summary + new/repeat split + combined
     analysis = build_analysis(conn, start, end, metrics)
