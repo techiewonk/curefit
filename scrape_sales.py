@@ -256,6 +256,11 @@ def init_db(conn):
         session_id TEXT
     );
     CREATE TABLE IF NOT EXISTS card_columns (report TEXT PRIMARY KEY, columns TEXT);
+    CREATE TABLE IF NOT EXISTS sessions (
+        session_id TEXT PRIMARY KEY, start_date TEXT, end_date TEXT, status TEXT,
+        created_at TEXT, finished_at TEXT, folder TEXT,
+        centers TEXT, reports TEXT, coverage TEXT, missing TEXT
+    );
     CREATE TABLE IF NOT EXISTS scrape_log (
         report TEXT, center_id TEXT, start_date TEXT, end_date TEXT,
         row_count INTEGER, scraped_at TEXT, session_id TEXT,
@@ -271,6 +276,17 @@ def init_db(conn):
     CREATE INDEX IF NOT EXISTS idx_card_sess ON card_rows
         (session_id, report, center_id, start_date, end_date);
     """)
+    conn.commit()
+
+
+def save_session_row(conn, info, coverage=None):
+    """Mirror session.json into the database so an admin view can list and check sessions."""
+    conn.execute(
+        "INSERT OR REPLACE INTO sessions VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        (info["session_id"], info["start"], info["end"], info["status"], info["created_at"],
+         info.get("finished_at"), info["folder"], json.dumps(info.get("centers", [])),
+         json.dumps(info.get("reports", [])), json.dumps(coverage) if coverage else None,
+         json.dumps(info.get("missing", {}))))
     conn.commit()
 
 
@@ -828,6 +844,7 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
 
     conn = sqlite3.connect(db_path)
     init_db(conn)
+    save_session_row(conn, session)
 
     http, _ = C.load_session()
     mb = requests.Session()
@@ -966,6 +983,10 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
     session["finished_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
     session["missing"] = {r: m for r, m in missing.items() if m}
     _save_session(session)
+    cov_cols = ["report", "requested", "already_done", "scraped", "empty", "failed",
+                "possibly_truncated", "skipped_after_failures", "empty_center_ids",
+                "failed_center_ids"]
+    save_session_row(conn, session, [dict(zip(cov_cols, r)) for r in cov_rows])
 
     cov = Table(title="Coverage", header_style="bold cyan")
     for h in ("Report", "Centers", "Already done", "Scraped", "Empty", "Failed", "Capped", "Skipped"):

@@ -47,6 +47,26 @@ def list_periods():
             for r in rows]
 
 
+def sessions_payload():
+    """Admin view: every session with status, coverage and what is still missing."""
+    conn = db()
+    try:
+        rows = conn.execute("""
+            SELECT session_id, start_date, end_date, status, created_at, finished_at, folder,
+                   centers, reports, coverage, missing FROM sessions ORDER BY created_at DESC
+        """).fetchall()
+    except sqlite3.OperationalError:
+        rows = []
+    conn.close()
+    out = []
+    for r in rows:
+        out.append({"session": r[0], "start": r[1], "end": r[2], "status": r[3],
+                    "created_at": r[4], "finished_at": r[5], "folder": r[6],
+                    "centers": len(json.loads(r[7] or "[]")), "reports": json.loads(r[8] or "[]"),
+                    "coverage": json.loads(r[9] or "null"), "missing": json.loads(r[10] or "{}")})
+    return out
+
+
 def analysis_payload(sid, start, end):
     conn = db()
     metrics = [r[0] for r in conn.execute(
@@ -126,6 +146,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(PAGE, "text/html; charset=utf-8")
             elif u.path == "/api/periods":
                 self._send(json.dumps(list_periods()))
+            elif u.path == "/api/sessions":
+                self._send(json.dumps(sessions_payload()))
             elif u.path == "/api/analysis":
                 self._send(json.dumps(analysis_payload(q["session"][0], q["start"][0], q["end"][0])))
             elif u.path == "/api/sales":
