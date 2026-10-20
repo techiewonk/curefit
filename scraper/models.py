@@ -31,6 +31,7 @@ class Session(models.Model):
     workers = models.PositiveSmallIntegerField(default=1)
     coverage = models.JSONField(null=True, blank=True)
     missing = models.JSONField(default=dict, blank=True)
+    checks = models.JSONField(default=list, blank=True, help_text="Automatic findings after the run")
 
     objects = SessionQuerySet.as_manager()
 

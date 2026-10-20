@@ -21,7 +21,7 @@ from django.utils import timezone
 import curefit_login as C
 from centers.models import Center, KnownEmpty
 
-from . import conf, files, kronos
+from . import checks, conf, files, kronos
 from .throttle import Gate
 from .models import SectionResult, Session
 from .reports import REPORTS
@@ -257,6 +257,7 @@ def _finish(session, ids, reports, stats, flags, status):
     missing = {r: [str(c) for c in ids if (r, c) not in saved] for r in reports}
     session.missing = {r: m for r, m in missing.items() if m}
     session.coverage = coverage
+    session.checks = checks.run(session)
     session.status = Session.COMPLETE if not session.missing else Session.INCOMPLETE
     session.finished_at = timezone.now()
     session.save()

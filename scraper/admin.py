@@ -34,7 +34,7 @@ class SessionAdmin(ModelAdmin):
                     "missing_count")
     list_filter = ("status",)
     search_fields = ("session_id",)
-    readonly_fields = ("session_id", "folder", "coverage", "missing", "created_at", "finished_at")
+    readonly_fields = ("session_id", "folder", "coverage", "missing", "checks", "created_at", "finished_at")
     actions = ["continue_session", "merge_files"]
 
     @display(description="Period")

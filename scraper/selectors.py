@@ -140,6 +140,7 @@ def home():
                                f"{latest.missing_count} center/section pairs."})
     covered = Session.objects.exclude(coverage__isnull=True).first()
     if covered:
+        alerts += [{**finding, "text": f"Session {covered.session_id}: {finding['text']}"} for finding in covered.checks]
         cov = covered.coverage
         for key, text, level in (("failed", "failed center/section pairs", "danger"),
                                  ("slow", "slow (timed-out) sections", "warning"),

@@ -45,7 +45,7 @@ class FakeKronosMixin:
         if name == "sales" and cid == 2 and self.mode.get("empty2"):
             return [], []
         if name == "sales":
-            return [[cid, "a", "p", "pk", "d", "Yes", "Yes", 10]] * cid, []
+            return [[cid, "a", "p", "pk", "d", "Yes", "Yes", 10]] * self.mode.get("sales_rows", cid), []
         if name == "perf":
             return [["2026-07-01", "1. Total Revenue", 100.0], ["2026-07-01", "1.a New Revenue", 60.0]], []
         if name == "gym":
