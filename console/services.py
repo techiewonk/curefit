@@ -4,6 +4,7 @@ import re
 import statistics
 import time
 
+from constance import config
 from django.db.models import Count, Q, Sum
 
 import curefit_login as C
@@ -33,15 +34,15 @@ def logged_in(fresh=False):
 
 
 def send_otp():
-    r = C.send_otp()
-    return {"ok": r.status_code == 200, "email": C.EMAIL}
+    r = C.send_otp(config.LOGIN_EMAIL)
+    return {"ok": r.status_code == 200, "email": config.LOGIN_EMAIL}
 
 
 def verify_otp(otp):
     otp = str(otp or "").strip()
     if not re.fullmatch(r"\d{4,8}", otp):
         raise ConsoleError("Enter the numeric OTP from the email")
-    r = C.validate_otp(otp)
+    r = C.validate_otp(otp, config.LOGIN_EMAIL)
     try:
         ok = r.status_code == 200 and "token" in r.json()
     except ValueError:
@@ -54,11 +55,11 @@ def verify_otp(otp):
 
 
 # ------------------------------------------------------------------ run page
-def config():
+def run_config():
     today = dt.date.today()
     last_prev = today.replace(day=1) - dt.timedelta(days=1)
     return {
-        "email": C.EMAIL,
+        "email": config.LOGIN_EMAIL,
         "reports": [{"name": n, "label": r["label"]} for n, r in REPORTS.items()],
         "groups": GROUPS,
         "speeds": conf.SPEED_PROFILES,
@@ -87,7 +88,7 @@ def estimate(list_name, only, workers):
     if not all(r in REPORTS for r in reports):
         raise ConsoleError("Unknown report in selection")
     n = CenterList.objects.get(name=list_name).centers.count()
-    workers = max(1, min(int(workers or 1), conf.DEFAULTS["max_workers"]))
+    workers = max(1, min(int(workers or 1), config.MAX_WORKERS))
     t = timings()
     low = sum(t[r]["median"] + PAIR_OVERHEAD if r in t else DEFAULT_SECONDS for r in reports) * n / workers
     high = sum(t[r]["mean"] + PAIR_OVERHEAD if r in t else DEFAULT_SECONDS * 1.4 for r in reports) * n / workers
@@ -139,7 +140,7 @@ def pause_run(on):
 
 
 def status():
-    return {"logged_in": logged_in(), "email": C.EMAIL, "job": jobs.payload(jobs.latest_job())}
+    return {"logged_in": logged_in(), "email": config.LOGIN_EMAIL, "job": jobs.payload(jobs.latest_job())}
 
 
 # ------------------------------------------------------------------ monitor
@@ -310,7 +311,7 @@ def home():
                                                     f" ({known} known-empty registered)."})
     latest = Session.objects.filter(status=Session.COMPLETE).first() or Session.objects.first()
     kpis = analytics(latest.pk)["totals"] if latest and SalesRecord.objects.filter(session=latest).exists() else None
-    return {"logged_in": logged_in(), "email": C.EMAIL, "job": jobs.payload(job), "alerts": alerts,
+    return {"logged_in": logged_in(), "email": config.LOGIN_EMAIL, "job": jobs.payload(job), "alerts": alerts,
             "sessions": sessions, "latest": latest, "kpis": kpis,
             "lists": {lst.name: lst.centers.count() for lst in CenterList.objects.all()},
             "active_centers": Center.objects.filter(state="ACTIVE").count()}

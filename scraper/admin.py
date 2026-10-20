@@ -11,7 +11,7 @@ from unfold.decorators import action, display
 from centers.models import KnownEmpty
 
 from . import files, jobs
-from .models import (AppSetting, CardColumns, CardRow, GymMember, Job, PerfMetric, SalesRecord,
+from .models import (CardColumns, CardRow, GymMember, Job, PerfMetric, SalesRecord,
                      SectionResult, Session)
 
 STATUS_LABELS = {"complete": "success", "ok": "success", "done": "success", "incomplete": "warning",
@@ -209,8 +209,3 @@ class JobAdmin(ModelAdmin):
 
     def has_add_permission(self, request):
         return False
-
-
-@admin.register(AppSetting)
-class AppSettingAdmin(ModelAdmin):
-    list_display = ("key", "value", "note")

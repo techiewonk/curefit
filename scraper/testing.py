@@ -19,17 +19,17 @@ class FakeKronosMixin:
         self.by_card = {v["card"]: k for k, v in REPORTS.items()}
         for p in (
             mock.patch.object(files, "RUNS_DIR", self.tmp),
-            mock.patch.object(conf, "polite_sleep", lambda *a: None),
+            mock.patch.object(conf.RunSettings, "pause", lambda self: None),
             mock.patch.object(engine.C, "load_session", lambda: (object(), {})),
             mock.patch.object(kronos, "get_token",
-                              lambda http, rep, cid, s, e, timeout=None: f"{rep['dashboard']}:{cid}"),
-            mock.patch.object(kronos, "warm_up", lambda mb, token, timeout=None: None),
+                              lambda http, rep, cid, s, e, cfg=None: f"{rep['dashboard']}:{cid}"),
+            mock.patch.object(kronos, "warm_up", lambda mb, token, cfg=None: None),
             mock.patch.object(kronos, "get_rows", self.fake_rows),
         ):
             p.start()
             self.addCleanup(p.stop)
 
-    def fake_rows(self, mb, rep, token, start, end, poll_seconds=None, timeout=None):
+    def fake_rows(self, mb, rep, token, start, end, cfg=None):
         cid = int(token.split(":")[1])
         name = self.by_card[rep["card"]]
         self.calls.append((name, cid))

@@ -176,14 +176,3 @@ class Job(models.Model):
 
     def __str__(self):
         return f"{self.id} · {self.state}"
-
-
-class AppSetting(models.Model):
-    """Editable settings (login email, default speed, timeouts, row cap...)."""
-
-    key = models.CharField(max_length=64, primary_key=True)
-    value = models.JSONField(default=None, null=True, blank=True)
-    note = models.CharField(max_length=200, blank=True)
-
-    def __str__(self):
-        return self.key

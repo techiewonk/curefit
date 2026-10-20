@@ -50,7 +50,7 @@
 </div>
 
 <script>
-let CFG = null, ARM = null, ARM_T = null, EST = null, SID = null;
+let CFG = null, ARM = null, ARM_T = null, EST = null, SID = null, EST_SEQ = 0;
 const PRESET = new URLSearchParams(location.search);
 
 async function refreshStatus() {
@@ -88,7 +88,10 @@ function onChange() { ARM = null; $('confirm').textContent = ''; guard(estimate)
 async function estimate() {
   const only = picked(), all = only.length === CFG.reports.length;
   if (!only.length) { $('estimate').textContent = 'Select at least one report.'; EST = null; return; }
-  EST = await api('estimate/?' + q({list: listName(), only: all ? '' : only.join(','), workers: CFG.speeds[$('speed').value]}));
+  const seq = ++EST_SEQ;  // answers can arrive out of order: only the latest request may update the page
+  const est = await api('estimate/?' + q({list: listName(), only: all ? '' : only.join(','), workers: CFG.speeds[$('speed').value]}));
+  if (seq !== EST_SEQ) return;
+  EST = est;
   const note = EST.assumed.length ? ` (${EST.assumed.length} report(s) have no timings yet: assumed 40 s each)` : '';
   $('estimate').textContent = `${EST.centers} centers × ${EST.reports} reports = ${EST.pairs} fetches · about ${hours(EST.seconds_low)} to ${hours(EST.seconds_high)} with ${EST.workers} at a time${note}`;
 }

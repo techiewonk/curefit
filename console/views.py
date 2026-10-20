@@ -58,7 +58,7 @@ def status(request, body):
 
 @api()
 def config(request, body):
-    return services.config()
+    return services.run_config()
 
 
 @api()

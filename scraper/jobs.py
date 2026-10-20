@@ -8,11 +8,12 @@ import time
 import uuid
 from datetime import timedelta
 
+from constance import config
 from django.utils import timezone
 from django_q.tasks import async_task
 
 from centers import services
-from . import conf, engine, files
+from . import engine
 from .models import Job, SectionResult, Session
 from .reports import REPORTS
 
@@ -57,8 +58,8 @@ def enqueue(spec, sync=False):
     if only and not all(r in REPORTS for r in only):
         raise JobError("Unknown report in selection")
     workers = int(spec.get("workers") or 1)
-    if not 1 <= workers <= conf.DEFAULTS["max_workers"]:
-        raise JobError(f"workers must be between 1 and {conf.DEFAULTS['max_workers']}")
+    if not 1 <= workers <= config.MAX_WORKERS:
+        raise JobError(f"workers must be between 1 and {config.MAX_WORKERS}")
 
     if spec.get("session"):
         session = Session.objects.filter(pk=spec["session"]).first()

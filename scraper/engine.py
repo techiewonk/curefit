@@ -53,7 +53,8 @@ def run_session(session, workers=1, status=None, refresh=False, only=None):
     start, end = str(session.start_date), str(session.end_date)
     ids = [int(c) for c in session.center_ids]
     reports = [r for r in (only or session.reports) if r in REPORTS]
-    workers = max(1, min(int(workers or 1), conf.DEFAULTS["max_workers"]))
+    cfg = conf.RunSettings.load()
+    workers = max(1, min(int(workers or 1), cfg.max_workers))
     centers = Center.objects.in_bulk(ids)
 
     session.status = Session.RUNNING
@@ -82,8 +83,7 @@ def run_session(session, workers=1, status=None, refresh=False, only=None):
     lock = threading.Lock()
     flags = {"auth_failures": 0, "aborted": False, "stopped": False}
     fail_streak = {r: 0 for r in reports}
-    row_cap, poll = conf.get("row_cap"), conf.get("poll_seconds")
-    auth_limit, report_limit = conf.get("auth_fail_limit"), conf.get("report_fail_limit")
+    row_cap, auth_limit, report_limit = cfg.row_cap, cfg.auth_fail_limit, cfg.report_fail_limit
 
     def note(msg):
         if status is not None:
@@ -140,14 +140,14 @@ def run_session(session, workers=1, status=None, refresh=False, only=None):
                         rows, cols = [], []
                         for attempt in (1, 2):  # an empty result gets one retry on a fresh token
                             if token is None:
-                                token = kronos.get_token(http, rep, cid, start, end)
-                                kronos.warm_up(tmb, token)
-                            rows, cols = kronos.get_rows(tmb, rep, token, start, end, poll_seconds=poll)
+                                token = kronos.get_token(http, rep, cid, start, end, cfg)
+                                kronos.warm_up(tmb, token, cfg)
+                            rows, cols = kronos.get_rows(tmb, rep, token, start, end, cfg)
                             if rows:
                                 break
                             log.info("empty result, retrying: %s center %s (attempt %d)", rep_name, cid, attempt)
                             token = None
-                            conf.polite_sleep()
+                            cfg.pause()
                         seconds = round(time.monotonic() - t0, 1)
                         if not rows:
                             # empty after a retry: done for this session (a new session asks again)
@@ -204,7 +204,7 @@ def run_session(session, workers=1, status=None, refresh=False, only=None):
                     advance()
                     if flags["aborted"]:
                         return
-                    conf.polite_sleep()
+                    cfg.pause()
         finally:
             tmb.close()
             if workers > 1:

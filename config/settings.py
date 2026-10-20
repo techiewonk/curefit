@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "unfold",                        # modern admin theme (must precede django.contrib.admin)
     "unfold.contrib.filters",
     "unfold.contrib.import_export",
+    "unfold.contrib.constance",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -37,6 +38,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "import_export",
+    "constance",
+    "constance.backends.database",
     "django_q",
     "centers",
     "scraper",
@@ -123,6 +126,27 @@ from django.urls import reverse_lazy  # noqa: E402
 
 _ADMIN = lambda model: reverse_lazy(f"admin:{model}_changelist")  # noqa: E731
 
+# Settings editable in the admin (System → Settings). Read them with `constance.config.NAME`.
+CONSTANCE_BACKEND = "constance.backends.database.DatabaseBackend"
+CONSTANCE_CONFIG = {
+    "DELAY_MIN": (1.0, "Shortest pause between requests (seconds)", float),
+    "DELAY_MAX": (3.0, "Longest pause between requests (seconds)", float),
+    "MAX_RETRIES": (4, "Tries for a failed request", int),
+    "BACKOFF_BASE": (2.0, "Wait before the first retry (seconds); doubles each time", float),
+    "POLL_SECONDS": (240, "How long to wait for a slow Metabase query (seconds)", int),
+    "REQUEST_TIMEOUT": (300, "Network timeout per request (seconds)", int),
+    "ROW_CAP": (10000, "A result this long may have been cut off by Metabase", int),
+    "AUTH_FAIL_LIMIT": (3, "Consecutive 401/403 answers before a run stops", int),
+    "REPORT_FAIL_LIMIT": (3, "Failures in a row (none succeeded) before a report is skipped", int),
+    "MAX_WORKERS": (4, "Most centers fetched at the same time", int),
+    "LOGIN_EMAIL": ("shaurya@teamfit.in", "Kronos account that receives the login OTP", str),
+}
+CONSTANCE_CONFIG_FIELDSETS = {
+    "Requests": ("DELAY_MIN", "DELAY_MAX", "MAX_RETRIES", "BACKOFF_BASE", "POLL_SECONDS", "REQUEST_TIMEOUT"),
+    "Safety": ("ROW_CAP", "AUTH_FAIL_LIMIT", "REPORT_FAIL_LIMIT", "MAX_WORKERS"),
+    "Account": ("LOGIN_EMAIL",),
+}
+
 UNFOLD = {
     "SITE_TITLE": "Curefit Admin",
     "SITE_HEADER": "Curefit Admin",
@@ -162,7 +186,7 @@ UNFOLD = {
                 {"title": "Queued tasks", "icon": "queue", "link": _ADMIN("django_q_ormq")},
                 {"title": "Failed tasks", "icon": "error", "link": _ADMIN("django_q_failure")},
                 {"title": "Schedules", "icon": "schedule", "link": _ADMIN("django_q_schedule")},
-                {"title": "Settings", "icon": "settings", "link": _ADMIN("scraper_appsetting")},
+                {"title": "Settings", "icon": "settings", "link": reverse_lazy("admin:constance_config_changelist")},
             ]},
         ],
     },
