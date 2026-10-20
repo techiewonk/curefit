@@ -20,13 +20,13 @@ import datetime as dt
 
 from django.urls import reverse
 
-from . import autorun, customers, files, jobs, perfwide, sparkline
+from . import autorun, coverage, customers, files, jobs, perfwide, sparkline
 from .numbers import tidy
 from console.templatetags.formats import inr
 from .conf import SPEED_CHOICES
 from .models import (AutoRun, CardColumns, CenterMonth, CardRow, Customer, CustomerPhone, GymMember, GymPack, Job, PerfMetric,
                      SalesCoverage, SalesPack, SalesRecord, SectionResult, Session)
-from .reports import report_choices
+from .reports import TYPED, report_choices
 from .resources import (GymMemberResource, CenterMonthResource, GymPackResource, SalesPackResource,
                         SalesRecordResource)
 
@@ -261,7 +261,7 @@ class JobAdmin(ExportModelAdmin):
 
 
 class AutoRunForm(forms.ModelForm):
-    reports = forms.MultipleChoiceField(choices=report_choices, widget=UnfoldAdminCheckboxSelectMultipleWidget)
+    reports = forms.MultipleChoiceField(choices=report_choices, initial=list(TYPED), widget=UnfoldAdminCheckboxSelectMultipleWidget)
     speed = forms.ChoiceField(choices=SPEED_CHOICES, widget=UnfoldAdminSelectWidget)
 
     class Meta:
@@ -409,6 +409,22 @@ class SalesCoverageAdmin(DataAdmin):
     search_fields = ("center__name", "center__code")
     list_select_related = ("center", "session")
     ordering = ("-day", "center_id")
+    actions_list = ["fetch_missing_days", "open_missing_days"]
+
+    @action(description="Fetch the missing days", url_path="fetch-missing-days")
+    def fetch_missing_days(self, request):
+        """Starts a sales run, one request per day, for the days of the last 90 that the actual list is missing."""
+        try:
+            job = coverage.fetch_missing("actual")
+        except coverage.CannotFetch as e:
+            messages.error(request, str(e))
+            return redirect(request.META.get("HTTP_REFERER") or "admin:scraper_salescoverage_changelist")
+        messages.success(request, f"Fetching the missing days: job {job.id}. The job runner (qcluster) must be running.")
+        return redirect("console:run")
+
+    @action(description="Missing days", url_path="missing-days")
+    def open_missing_days(self, request):
+        return redirect("console:coverage")
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("center__groups")

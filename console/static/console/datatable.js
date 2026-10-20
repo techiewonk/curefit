@@ -98,6 +98,7 @@
       });
     }
 
+    search.addEventListener("keydown", function (e) { if (e.key === "Enter") e.preventDefault(); });  // never submits a form around the table
     search.addEventListener("input", function () { state.query = search.value.trim().toLowerCase(); state.page = 0; draw(); });
     sizes.addEventListener("change", function () { state.size = parseInt(sizes.value, 10); state.page = 0; draw(); });
     prev.addEventListener("click", function () { state.page -= 1; draw(); });

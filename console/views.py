@@ -1,4 +1,5 @@
 """Console pages: thin class-based views. Rules live in scraper/, display in the templates."""
+import datetime as dt
 import json
 
 import tablib
@@ -7,7 +8,7 @@ from django.contrib import admin, messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import FormView, TemplateView, View
 from unfold.views import UnfoldSiteViewMixin
@@ -216,34 +217,46 @@ class AnalyticsView(ConsolePage, TemplateView):
 
 
 class CoverageView(ConsolePage, TemplateView):
-    """Expired Pack User Details by day: how many centers of a list are stored, and which days are missing."""
+    """Expired Pack User Details by day and by gym: what is stored, what is missing, and buttons to fetch it."""
 
     template_name = "console/coverage.html"
-    title = "Day coverage"
+    title = "Missing days"
 
     def get_context_data(self, **kwargs):
-        from django.db.models import Count
-        from django.utils import timezone
-
-        from scraper import coverage
-        from scraper.models import SalesCoverage
         lists = CenterList.objects.all()
         chosen = lists.filter(name=self.request.GET.get("list")).first() or lists.filter(name="actual").first() \
             or lists.first()
         ids = list(chosen.centers.values_list("center_id", flat=True)) if chosen else []
-        today = timezone.localdate()
-        first = coverage.window_start(today)
-        stored = {}
-        for i in range(0, len(ids), 900):
-            for row in SalesCoverage.objects.filter(center_id__in=ids[i:i + 900], day__gte=first) \
-                    .values("day").annotate(n=Count("center_id")):
-                stored[row["day"]] = stored.get(row["day"], 0) + row["n"]
-        days = [{"day": d, "stored": stored.get(d, 0), "missing": len(ids) - stored.get(d, 0)}
-                for d in coverage.days(first, today - coverage.ONE_DAY)]
-        gaps = [d for d in days if d["missing"]]
+        days = coverage.missing_by_day(ids)
         return super().get_context_data(
-            lists=lists, chosen=chosen, total=len(ids), days=days[::-1], gap_count=len(gaps),
-            first_gap=gaps[0]["day"] if gaps else None, last_gap=gaps[-1]["day"] if gaps else None, **kwargs)
+            lists=lists, chosen=chosen, total=len(ids), days=days, centers=coverage.missing_by_center(ids),
+            gap_days=sum(1 for d in days if d["missing"]), window=coverage.WINDOW_DAYS, **kwargs)
+
+
+class CoverageRun(PermissionRequiredMixin, View):
+    """Start a run for the missing days: all of them, one day, or one gym."""
+
+    permission_required = ()
+
+    def post(self, request):
+        scope, _, value = request.POST.get("run", "").partition(":")
+        if scope not in ("all", "day", "center"):
+            messages.error(request, "Nothing was started: press one of the Fetch buttons.")
+            return redirect("console:coverage")
+        list_name = request.POST.get("list") or "actual"
+        try:
+            if scope == "day":
+                job = coverage.fetch_missing(list_name, day=dt.date.fromisoformat(value))
+            elif scope == "center":
+                job = coverage.fetch_missing(list_name, center_ids_=[int(value)])
+            else:
+                job = coverage.fetch_missing(list_name)
+        except (coverage.CannotFetch, ValueError) as e:
+            messages.error(request, str(e) or "Nothing to fetch.")
+            return redirect(f"{reverse('console:coverage')}?list={list_name}")
+        messages.success(request, f"Fetching the missing days: job {job.id}, session {job.session_id}. "
+                                  "The job runner (qcluster) must be running.")
+        return redirect("console:run")
 
 
 class PerfAnalysisView(ConsolePage, TemplateView):

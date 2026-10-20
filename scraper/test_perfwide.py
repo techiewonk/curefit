@@ -269,3 +269,78 @@ class StructureAndChartTests(FakeKronosMixin, TransactionTestCase):
         self.assertIn("Day coverage", titles)
         self.assertIn("Missing days", titles)
         self.assertEqual(self.client.get(reverse("console:coverage")).status_code, 200)
+
+
+class FetchMissingTests(FakeKronosMixin, TransactionTestCase):
+    def setUp(self):
+        super().setUp()
+        from unittest import mock
+        from centers import services
+        from scraper import auth
+        services.set_list("test", [1, 2])
+        self.today = __import__("django.utils.timezone", fromlist=["x"]).localdate()
+        self.logged_in = True
+        patcher = mock.patch.object(auth, "logged_in", lambda fresh=False: self.logged_in)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.enqueue = mock.patch("scraper.jobs.async_task")
+        self.enqueue.start()
+        self.addCleanup(self.enqueue.stop)
+
+    def test_summaries_by_day_and_by_gym(self):
+        from scraper import coverage
+        from scraper.models import SalesCoverage
+        yesterday = self.today - dt.timedelta(days=1)
+        SalesCoverage.objects.create(center_id=1, day=yesterday)
+        SalesCoverage.objects.create(center_id=2, day=yesterday)
+        SalesCoverage.objects.create(center_id=1, day=yesterday - dt.timedelta(days=1))
+        days = coverage.missing_by_day([1, 2])
+        self.assertEqual((days[0]["day"], days[0]["stored"], days[0]["missing"]), (yesterday, 2, 0))
+        self.assertEqual(days[1]["missing"], 1)
+        self.assertEqual(len(days), coverage.WINDOW_DAYS)
+        gyms = coverage.missing_by_center([1, 2])
+        self.assertEqual([(g["id"], g["stored"]) for g in gyms], [(2, 1), (1, 2)])  # the one with most missing first
+
+    def test_the_buttons_start_a_sales_only_run_for_the_missing_days(self):
+        from scraper.models import Job, Session
+        page = self.client.get(reverse("console:coverage"), {"list": "test"})
+        self.assertContains(page, "Fetch all missing days")
+        self.assertContains(page, "Fetch this day")
+        self.assertContains(page, "Fetch this gym")
+        r = self.client.post(reverse("console:coverage_run"), {"list": "test", "run": "all"})
+        self.assertRedirects(r, reverse("console:run"), fetch_redirect_response=False)
+        job = Job.objects.get()
+        session = Session.objects.get(pk=job.session_id)
+        self.assertEqual((session.reports, session.sales_chunk, session.fill_missing, session.center_ids),
+                         (["sales"], "day", True, [1, 2]))
+        self.assertEqual(session.end_date, self.today - dt.timedelta(days=1))
+
+    def test_one_day_and_one_gym(self):
+        from scraper.models import Job, Session
+        day = self.today - dt.timedelta(days=3)
+        self.client.post(reverse("console:coverage_run"), {"list": "test", "run": f"day:{day}"})
+        s = Session.objects.get(pk=Job.objects.get().session_id)
+        self.assertEqual((s.start_date, s.end_date), (day, day))
+        Job.objects.all().update(state=Job.DONE)
+        self.client.post(reverse("console:coverage_run"), {"list": "test", "run": "center:2"})
+        self.assertEqual(Session.objects.order_by("-created_at").first().center_ids, [2])
+
+    def test_it_says_why_nothing_started(self):
+        self.logged_in = False
+        r = self.client.post(reverse("console:coverage_run"), {"list": "test", "run": "all"}, follow=True)
+        self.assertContains(r, "Not logged in")
+        self.logged_in = True
+        r = self.client.post(reverse("console:coverage_run"), {"list": "test"}, follow=True)  # no button named: never a default run
+        self.assertContains(r, "press one of the Fetch buttons")
+        from scraper.models import Job
+        self.assertEqual(Job.objects.count(), 0)
+
+    def test_the_day_coverage_table_has_the_buttons_too(self):
+        url = reverse("admin:scraper_salescoverage_changelist")
+        self.assertContains(self.client.get(url), "Fetch the missing days")
+        from centers import services
+        services.set_list("actual", [1])
+        r = self.client.get(reverse("admin:scraper_salescoverage_fetch_missing_days"))
+        self.assertRedirects(r, reverse("console:run"), fetch_redirect_response=False)
+        self.assertRedirects(self.client.get(reverse("admin:scraper_salescoverage_open_missing_days")), reverse("console:coverage"),
+                             fetch_redirect_response=False)

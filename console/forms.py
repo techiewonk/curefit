@@ -9,7 +9,7 @@ from unfold.widgets import (UnfoldAdminCheckboxSelectMultipleWidget, UnfoldAdmin
 from centers.models import Center, CenterList
 from scraper.conf import SPEED_CHOICES, SPEED_PROFILES
 from scraper.models import Session
-from scraper.reports import REPORTS, report_choices
+from scraper.reports import REPORTS, TYPED, report_choices
 
 
 def default_chunk():
@@ -36,7 +36,8 @@ class RunForm(forms.Form):
         help_text="Optional, handy for testing: type to search and pick one or more. When any are chosen "
                   "they are used instead of the list above.",
         widget=UnfoldAdminSelect2MultipleWidget)
-    reports = forms.MultipleChoiceField(choices=report_choices, initial=list(REPORTS),
+    reports = forms.MultipleChoiceField(choices=report_choices, initial=list(TYPED),  # the extra cards start unticked
+                                        help_text="The three core reports are ticked. The extra perf and sales cards are off until you tick them.",
                                         widget=UnfoldAdminCheckboxSelectMultipleWidget)
     speed = forms.ChoiceField(choices=SPEED_CHOICES, initial="normal", widget=UnfoldAdminSelectWidget)
     granularity = forms.ChoiceField(

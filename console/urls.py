@@ -19,6 +19,7 @@ urlpatterns = [
     path("analytics/", page(views.AnalyticsView), name="analytics"),
     path("compare/", page(views.CompareView), name="compare"),
     path("coverage/", page(views.CoverageView), name="coverage"),
+    path("coverage/run/", views.CoverageRun.as_view(), name="coverage_run"),
     path("perf/", RedirectView.as_view(pattern_name="admin:scraper_centermonth_changelist"), name="perf"),
     path("perf/analysis/", page(views.PerfAnalysisView), name="perf_analysis"),
     path("gym/<int:center_id>/", page(views.GymTrendView), name="gym"),

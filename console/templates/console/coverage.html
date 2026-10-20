@@ -8,29 +8,66 @@
       {% for l in lists %}<option value="{{ l.name }}" {% if l == chosen %}selected{% endif %}>{{ l.name }} ({{ l.centers.count }})</option>{% endfor %}
     </select>
   </label>
-  {% if first_gap %}
-    <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:run' %}?list={{ chosen.name }}&start={{ first_gap|date:'Y-m-d' }}&end={{ last_gap|date:'Y-m-d' }}">Fill the {{ gap_count }} missing day(s) →</a>
-  {% endif %}
+  <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'admin:scraper_salescoverage_changelist' %}">Every stored gym and day →</a>
 </form>
 
-{% component "unfold/components/card.html" %}
-  <a class="text-primary-600" href="{% url 'admin:scraper_salescoverage_changelist' %}">See the table of every gym and day →</a><br>
-  Expired Pack User Details only keeps the <strong>last 90 days</strong>, so these are the days you can still fetch.
-  A day counts as stored for a center once it was fetched (a day with no expiries counts too). Run the Run page with
-  <em>Ask for sales by: day</em> and <em>only fetch days not stored yet</em> to fill the gaps.
-{% endcomponent %}
+{# one form for every button: a row's button says what to fetch (a day, a gym, or everything) #}
+<form method="post" action="{% url 'console:coverage_run' %}">
+  {% csrf_token %}
+  <input type="hidden" name="list" value="{{ chosen.name }}">
 
-{% component "unfold/components/card.html" with title="Days in the window" %}
-  <div class="max-h-[70vh] overflow-auto">
-    <table class="data-table w-full text-sm" data-page-size="50">
-      <thead><tr><th class="text-left">Day</th><th class="text-right">Centers stored</th><th class="text-right">Missing</th></tr></thead>
-      <tbody>
-      {% for d in days %}
-        <tr><td>{{ d.day|date:"D d M Y" }}</td><td class="text-right">{{ d.stored }} / {{ total }}</td>
-          <td class="text-right {% if d.missing %}text-orange-600{% else %}text-green-600{% endif %}">{% if d.missing %}{{ d.missing }}{% else %}complete{% endif %}</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-{% endcomponent %}
+  {% component "unfold/components/card.html" with title="Fetch what is missing" %}
+    <p class="mb-3 text-sm">
+      Expired Pack User Details only keeps the <strong>last {{ window }} days</strong>, so these are the days that can still be fetched.
+      A day counts as stored for a gym once it was fetched (a day with no expiries counts too).
+      The buttons start a sales run, one request per day, that skips what is already stored.
+    </p>
+    <div class="flex flex-row flex-wrap gap-3 items-center">
+      <button type="submit" name="run" value="all" {% if not gap_days %}disabled{% endif %}
+              class="bg-primary-600 border border-transparent font-medium px-4 py-2 rounded-default text-white {% if not gap_days %}opacity-50 cursor-not-allowed{% endif %}">
+        Fetch all missing days{% if gap_days %} ({{ gap_days }} day{{ gap_days|pluralize }}){% endif %}
+      </button>
+      <span class="text-sm text-font-subtle-light dark:text-font-subtle-dark">
+        {% if gap_days %}for {{ total }} gyms in the {{ chosen.name }} list{% else %}Every day of the window is stored for this list.{% endif %}
+      </span>
+    </div>
+  {% endcomponent %}
+
+  {% component "unfold/components/card.html" with title="By day" %}
+    <div class="max-h-[70vh] overflow-auto">
+      <table class="data-table w-full text-sm" data-page-size="50">
+        <thead><tr><th class="text-left">Day</th><th class="text-right">Gyms stored</th><th class="text-right">Missing</th><th class="text-right"></th></tr></thead>
+        <tbody>
+        {% for d in days %}
+          <tr class="border-t border-base-100 dark:border-base-800">
+            <td data-sort="{{ d.day|date:'Y-m-d' }}">{{ d.day|date:"D d M Y" }}</td>
+            <td class="text-right">{{ d.stored }} / {{ total }}</td>
+            <td class="text-right {% if d.missing %}text-orange-600{% else %}text-green-600{% endif %}" data-sort="{{ d.missing }}">{% if d.missing %}{{ d.missing }}{% else %}complete{% endif %}</td>
+            <td class="text-right">{% if d.missing %}<button type="submit" name="run" value="day:{{ d.day|date:'Y-m-d' }}" class="border border-base-200 dark:border-base-700 px-2 py-1 rounded-default text-primary-600">Fetch this day</button>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endcomponent %}
+
+  {% component "unfold/components/card.html" with title="By gym" %}
+    <div class="max-h-[70vh] overflow-auto">
+      <table class="data-table w-full text-sm" data-page-size="50">
+        <thead><tr><th class="text-left">Gym</th><th class="text-left">Group</th><th class="text-right">Days stored</th><th class="text-right">Missing</th><th class="text-right"></th></tr></thead>
+        <tbody>
+        {% for c in centers %}
+          <tr class="border-t border-base-100 dark:border-base-800">
+            <td class="font-medium"><a class="text-primary-600" href="{% url 'admin:scraper_salescoverage_changelist' %}?center__center_id__exact={{ c.id }}">{{ c.name }}</a></td>
+            <td>{{ c.group }}</td>
+            <td class="text-right">{{ c.stored }} / {{ window }}</td>
+            <td class="text-right {% if c.missing %}text-orange-600{% else %}text-green-600{% endif %}" data-sort="{{ c.missing }}">{% if c.missing %}{{ c.missing }}{% else %}complete{% endif %}</td>
+            <td class="text-right">{% if c.missing %}<button type="submit" name="run" value="center:{{ c.id }}" class="border border-base-200 dark:border-base-700 px-2 py-1 rounded-default text-primary-600">Fetch this gym</button>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endcomponent %}
+</form>
 {% endblock %}

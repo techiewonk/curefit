@@ -168,3 +168,27 @@ class ConsoleViewTests(FakeKronosMixin, TransactionTestCase):
         log = CenterSyncLog.objects.get()
         self.assertEqual((len(log.added), len(log.renamed), len(log.state_changed)), (1, 1, 1))
         self.assertEqual(Center.objects.get(pk=1).name, "Renamed")
+
+
+class DefaultReportsTests(TransactionTestCase):
+    def test_only_the_core_reports_are_ticked_by_default(self):
+        from scraper.reports import TYPED
+        self.assertEqual(RunForm().fields["reports"].initial, list(TYPED))
+        page = Client().get("/admin/console/run/")
+        self.assertEqual(page.context["form"]["reports"].value(), list(TYPED))
+        html = page.content.decode()
+        import re
+
+        def ticked(value):
+            tag = re.search(rf'<input[^>]*value="{value}"[^>]*>', html).group(0)
+            return re.search(r'\schecked(\s|>|=)', tag) is not None  # the attribute, not Unfold's "checked:" class names
+        for core in TYPED:
+            self.assertTrue(ticked(core), core)
+        for extra in ("perf_pack_purchase", "perf_trial_funnel", "sales_center_trials", "sales_lead_quality"):
+            self.assertFalse(ticked(extra), extra)  # the extra cards start unticked
+
+    def test_new_automatic_runs_start_with_the_core_reports(self):
+        from scraper.reports import TYPED
+        from django.urls import reverse
+        page = Client().get(reverse("admin:scraper_autorun_add"))
+        self.assertEqual(page.context["adminform"].form["reports"].value(), list(TYPED))

@@ -61,3 +61,72 @@ def mark(session, center_id, fetched, today=None):
             for a, b in fetched for d in days(a, b) if oldest <= d < today]
     SalesCoverage.objects.bulk_create(rows, batch_size=500, update_conflicts=True,
                                       unique_fields=["center", "day"], update_fields=["session", "fetched_at"])
+
+
+def center_ids(list_name):
+    from centers import services
+    return services.list_ids(list_name)
+
+
+def window_days(today=None):
+    """Every day of the 90-day window that is already over: the days that can be stored."""
+    today = today or timezone.localdate()
+    return days(window_start(today), today - ONE_DAY)
+
+
+def missing_by_day(ids, today=None):
+    """[{day, stored, missing}] for the days of the window, newest first, for these centers."""
+    from django.db.models import Count
+    stored = {}
+    first = window_start(today)
+    for i in range(0, len(ids), 900):
+        for row in SalesCoverage.objects.filter(center_id__in=ids[i:i + 900], day__gte=first).values("day").annotate(n=Count("center_id")):
+            stored[row["day"]] = stored.get(row["day"], 0) + row["n"]
+    return [{"day": d, "stored": stored.get(d, 0), "missing": len(ids) - stored.get(d, 0)}
+            for d in window_days(today)][::-1]
+
+
+def missing_by_center(ids, today=None):
+    """[{id, name, group, stored, missing}] for these centers, most missing first."""
+    from django.db.models import Count
+
+    from centers.models import Center, CenterGroup
+    first, total = window_start(today), len(window_days(today))
+    stored = {}
+    for i in range(0, len(ids), 900):
+        for row in SalesCoverage.objects.filter(center_id__in=ids[i:i + 900], day__gte=first).values("center_id").annotate(n=Count("day")):
+            stored[row["center_id"]] = row["n"]
+    members = {}
+    for gname, cid in CenterGroup.centers.through.objects.order_by("centergroup__position").values_list("centergroup__name", "center_id"):
+        members.setdefault(cid, []).append(gname)
+    rows = [{"id": c.pk, "name": c.name, "group": ", ".join(members.get(c.pk) or []),
+             "stored": stored.get(c.pk, 0), "missing": total - stored.get(c.pk, 0)}
+            for c in Center.objects.filter(pk__in=ids)]
+    rows.sort(key=lambda r: (-r["missing"], r["name"]))
+    return rows
+
+
+class CannotFetch(Exception):
+    """Nothing was started; the message says why."""
+
+
+def fetch_missing(list_name="actual", center_ids_=None, day=None, today=None):
+    """Start a sales-only run, one request per day, that fetches just the days not stored yet.
+
+    center_ids_: only these centers (default: the whole list). day: only that day (default: the whole window).
+    Returns the Job. Raises CannotFetch when it cannot start (not logged in, another run is active, ...).
+    """
+    from . import auth, jobs
+    from .conf import SPEED_PROFILES
+    today = today or timezone.localdate()
+    first, last = (day, day) if day else (window_start(today), today - ONE_DAY)
+    if not auth.logged_in(fresh=True):
+        raise CannotFetch("Not logged in to Kronos: log in on the Run page first.")
+    spec = {"start": first.isoformat(), "end": last.isoformat(), "list": list_name,
+            "center_ids": list(center_ids_) if center_ids_ else None, "only": ["sales"],
+            "workers": SPEED_PROFILES["normal"], "speed": "normal", "granularity": Session.MONTH,
+            "sales_chunk": Session.DAY, "fill_missing": True}
+    try:
+        return jobs.enqueue(spec)
+    except jobs.JobError as e:
+        raise CannotFetch(str(e))
