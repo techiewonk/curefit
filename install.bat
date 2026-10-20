@@ -30,6 +30,8 @@ if errorlevel 1 goto :fail
 echo [4/5] Database migrations...
 ".venv\Scripts\python" manage.py migrate --noinput
 if errorlevel 1 goto :fail
+".venv\Scripts\python" manage.py seed_groups
+if errorlevel 1 goto :fail
 ".venv\Scripts\python" manage.py collectstatic --noinput --verbosity 0
 if errorlevel 1 goto :fail
 

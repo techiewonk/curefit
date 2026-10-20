@@ -10,6 +10,8 @@ if not exist ".venv\Scripts\python.exe" (
 set CUREFIT_DEBUG=1
 ".venv\Scripts\python" manage.py migrate --noinput
 if errorlevel 1 goto :fail
+".venv\Scripts\python" manage.py seed_groups
+if errorlevel 1 goto :fail
 ".venv\Scripts\python" manage.py collectstatic --noinput --verbosity 0
 if errorlevel 1 goto :fail
 ".venv\Scripts\python" manage.py serve --reload
