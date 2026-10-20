@@ -32,3 +32,4 @@ legacy_reports/
 dj_run.*
 dj_pid.txt
 *.sqlite3
+test_db.sqlite3*

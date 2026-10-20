@@ -85,6 +85,8 @@ DATABASES = {
             "timeout": 60,
             "init_command": "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;",
         },
+        # tests use a real file (not :memory:) so the scraper's worker threads share one database
+        "TEST": {"NAME": BASE_DIR / "test_db.sqlite3"},
     }
 }
 
@@ -129,4 +131,5 @@ LOGGING = {
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": "WARNING"},
+    "loggers": {"scraper": {"handlers": ["console"], "level": "INFO", "propagate": False}},
 }
