@@ -12,6 +12,7 @@ It listens on 127.0.0.1 only. Because it can start scrapes, every change (POST) 
 secret token (kept in runs/.admin_secret, injected into the page) and requests from other
 sites are refused.
 """
+
 import argparse
 import os
 import secrets
@@ -55,11 +56,16 @@ async def guard(request: Request, call_next):
         return JSONResponse({"error": "Forbidden host"}, 403)
     if request.method not in ("GET", "HEAD", "OPTIONS"):
         origin = request.headers.get("origin")
-        if origin and origin not in {f"http://{h}:{port}" if port else f"http://{h}"
-                                     for h in LOCAL_HOSTS}:
+        if origin and origin not in {
+            f"http://{h}:{port}" if port else f"http://{h}" for h in LOCAL_HOSTS
+        }:
             return JSONResponse({"error": "Forbidden origin"}, 403)
-        if not secrets.compare_digest(request.headers.get("x-admin-token", ""), A.admin_token()):
-            return JSONResponse({"error": "Missing or wrong admin token (reload the page)"}, 403)
+        if not secrets.compare_digest(
+            request.headers.get("x-admin-token", ""), A.admin_token()
+        ):
+            return JSONResponse(
+                {"error": "Missing or wrong admin token (reload the page)"}, 403
+            )
     return await call_next(request)
 
 
@@ -72,7 +78,9 @@ async def api_error(_request, exc: A.ApiError):
 async def bad_request(_request, exc: RequestValidationError):
     first = exc.errors()[0] if exc.errors() else {}
     where = ".".join(str(x) for x in first.get("loc", []) if x != "body")
-    return JSONResponse({"error": f"Bad request: {where} {first.get('msg', '')}".strip()}, 400)
+    return JSONResponse(
+        {"error": f"Bad request: {where} {first.get('msg', '')}".strip()}, 400
+    )
 
 
 @app.exception_handler(Exception)
@@ -111,7 +119,9 @@ class ListBody(BaseModel):
 # ------------------------------ pages + reads ------------------------------
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def index():
-    with open(INDEX, encoding="utf-8") as f:  # read per request: HTML edits show on refresh
+    with open(
+        INDEX, encoding="utf-8"
+    ) as f:  # read per request: HTML edits show on refresh
         html = f.read().replace("__TOKEN__", A.admin_token())
     return HTMLResponse(html, headers={"Cache-Control": "no-store"})
 
@@ -143,7 +153,11 @@ def config():
 
 @app.get("/api/status")
 def status(fresh: int = 0):
-    return {"logged_in": A.logged_in(bool(fresh)), "email": C.EMAIL, "job": A.job_payload()}
+    return {
+        "logged_in": A.logged_in(bool(fresh)),
+        "email": C.EMAIL,
+        "job": A.job_payload(),
+    }
 
 
 @app.get("/api/job")
@@ -164,7 +178,10 @@ def session_files(session: str):
 @app.get("/api/unfinished")
 def unfinished(start: str, end: str):
     u = S.find_unfinished(start, end)
-    return {"session": u["session_id"] if u else None, "created_at": u["created_at"] if u else None}
+    return {
+        "session": u["session_id"] if u else None,
+        "created_at": u["created_at"] if u else None,
+    }
 
 
 @app.get("/api/periods")
@@ -237,25 +254,41 @@ def centers_list(body: ListBody):
 # ------------------------------ launcher ------------------------------
 def main():
     import uvicorn
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8000)
-    ap.add_argument("--db", help="database file (default: curefit.db next to this script)")
-    ap.add_argument("--reload", action="store_true",
-                    help="development: restart the server when a .py file changes")
+    ap.add_argument(
+        "--db", help="database file (default: curefit.db next to this script)"
+    )
+    ap.add_argument(
+        "--reload",
+        action="store_true",
+        help="development: restart the server when a .py file changes",
+    )
     ap.add_argument("--no-open", action="store_true")
     args = ap.parse_args()
     if args.db:
-        os.environ["CUREFIT_DB"] = args.db if os.path.isabs(args.db) \
-            else os.path.join(A.HERE, args.db)
+        os.environ["CUREFIT_DB"] = (
+            args.db if os.path.isabs(args.db) else os.path.join(A.HERE, args.db)
+        )
 
     url = f"http://localhost:{args.port}/"
-    print(f"Curefit admin: {url}   docs: {url}docs" + ("   (auto-reload on)" if args.reload else ""))
+    print(
+        f"Curefit admin: {url}   docs: {url}docs"
+        + ("   (auto-reload on)" if args.reload else "")
+    )
     print("Press Ctrl+C to stop. A running scrape keeps going if the server restarts.")
     if not args.no_open:
         threading.Timer(1.5, lambda: webbrowser.open(url)).start()
-    uvicorn.run("webapp:app", host="127.0.0.1", port=args.port, reload=args.reload,
-                reload_dirs=[A.HERE] if args.reload else None,
-                reload_includes=["*.py"] if args.reload else None, log_level="warning")
+    uvicorn.run(
+        "webapp:app",
+        host="127.0.0.1",
+        port=args.port,
+        reload=args.reload,
+        reload_dirs=[A.HERE] if args.reload else None,
+        reload_includes=["*.py"] if args.reload else None,
+        log_level="warning",
+    )
 
 
 if __name__ == "__main__":

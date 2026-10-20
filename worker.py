@@ -6,6 +6,7 @@ runs/.jobs/<id>.json (rewritten about once a second, with a heartbeat), and the 
 to stop by creating runs/.jobs/<id>.stop. Because this is a separate process, restarting the
 web server never interrupts the scrape.
 """
+
 import os
 import sys
 import threading
@@ -23,8 +24,19 @@ def run(jid):
     status_path = os.path.join(jobs, f"{jid}.json")
     stop_path = os.path.join(jobs, f"{jid}.stop")
     pause_path = os.path.join(jobs, f"{jid}.pause")
-    status = {"id": jid, "state": "running", "pid": os.getpid(), "session": None, "folder": None,
-              "done": 0, "total": 0, "desc": "starting…", "log": [], "stop": False, "error": None}
+    status = {
+        "id": jid,
+        "state": "running",
+        "pid": os.getpid(),
+        "session": None,
+        "folder": None,
+        "done": 0,
+        "total": 0,
+        "desc": "starting…",
+        "log": [],
+        "stop": False,
+        "error": None,
+    }
     finished = threading.Event()
 
     def publish():
@@ -49,9 +61,16 @@ def run(jid):
     threading.Thread(target=heartbeat, daemon=True).start()
     try:
         session = A.session_info(spec["session"]) if spec.get("session") else None
-        S.run_scrape(spec["start"], spec["end"], centers_csv=spec["centers_csv"], db=spec["db"],
-                     only=spec.get("only"), session=session, status=status,
-                     workers=spec.get("workers", 1))
+        S.run_scrape(
+            spec["start"],
+            spec["end"],
+            centers_csv=spec["centers_csv"],
+            db=spec["db"],
+            only=spec.get("only"),
+            session=session,
+            status=status,
+            workers=spec.get("workers", 1),
+        )
     except Exception as e:  # report it to the UI instead of dying silently
         status.update(state="error", error=str(e))
     finally:

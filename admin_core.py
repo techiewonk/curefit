@@ -8,6 +8,7 @@ Logic behind the web admin (no web framework in here, so it is easy to test).
             Because the worker is its own process, restarting or auto-reloading the web server
             never interrupts a running scrape.
 """
+
 import datetime as dt
 import json
 import os
@@ -70,48 +71,78 @@ def list_periods():
     """Sessions that have scraped data (for the Analytics picker)."""
     conn = db()
     try:
-        rows = conn.execute("""
+        rows = conn.execute(
+            """
             SELECT session_id, start_date, end_date, COUNT(DISTINCT center_id), MAX(scraped_at)
             FROM scrape_log WHERE row_count>0
             GROUP BY session_id, start_date, end_date ORDER BY MAX(scraped_at) DESC
-        """).fetchall()
+        """
+        ).fetchall()
     except sqlite3.OperationalError:
         rows = []
     conn.close()
-    return [{"session": r[0], "start": r[1], "end": r[2], "centers": r[3], "last": r[4]}
-            for r in rows]
+    return [
+        {"session": r[0], "start": r[1], "end": r[2], "centers": r[3], "last": r[4]}
+        for r in rows
+    ]
 
 
 def sessions_payload():
     """Every session with status, coverage and what is still missing (+ legacy periods)."""
     conn = db()
     try:
-        rows = conn.execute("""
+        rows = conn.execute(
+            """
             SELECT session_id, start_date, end_date, status, created_at, finished_at, folder,
                    centers, reports, coverage, missing FROM sessions ORDER BY created_at DESC
-        """).fetchall()
-        legacy = conn.execute("""
+        """
+        ).fetchall()
+        legacy = conn.execute(
+            """
             SELECT start_date, end_date, COUNT(DISTINCT center_id), MAX(scraped_at)
             FROM scrape_log WHERE session_id='legacy' AND row_count>0
             GROUP BY start_date, end_date ORDER BY MAX(scraped_at) DESC
-        """).fetchall()
+        """
+        ).fetchall()
     except sqlite3.OperationalError:
         rows, legacy = [], []
     conn.close()
     out = []
     for r in rows:
         missing = json.loads(r[10] or "{}")
-        out.append({"session": r[0], "start": r[1], "end": r[2], "status": r[3],
-                    "created_at": r[4], "finished_at": r[5], "folder": r[6],
-                    "centers": len(json.loads(r[7] or "[]")),
-                    "reports": json.loads(r[8] or "[]"),
-                    "coverage": json.loads(r[9] or "null"), "missing": missing,
-                    "missing_count": sum(len(v) for v in missing.values())})
+        out.append(
+            {
+                "session": r[0],
+                "start": r[1],
+                "end": r[2],
+                "status": r[3],
+                "created_at": r[4],
+                "finished_at": r[5],
+                "folder": r[6],
+                "centers": len(json.loads(r[7] or "[]")),
+                "reports": json.loads(r[8] or "[]"),
+                "coverage": json.loads(r[9] or "null"),
+                "missing": missing,
+                "missing_count": sum(len(v) for v in missing.values()),
+            }
+        )
     for start, end, n, last in legacy:
-        out.append({"session": "legacy", "start": start, "end": end, "status": "legacy",
-                    "created_at": last, "finished_at": last, "folder": None, "centers": n,
-                    "reports": ["sales", "perf"], "coverage": None, "missing": {},
-                    "missing_count": 0})
+        out.append(
+            {
+                "session": "legacy",
+                "start": start,
+                "end": end,
+                "status": "legacy",
+                "created_at": last,
+                "finished_at": last,
+                "folder": None,
+                "centers": n,
+                "reports": ["sales", "perf"],
+                "coverage": None,
+                "missing": {},
+                "missing_count": 0,
+            }
+        )
     return out
 
 
@@ -131,7 +162,9 @@ def session_files(sid):
             for f in sorted(os.listdir(d)):
                 p = os.path.join(d, f)
                 if os.path.isfile(p):
-                    files.append({"path": f"{sub}/{f}" if sub else f, "size": os.path.getsize(p)})
+                    files.append(
+                        {"path": f"{sub}/{f}" if sub else f, "size": os.path.getsize(p)}
+                    )
     centers = os.path.join(folder, "centers")
     n = len(os.listdir(centers)) if os.path.isdir(centers) else 0
     return {"folder": folder, "files": files, "center_folders": n}
@@ -153,9 +186,14 @@ def merge_session(sid):
 
 def analysis_payload(sid, start, end):
     conn = db()
-    metrics = [r[0] for r in conn.execute(
-        "SELECT DISTINCT metric FROM perf_metrics WHERE session_id=? AND start_date=? "
-        "AND end_date=? ORDER BY metric", (sid, start, end))]
+    metrics = [
+        r[0]
+        for r in conn.execute(
+            "SELECT DISTINCT metric FROM perf_metrics WHERE session_id=? AND start_date=? "
+            "AND end_date=? ORDER BY metric",
+            (sid, start, end),
+        )
+    ]
     analysis = S.build_analysis(conn, start, end, metrics, sid)
     rows = analysis["rows"]
 
@@ -165,24 +203,32 @@ def analysis_payload(sid, start, end):
                   SUM(CASE WHEN active_last_30d='Yes' THEN 1 ELSE 0 END),
                   COALESCE(SUM(revenue),0)
            FROM sales WHERE session_id=? AND start_date=? AND end_date=?
-           GROUP BY center_id""", (sid, start, end)):
+           GROUP BY center_id""",
+        (sid, start, end),
+    ):
         extra[str(cid)] = {
             "active_count": act or 0,
             "active_rate": round(100.0 * (act or 0) / cnt, 1) if cnt else 0,
             "avg_ticket": round(rev / cnt, 0) if cnt else 0,
         }
 
-    packs = [{"pack": p, "count": c, "revenue": round(r or 0, 0)}
-             for p, c, r in conn.execute(
-                 """SELECT pack_name, COUNT(*), SUM(revenue)
+    packs = [
+        {"pack": p, "count": c, "revenue": round(r or 0, 0)}
+        for p, c, r in conn.execute(
+            """SELECT pack_name, COUNT(*), SUM(revenue)
                     FROM sales WHERE session_id=? AND start_date=? AND end_date=?
-                    GROUP BY pack_name ORDER BY COUNT(*) DESC""", (sid, start, end))]
+                    GROUP BY pack_name ORDER BY COUNT(*) DESC""",
+            (sid, start, end),
+        )
+    ]
 
     sc = sum((r[2] or 0) for r in rows)
     sr = sum((r[3] or 0) for r in rows)
     ac = sum(e["active_count"] for e in extra.values())
     totals = {
-        "centers": len(rows), "sales_count": sc, "sales_revenue": sr,
+        "centers": len(rows),
+        "sales_count": sc,
+        "sales_revenue": sr,
         "total_revenue": sum((r[6] or 0) for r in rows),
         "new_revenue": sum((r[7] or 0) for r in rows),
         "repeat_revenue": sum((r[8] or 0) for r in rows),
@@ -190,31 +236,52 @@ def analysis_payload(sid, start, end):
         "active_rate": round(100.0 * ac / sc, 1) if sc else 0,
     }
     conn.close()
-    return {"header": analysis["header"], "rows": rows, "extra": extra,
-            "packs": packs, "totals": totals, "start": start, "end": end}
+    return {
+        "header": analysis["header"],
+        "rows": rows,
+        "extra": extra,
+        "packs": packs,
+        "totals": totals,
+        "start": start,
+        "end": end,
+    }
 
 
 def sales_detail(sid, start, end, center_id):
     conn = db()
-    cols = ["user_id", "name", "phone", "pack_name", "member_end_date",
-            "active_last_30d", "renewed", "revenue"]
+    cols = [
+        "user_id",
+        "name",
+        "phone",
+        "pack_name",
+        "member_end_date",
+        "active_last_30d",
+        "renewed",
+        "revenue",
+    ]
     rows = conn.execute(
         f"SELECT {','.join(cols)} FROM sales WHERE session_id=? AND start_date=? AND end_date=? "
         f"AND center_id=? ORDER BY revenue DESC NULLS LAST, name",
-        (sid, start, end, str(center_id))).fetchall()
+        (sid, start, end, str(center_id)),
+    ).fetchall()
     conn.close()
     return {"header": cols, "rows": rows}
 
 
 # ------------------------------ centers ------------------------------
 def centers_payload():
-    return {"centers": CS.load_centers(), "synced_at": CS.synced_at(),
-            "lists": {k: CS.read_list(k) for k in CS.LISTS}}
+    return {
+        "centers": CS.load_centers(),
+        "synced_at": CS.synced_at(),
+        "lists": {k: CS.read_list(k) for k in CS.LISTS},
+    }
 
 
 def sync_centers_api():
     if not logged_in(fresh=True):
-        raise ApiError("Not logged in — send and verify the OTP in the Run tab first", 401)
+        raise ApiError(
+            "Not logged in — send and verify the OTP in the Run tab first", 401
+        )
     try:
         return CS.sync_centers()
     except PermissionError as e:
@@ -227,7 +294,9 @@ def save_list_api(name, ids):
     if name not in CS.LISTS:
         raise ApiError("Unknown center list")
     if job_payload()["state"] in ("running", "starting"):
-        raise ApiError("A scrape is running — wait for it to finish before changing the lists", 409)
+        raise ApiError(
+            "A scrape is running — wait for it to finish before changing the lists", 409
+        )
     try:
         return CS.write_list(name, ids)
     except ValueError as e:
@@ -237,11 +306,15 @@ def save_list_api(name, ids):
 def config_payload():
     today = dt.date.today()
     last_prev = today.replace(day=1) - dt.timedelta(days=1)
-    return {"reports": list(S.REPORTS), "email": C.EMAIL, "max_workers": MAX_WORKERS,
-            "lists": {k: len(CS.read_list(k)) for k in CS.LISTS},
-            "active_centers": sum(1 for c in CS.load_centers() if c["state"] == "ACTIVE"),
-            "default_start": last_prev.replace(day=1).isoformat(),
-            "default_end": last_prev.isoformat()}
+    return {
+        "reports": list(S.REPORTS),
+        "email": C.EMAIL,
+        "max_workers": MAX_WORKERS,
+        "lists": {k: len(CS.read_list(k)) for k in CS.LISTS},
+        "active_centers": sum(1 for c in CS.load_centers() if c["state"] == "ACTIVE"),
+        "default_start": last_prev.replace(day=1).isoformat(),
+        "default_end": last_prev.isoformat(),
+    }
 
 
 # ------------------------------ login ------------------------------
@@ -301,6 +374,7 @@ def pid_alive(pid):
         return False
     if os.name == "nt":
         import ctypes
+
         k = ctypes.windll.kernel32
         h = k.OpenProcess(0x1000, False, int(pid))  # PROCESS_QUERY_LIMITED_INFORMATION
         if not h:
@@ -328,21 +402,39 @@ def job_payload(jid=None):
     """Status of the newest job (or a given one), including a check that its worker is alive."""
     jid = jid or _latest_job_id()
     if not jid:
-        return {"state": "idle", "log": [], "done": 0, "total": 0, "desc": "", "error": None,
-                "session": None}
+        return {
+            "state": "idle",
+            "log": [],
+            "done": 0,
+            "total": 0,
+            "desc": "",
+            "error": None,
+            "session": None,
+        }
     spec_path = os.path.join(jobs_dir(), f"{jid}.spec.json")
     st = read_json(os.path.join(jobs_dir(), f"{jid}.json"))
     if st is None:  # worker has not reported yet
         age = time.time() - os.path.getmtime(spec_path)
-        st = {"id": jid, "state": "starting" if age < 60 else "error",
-              "error": None if age < 60 else "Worker did not start", "log": [], "done": 0,
-              "total": 0, "desc": "starting…", "session": None, "updated_at": time.time()}
+        st = {
+            "id": jid,
+            "state": "starting" if age < 60 else "error",
+            "error": None if age < 60 else "Worker did not start",
+            "log": [],
+            "done": 0,
+            "total": 0,
+            "desc": "starting…",
+            "session": None,
+            "updated_at": time.time(),
+        }
         return st
     if st.get("state") in ("running", "starting"):
         beat = time.time() - st.get("updated_at", 0)
         if beat > STALE_AFTER and not pid_alive(st.get("pid")):
-            st.update(state="error", error="The worker process stopped unexpectedly "
-                                           "(continue the session to finish it)")
+            st.update(
+                state="error",
+                error="The worker process stopped unexpectedly "
+                "(continue the session to finish it)",
+            )
     st["log"] = st.get("log", [])[-60:]
     st["id"] = jid
     return st
@@ -352,12 +444,20 @@ def _spawn(jid):
     """Start worker.py as its own process, detached from this server."""
     kw = {}
     if os.name == "nt":
-        kw["creationflags"] = 0x00000008 | 0x00000200  # DETACHED_PROCESS | NEW_PROCESS_GROUP
+        kw["creationflags"] = (
+            0x00000008 | 0x00000200
+        )  # DETACHED_PROCESS | NEW_PROCESS_GROUP
     else:
         kw["start_new_session"] = True
     log = open(os.path.join(jobs_dir(), f"{jid}.log"), "ab")
-    subprocess.Popen([sys.executable, "-X", "utf8", os.path.join(HERE, "worker.py"), jid],
-                     cwd=HERE, stdin=subprocess.DEVNULL, stdout=log, stderr=log, **kw)
+    subprocess.Popen(
+        [sys.executable, "-X", "utf8", os.path.join(HERE, "worker.py"), jid],
+        cwd=HERE,
+        stdin=subprocess.DEVNULL,
+        stdout=log,
+        stderr=log,
+        **kw,
+    )
 
 
 def start_job(body):
@@ -379,15 +479,21 @@ def start_job(body):
     if list_name not in CS.LISTS:
         raise ApiError("Unknown center list")
     if session is None and not CS.read_list(list_name):
-        raise ApiError(f"The {list_name} center list is empty — pick centers in the Centers tab")
+        raise ApiError(
+            f"The {list_name} center list is empty — pick centers in the Centers tab"
+        )
     only = body.get("only") or None
-    if only is not None and (not isinstance(only, list) or not all(o in S.REPORTS for o in only)):
+    if only is not None and (
+        not isinstance(only, list) or not all(o in S.REPORTS for o in only)
+    ):
         raise ApiError("Unknown report in selection")
     if body.get("retry_empty") and session is not None:
         # empties are recorded as done; clearing them makes the continue fetch them again
         conn = db()
-        conn.execute("DELETE FROM scrape_log WHERE session_id=? AND row_count=0",
-                     (session["session_id"],))
+        conn.execute(
+            "DELETE FROM scrape_log WHERE session_id=? AND row_count=0",
+            (session["session_id"],),
+        )
         conn.commit()
         conn.close()
     try:
@@ -402,8 +508,16 @@ def start_job(body):
         raise ApiError("A scrape is already running", 409)
 
     jid = time.strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:4]
-    spec = {"id": jid, "start": start, "end": end, "session": body.get("session"), "only": only,
-            "centers_csv": CS.LISTS[list_name], "db": DB_PATH, "workers": workers}
+    spec = {
+        "id": jid,
+        "start": start,
+        "end": end,
+        "session": body.get("session"),
+        "only": only,
+        "centers_csv": CS.LISTS[list_name],
+        "db": DB_PATH,
+        "workers": workers,
+    }
     write_json_atomic(os.path.join(jobs_dir(), f"{jid}.spec.json"), spec)
     _spawn(jid)
     return {"ok": True, "job": jid}
@@ -438,22 +552,33 @@ DEFAULT_SECONDS = 40.0
 def _timings():
     """Seconds per saved center/report, measured from earlier sessions (gap between saves)."""
     import statistics
+
     conn = db()
     per = {}
     try:
-        sessions = [r[0] for r in conn.execute("SELECT DISTINCT session_id FROM scrape_log")]
+        sessions = [
+            r[0] for r in conn.execute("SELECT DISTINCT session_id FROM scrape_log")
+        ]
         for sid in sessions:
-            rows = conn.execute("SELECT scraped_at, report FROM scrape_log WHERE session_id=? "
-                                "ORDER BY scraped_at", (sid,)).fetchall()
+            rows = conn.execute(
+                "SELECT scraped_at, report FROM scrape_log WHERE session_id=? "
+                "ORDER BY scraped_at",
+                (sid,),
+            ).fetchall()
             for (a, _), (b, rep) in zip(rows, rows[1:]):
-                gap = (dt.datetime.fromisoformat(b) - dt.datetime.fromisoformat(a)).total_seconds()
+                gap = (
+                    dt.datetime.fromisoformat(b) - dt.datetime.fromisoformat(a)
+                ).total_seconds()
                 if 0 < gap < 600:
                     per.setdefault(rep, []).append(gap)
     except sqlite3.OperationalError:
         pass
     conn.close()
-    return {rep: {"median": statistics.median(v), "mean": statistics.mean(v), "n": len(v)}
-            for rep, v in per.items() if len(v) >= 3}
+    return {
+        rep: {"median": statistics.median(v), "mean": statistics.mean(v), "n": len(v)}
+        for rep, v in per.items()
+        if len(v) >= 3
+    }
 
 
 def estimate_payload(list_name, only, workers):
@@ -465,12 +590,25 @@ def estimate_payload(list_name, only, workers):
     n = len(CS.read_list(list_name))
     workers = max(1, min(int(workers or 1), MAX_WORKERS))
     t = _timings()
-    low = sum(t.get(r, {}).get("median", DEFAULT_SECONDS) for r in reports) * n / workers
-    high = sum(t.get(r, {}).get("mean", DEFAULT_SECONDS * 1.4) for r in reports) * n / workers
-    return {"centers": n, "reports": len(reports), "pairs": n * len(reports), "workers": workers,
-            "seconds_low": round(low), "seconds_high": round(high),
-            "measured": sorted(r for r in reports if r in t), "assumed": sorted(r for r in reports if r not in t),
-            "per_report": {r: round(t[r]["median"]) for r in reports if r in t}}
+    low = (
+        sum(t.get(r, {}).get("median", DEFAULT_SECONDS) for r in reports) * n / workers
+    )
+    high = (
+        sum(t.get(r, {}).get("mean", DEFAULT_SECONDS * 1.4) for r in reports)
+        * n
+        / workers
+    )
+    return {
+        "centers": n,
+        "reports": len(reports),
+        "pairs": n * len(reports),
+        "workers": workers,
+        "seconds_low": round(low),
+        "seconds_high": round(high),
+        "measured": sorted(r for r in reports if r in t),
+        "assumed": sorted(r for r in reports if r not in t),
+        "per_report": {r: round(t[r]["median"]) for r in reports if r in t},
+    }
 
 
 def monitor_payload(sid):
@@ -482,12 +620,19 @@ def monitor_payload(sid):
     ids = info.get("centers", [])
     meta = {c["id"]: c["name"] for c in CS.load_centers()}
     conn = db()
-    done = {(r[0], r[1]): r[2] for r in conn.execute(
-        "SELECT center_id, report, row_count FROM scrape_log WHERE session_id=?", (sid,))}
+    done = {
+        (r[0], r[1]): r[2]
+        for r in conn.execute(
+            "SELECT center_id, report, row_count FROM scrape_log WHERE session_id=?",
+            (sid,),
+        )
+    }
     conn.close()
     job = job_payload()
     live = job.get("session") == sid and job.get("state") in ("running", "starting")
-    cells, active = (job.get("cells", {}), set(job.get("active", []))) if live else ({}, set())
+    cells, active = (
+        (job.get("cells", {}), set(job.get("active", []))) if live else ({}, set())
+    )
     grid, rows = [], []
     for cid in ids:
         line, nums = [], []
@@ -495,17 +640,30 @@ def monitor_payload(sid):
             key = f"{cid}|{rep}"
             n = done.get((cid, rep))
             if n is not None:
-                line.append("o" if n > 0 else "e"); nums.append(n)
+                line.append("o" if n > 0 else "e")
+                nums.append(n)
             elif key in active:
-                line.append("r"); nums.append(-1)
+                line.append("r")
+                nums.append(-1)
             elif cells.get(key) == "failed":
-                line.append("f"); nums.append(-1)
+                line.append("f")
+                nums.append(-1)
             else:
-                line.append("."); nums.append(-1)
-        grid.append("".join(line)); rows.append(nums)
-    return {"session": sid, "status": info.get("status"), "start": info["start"], "end": info["end"],
-            "reports": reports, "centers": [[c, meta.get(c, "")] for c in ids], "grid": grid,
-            "rows": rows, "live": live}
+                line.append(".")
+                nums.append(-1)
+        grid.append("".join(line))
+        rows.append(nums)
+    return {
+        "session": sid,
+        "status": info.get("status"),
+        "start": info["start"],
+        "end": info["end"],
+        "reports": reports,
+        "centers": [[c, meta.get(c, "")] for c in ids],
+        "grid": grid,
+        "rows": rows,
+        "live": live,
+    }
 
 
 def home_payload():
@@ -513,15 +671,33 @@ def home_payload():
     alerts = []
     job = job_payload()
     if job["state"] == "error":
-        alerts.append({"level": "bad", "text": f"Last scrape stopped: {job.get('error')}", "go": "run"})
+        alerts.append(
+            {
+                "level": "bad",
+                "text": f"Last scrape stopped: {job.get('error')}",
+                "go": "run",
+            }
+        )
     if not logged_in():
-        alerts.append({"level": "warn", "text": "Not logged in — a scrape needs a fresh OTP.", "go": "run"})
+        alerts.append(
+            {
+                "level": "warn",
+                "text": "Not logged in — a scrape needs a fresh OTP.",
+                "go": "run",
+            }
+        )
     unfinished = [s for s in sessions if s["status"] == "incomplete"]
     if unfinished:
         u = unfinished[0]
-        alerts.append({"level": "warn", "go": "run", "session": u["session"],
-                       "text": f"{len(unfinished)} unfinished session(s); latest {u['session']} "
-                               f"({u['start']} → {u['end']}) is missing {u['missing_count']} center/section pairs."})
+        alerts.append(
+            {
+                "level": "warn",
+                "go": "run",
+                "session": u["session"],
+                "text": f"{len(unfinished)} unfinished session(s); latest {u['session']} "
+                f"({u['start']} → {u['end']}) is missing {u['missing_count']} center/section pairs.",
+            }
+        )
     done = [s for s in sessions if s["coverage"]]
     if done:
         c = done[0]["coverage"]
@@ -530,18 +706,66 @@ def home_payload():
         capped = sum(x["possibly_truncated"] for x in c)
         skipped = [x["report"] for x in c if x["skipped_after_failures"]]
         if failed:
-            alerts.append({"level": "bad", "go": "sessions", "text": f"Session {done[0]['session']}: {failed} failed center/section pairs."})
+            alerts.append(
+                {
+                    "level": "bad",
+                    "go": "sessions",
+                    "text": f"Session {done[0]['session']}: {failed} failed center/section pairs.",
+                }
+            )
         if skipped:
-            alerts.append({"level": "bad", "go": "sessions", "text": f"Reports skipped after repeated failures: {', '.join(skipped)}."})
+            alerts.append(
+                {
+                    "level": "bad",
+                    "go": "sessions",
+                    "text": f"Reports skipped after repeated failures: {', '.join(skipped)}.",
+                }
+            )
         if capped:
-            alerts.append({"level": "warn", "go": "sessions", "text": f"{capped} result(s) hit the row cap and may be incomplete."})
+            alerts.append(
+                {
+                    "level": "warn",
+                    "go": "sessions",
+                    "text": f"{capped} result(s) hit the row cap and may be incomplete.",
+                }
+            )
         if empty:
-            alerts.append({"level": "info", "go": "sessions", "text": f"Session {done[0]['session']}: {empty} empty center/section pairs."})
+            alerts.append(
+                {
+                    "level": "info",
+                    "go": "sessions",
+                    "text": f"Session {done[0]['session']}: {empty} empty center/section pairs.",
+                }
+            )
     synced = CS.synced_at()
     if synced and (dt.datetime.now() - dt.datetime.fromisoformat(synced)).days > 30:
-        alerts.append({"level": "info", "go": "centers", "text": f"Center list last updated {synced[:10]} — consider updating it."})
-    return {"logged_in": logged_in(), "email": C.EMAIL, "job": job, "alerts": alerts,
-            "sessions": [{k: s[k] for k in ("session", "start", "end", "status", "created_at", "centers", "missing_count")}
-                         for s in sessions[:6]],
-            "lists": {k: len(CS.read_list(k)) for k in CS.LISTS},
-            "active_centers": sum(1 for c in CS.load_centers() if c["state"] == "ACTIVE")}
+        alerts.append(
+            {
+                "level": "info",
+                "go": "centers",
+                "text": f"Center list last updated {synced[:10]} — consider updating it.",
+            }
+        )
+    return {
+        "logged_in": logged_in(),
+        "email": C.EMAIL,
+        "job": job,
+        "alerts": alerts,
+        "sessions": [
+            {
+                k: s[k]
+                for k in (
+                    "session",
+                    "start",
+                    "end",
+                    "status",
+                    "created_at",
+                    "centers",
+                    "missing_count",
+                )
+            }
+            for s in sessions[:6]
+        ],
+        "lists": {k: len(CS.read_list(k)) for k in CS.LISTS},
+        "active_centers": sum(1 for c in CS.load_centers() if c["state"] == "ACTIVE"),
+    }

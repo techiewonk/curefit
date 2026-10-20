@@ -1,4 +1,5 @@
 """Shared rich console + structlog setup for the Curefit scraper."""
+
 import logging
 
 from rich.console import Console
@@ -19,8 +20,15 @@ def setup_logging(level=logging.INFO):
     logging.basicConfig(
         format="%(message)s",
         level=level,
-        handlers=[RichHandler(console=console, rich_tracebacks=True,
-                              show_path=False, show_time=False, markup=True)],
+        handlers=[
+            RichHandler(
+                console=console,
+                rich_tracebacks=True,
+                show_path=False,
+                show_time=False,
+                markup=True,
+            )
+        ],
     )
 
     structlog.configure(

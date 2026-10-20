@@ -10,6 +10,7 @@ Runs the whole pipeline in a single session:
 Just run:
     python run.py
 """
+
 import datetime as dt
 import re
 import sys
@@ -54,7 +55,9 @@ def main():
     C.interactive_login()
     # bail out unless Kronos actually accepts the session
     if not C.session_ok():
-        console.print("[red]Login did not complete (session rejected) — aborting.[/red]")
+        console.print(
+            "[red]Login did not complete (session rejected) — aborting.[/red]"
+        )
         sys.exit(1)
 
     # 2. Ask period
@@ -71,20 +74,28 @@ def main():
     unfinished = S.find_unfinished(start, end)
     if unfinished:
         left = sum(len(v) for v in unfinished.get("missing", {}).values())
-        console.print(f"[yellow]Unfinished session[/yellow] [magenta]{unfinished['session_id']}[/magenta] "
-                      f"for {start} → {end} (started {unfinished['created_at']}, "
-                      f"{left or 'some'} center/section pairs missing)\n"
-                      f"[dim]{unfinished['folder']}[/dim]")
-        if Prompt.ask("Continue it, or start a new session?",
-                      choices=["c", "n"], default="c") == "c":
+        console.print(
+            f"[yellow]Unfinished session[/yellow] [magenta]{unfinished['session_id']}[/magenta] "
+            f"for {start} → {end} (started {unfinished['created_at']}, "
+            f"{left or 'some'} center/section pairs missing)\n"
+            f"[dim]{unfinished['folder']}[/dim]"
+        )
+        if (
+            Prompt.ask(
+                "Continue it, or start a new session?", choices=["c", "n"], default="c"
+            )
+            == "c"
+        ):
             session = unfinished
 
     # 3 + 4. Scrape (centers come from centers_to_process.csv)
     console.rule("[bold]Scraping[/bold]")
     result = S.run_scrape(start, end, session=session)
 
-    console.print(f"\n[bold green]Done.[/bold green] Results are in "
-                  f"[cyan]{result['folder']}[/cyan] (open dashboard.html there).")
+    console.print(
+        f"\n[bold green]Done.[/bold green] Results are in "
+        f"[cyan]{result['folder']}[/cyan] (open dashboard.html there)."
+    )
 
 
 if __name__ == "__main__":

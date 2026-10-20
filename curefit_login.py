@@ -19,6 +19,7 @@ Manual / step-by-step:
 
 Session (cookies + erpToken) is persisted to session.json between runs.
 """
+
 import sys
 import json
 import os
@@ -34,11 +35,15 @@ KRONOS = "https://kronos.curefit.co"
 
 SESSION_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "session.json")
 
-UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-      "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36")
+UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
+)
 
-REFERER = (f"{ACCOUNTS}/login/?tenant={TENANT}&namespace={NAMESPACE}"
-           "&callback=https%3A%2F%2Fkronos.curefit.co%2Flogin%3Fnext%3D%2F")
+REFERER = (
+    f"{ACCOUNTS}/login/?tenant={TENANT}&namespace={NAMESPACE}"
+    "&callback=https%3A%2F%2Fkronos.curefit.co%2Flogin%3Fnext%3D%2F"
+)
 
 
 QUIET = False  # the admin app silences console output
@@ -51,14 +56,16 @@ def _say(msg):
 
 def new_session():
     s = requests.Session()
-    s.headers.update({
-        "accept": "application/json, text/plain, */*",
-        "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
-        "content-type": "application/json",
-        "origin": ACCOUNTS,
-        "referer": REFERER,
-        "user-agent": UA,
-    })
+    s.headers.update(
+        {
+            "accept": "application/json, text/plain, */*",
+            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+            "content-type": "application/json",
+            "origin": ACCOUNTS,
+            "referer": REFERER,
+            "user-agent": UA,
+        }
+    )
     return s
 
 
@@ -106,13 +113,19 @@ def validate_otp(otp, email=EMAIL):
         "callbackURL": CALLBACK_URL,
     }
     # don't auto-follow so we can inspect any redirect / erpToken
-    r = s.post(f"{ACCOUNTS}/login/otp/email/validate", json=payload,
-               allow_redirects=False, timeout=30)
+    r = s.post(
+        f"{ACCOUNTS}/login/otp/email/validate",
+        json=payload,
+        allow_redirects=False,
+        timeout=30,
+    )
     _say(f"[validate] status={r.status_code}")
 
     erp_token = _extract_erp_token(r, s)
     save_session(s, {"erpToken": erp_token})
-    _say(f"[validate] token captured: {'yes' if erp_token else 'no'}")  # never print the token
+    _say(
+        f"[validate] token captured: {'yes' if erp_token else 'no'}"
+    )  # never print the token
     return r
 
 
@@ -135,6 +148,7 @@ def _extract_erp_token(r, s):
         return loc.split("erpToken=")[1].split("&")[0]
     # 3) from cookies (URL-encoded, last resort)
     from urllib.parse import unquote
+
     for name, val in requests.utils.dict_from_cookiejar(s.cookies).items():
         if name.lower() == "erptoken":
             return unquote(val)
@@ -148,12 +162,20 @@ def establish_session():
         print("[session] no erpToken found; run validate first")
         return None
     from urllib.parse import quote
+
     url = f"{KRONOS}/login?next=%2F&erpToken={quote(erp, safe='')}"
-    r = s.get(url, headers={
-        "accept": ("text/html,application/xhtml+xml,application/xml;q=0.9,"
-                   "image/avif,image/webp,image/apng,*/*;q=0.8"),
-        "referer": f"{ACCOUNTS}/",
-    }, allow_redirects=True, timeout=30)
+    r = s.get(
+        url,
+        headers={
+            "accept": (
+                "text/html,application/xhtml+xml,application/xml;q=0.9,"
+                "image/avif,image/webp,image/apng,*/*;q=0.8"
+            ),
+            "referer": f"{ACCOUNTS}/",
+        },
+        allow_redirects=True,
+        timeout=30,
+    )
     _say(f"[session] status={r.status_code}")
     save_session(s, extra)
     return r
@@ -161,10 +183,14 @@ def establish_session():
 
 def get_centers():
     s, extra = load_session()
-    r = s.get(f"{KRONOS}/v1/user/centers", headers={
-        "accept": "application/json",
-        "referer": f"{KRONOS}/",
-    }, timeout=30)
+    r = s.get(
+        f"{KRONOS}/v1/user/centers",
+        headers={
+            "accept": "application/json",
+            "referer": f"{KRONOS}/",
+        },
+        timeout=30,
+    )
     print(f"[centers] status={r.status_code}")
     if r.status_code == 200:
         data = r.json()
@@ -184,8 +210,11 @@ def session_ok():
     if not extra.get("erpToken"):
         return False
     try:
-        r = s.get(f"{KRONOS}/v1/user/centers", headers={"accept": "application/json",
-                                                         "referer": f"{KRONOS}/"}, timeout=30)
+        r = s.get(
+            f"{KRONOS}/v1/user/centers",
+            headers={"accept": "application/json", "referer": f"{KRONOS}/"},
+            timeout=30,
+        )
     except requests.RequestException:
         return False
     return r.status_code == 200
@@ -196,10 +225,15 @@ def interactive_login(email=EMAIL):
     from rich.prompt import Prompt
     from rich.panel import Panel
     from logutil import console, get_logger
+
     log = get_logger()
 
-    console.print(Panel.fit(f"[bold]Curefit login[/bold]\naccount: [cyan]{email}[/cyan]",
-                            border_style="cyan"))
+    console.print(
+        Panel.fit(
+            f"[bold]Curefit login[/bold]\naccount: [cyan]{email}[/cyan]",
+            border_style="cyan",
+        )
+    )
     with console.status("[cyan]Sending OTP...[/cyan]"):
         r = send_otp(email)
     if r.status_code != 200:
@@ -229,9 +263,13 @@ def interactive_login(email=EMAIL):
         sr = establish_session()
     if sr is not None and sr.status_code == 200:
         log.info("session_established", final_url=sr.url)
-        console.print(Panel.fit("[bold green]Logged in.[/bold green] "
-                                "You can now run [bold]python scrape_sales.py[/bold]",
-                                border_style="green"))
+        console.print(
+            Panel.fit(
+                "[bold green]Logged in.[/bold green] "
+                "You can now run [bold]python scrape_sales.py[/bold]",
+                border_style="green",
+            )
+        )
     else:
         console.print("[red]Could not establish session.[/red]")
 
