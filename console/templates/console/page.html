@@ -1,9 +1,0 @@
-{% extends "admin/base_site.html" %}
-{% load static %}
-
-{% block content %}
-<link rel="stylesheet" href="{% static 'console/app.css' %}">
-<script src="{% static 'console/app.js' %}"></script>
-<div class="cc">{% block page %}{% endblock %}</div>
-<div id="toast"></div>
-{% endblock %}

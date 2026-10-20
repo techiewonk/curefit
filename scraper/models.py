@@ -4,12 +4,19 @@ from django.utils import timezone
 from centers.models import Center
 
 
+class SessionQuerySet(models.QuerySet):
+    def unfinished(self):
+        return self.exclude(status=Session.COMPLETE)
+
+    def for_period(self, start, end):
+        return self.filter(start_date=start, end_date=end)
+
+
 class Session(models.Model):
     """One scrape run (period + centers + reports). Also the folder name under runs/."""
 
-    RUNNING, INCOMPLETE, COMPLETE, INTERRUPTED, LEGACY = (
-        "running", "incomplete", "complete", "interrupted", "legacy")
-    STATUS_CHOICES = [(s, s) for s in (RUNNING, INCOMPLETE, COMPLETE, INTERRUPTED, LEGACY)]
+    RUNNING, INCOMPLETE, COMPLETE, INTERRUPTED = "running", "incomplete", "complete", "interrupted"
+    STATUS_CHOICES = [(s, s) for s in (RUNNING, INCOMPLETE, COMPLETE, INTERRUPTED)]
 
     session_id = models.CharField(max_length=40, primary_key=True)
     start_date = models.DateField()
@@ -25,11 +32,17 @@ class Session(models.Model):
     coverage = models.JSONField(null=True, blank=True)
     missing = models.JSONField(default=dict, blank=True)
 
+    objects = SessionQuerySet.as_manager()
+
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.session_id} · {self.start_date} → {self.end_date}"
+
+    @property
+    def is_unfinished(self):
+        return self.status != self.COMPLETE
 
     @property
     def missing_count(self):
@@ -144,6 +157,11 @@ class CardColumns(models.Model):
         return self.report
 
 
+class JobQuerySet(models.QuerySet):
+    def active(self):
+        return self.filter(state__in=(Job.QUEUED, Job.RUNNING))
+
+
 class Job(models.Model):
     """A queued/running scrape. The job runner updates it; the admin pages read it."""
 
@@ -171,8 +189,26 @@ class Job(models.Model):
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
 
+    objects = JobQuerySet.as_manager()
+
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.id} · {self.state}"
+
+    @property
+    def is_active(self):
+        return self.state in (self.QUEUED, self.RUNNING)
+
+    @property
+    def percent(self):
+        return round(100 * self.done / self.total) if self.total else 0
+
+    @property
+    def eta_seconds(self):
+        """Time left, extrapolated from the pace so far (None until something finished)."""
+        if not (self.is_active and self.started_at and self.done):
+            return None
+        elapsed = (timezone.now() - self.started_at).total_seconds()
+        return elapsed / self.done * (self.total - self.done)

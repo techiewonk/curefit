@@ -1,161 +1,36 @@
-{% extends "console/page.html" %}
+{% extends "console/base.html" %}
+{% load unfold %}
 
 {% block page %}
-<div class="panel">
-  <h2>1 · Kronos login</h2>
-  <div class="row"><span id="loginTxt" class="muted">Checking…</span> <span id="loginBadge" class="badge">…</span></div>
-  <div class="row">
-    <button id="sendOtp">Send OTP to <span id="emailTxt"></span></button>
-    <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="OTP" size="8">
-    <button id="verifyOtp" class="primary">Verify</button>
+<div hx-get="{% url 'console:login' %}" hx-trigger="load" hx-swap="outerHTML"></div>
+
+<form method="post" id="run-form" class="flex flex-col gap-6">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+    {% include "unfold/helpers/form_errors.html" with errors=form.non_field_errors %}
+  {% endif %}
+
+  {% component "unfold/components/card.html" with title="What to scrape" %}
+    <div class="grid gap-x-6 md:grid-cols-2">
+      {% include "unfold/helpers/field.html" with field=form.start %}
+      {% include "unfold/helpers/field.html" with field=form.end %}
+      {% include "unfold/helpers/field.html" with field=form.centers %}
+      {% include "unfold/helpers/field.html" with field=form.speed %}
+    </div>
+    {# offers to continue an unfinished session for the chosen period #}
+    <div hx-get="{% url 'console:resume' %}" hx-trigger="load, change from:#id_start, change from:#id_end"
+         hx-include="#id_start, #id_end"></div>
+    {% include "unfold/helpers/field.html" with field=form.reports %}
+  {% endcomponent %}
+
+  <div class="flex flex-row flex-wrap gap-4 items-center">
+    <button type="submit" class="bg-primary-600 border border-transparent font-medium px-4 py-2 rounded-default text-white">
+      Start
+    </button>
+    <div hx-get="{% url 'console:estimate' %}" hx-include="#run-form" hx-trigger="load, change from:#run-form"
+         class="text-sm text-font-subtle-light dark:text-font-subtle-dark"></div>
   </div>
-</div>
+</form>
 
-<div class="panel">
-  <h2>2 · What to scrape</h2>
-  <div class="row">
-    <label>Start <input type="date" id="start"></label>
-    <label>End <input type="date" id="end"></label>
-    <button data-preset="lastmonth">Last month</button>
-    <button data-preset="last30">Last 30 days</button>
-    <button data-preset="mtd">Month to date</button>
-  </div>
-  <div class="row" id="listRow"></div>
-  <div class="row" id="resumeRow"></div>
-  <div id="groups"></div>
-  <div class="row" style="margin-top:6px">
-    <label>Speed
-      <select id="speed"><option value="gentle">Gentle — 1 center at a time</option>
-        <option value="normal" selected>Normal — 2 at a time</option>
-        <option value="fast">Fast — 4 at a time</option></select></label>
-    <button id="allRep">All reports</button><button id="coreRep">Core only</button><button id="noRep">None</button>
-  </div>
-  <div id="estimate" class="muted"></div>
-</div>
-
-<div class="panel">
-  <h2>3 · Run</h2>
-  <div class="row">
-    <button id="startBtn" class="primary">Start</button>
-    <button id="pauseBtn">Pause</button>
-    <button id="stopBtn" class="danger">Stop</button>
-    <span id="jobState" class="badge">idle</span>
-    <span class="muted" id="jobDesc"></span>
-  </div>
-  <div id="confirm" style="color:var(--warn)"></div>
-  <div class="bar"><div id="jobBar"></div></div>
-  <div class="muted" id="jobNums"></div>
-  <pre id="jobLog" style="margin-top:10px">No run yet.</pre>
-  <div style="margin-top:10px"><a class="lnk" href="{% url 'console:monitor' %}">Open the live monitor →</a></div>
-</div>
-
-<script>
-let CFG = null, ARM = null, ARM_T = null, EST = null, SID = null, EST_SEQ = 0;
-const PRESET = new URLSearchParams(location.search);
-
-async function refreshStatus() {
-  const s = await api('status/');
-  $('loginBadge').textContent = s.logged_in ? 'logged in' : 'not logged in';
-  $('loginBadge').className = 'badge ' + (s.logged_in ? 'ok' : 'warn');
-  $('loginTxt').textContent = s.logged_in ? 'Session is valid — you can start a scrape.' : 'Not logged in. Send the OTP, then enter it below.';
-  $('emailTxt').textContent = s.email;
-  drawJob(s.job);
-}
-
-async function init() {
-  CFG = await api('config/');
-  $('start').value = CFG.default_start; $('end').value = CFG.default_end;
-  $('listRow').innerHTML = Object.entries(CFG.lists).map(([n, c], i) =>
-    `<label><input type="radio" name="clist" value="${esc(n)}" ${n === (PRESET.get('list') || 'actual') ? 'checked' : ''}> ${esc(n)} list <b>${c}</b> centers</label>`).join('') +
-    `<span class="muted">(${CFG.active_centers} ACTIVE centers exist — edit the lists under Centers)</span>`;
-  const byName = Object.fromEntries(CFG.reports.map(r => [r.name, r.label]));
-  $('groups').innerHTML = Object.entries(CFG.groups).map(([g, names]) =>
-    `<div style="margin-bottom:8px"><div class="muted" style="margin-bottom:4px"><b>${esc(g)}</b></div><div class="checks">` +
-    names.map(n => `<label><input type="checkbox" value="${esc(n)}" ${g === 'Core' || !PRESET.get('core') ? 'checked' : ''}> ${esc(byName[n])} <span class="muted">(${esc(n)})</span></label>`).join('') +
-    `</div></div>`).join('');
-  if (PRESET.get('core')) setReports(CFG.groups.Core);
-  document.querySelectorAll('input[name=clist]').forEach(r => r.addEventListener('change', onChange));
-  document.querySelectorAll('#groups input').forEach(r => r.addEventListener('change', onChange));
-  await refreshStatus(); await checkResume(); await estimate();
-  if (!window.__poll) window.__poll = setInterval(guard(refreshStatus), 2000);
-}
-
-const picked = () => [...document.querySelectorAll('#groups input:checked')].map(i => i.value);
-const listName = () => (document.querySelector('input[name=clist]:checked') || {}).value || 'actual';
-function setReports(names) { document.querySelectorAll('#groups input').forEach(i => i.checked = names.includes(i.value)); }
-function onChange() { ARM = null; $('confirm').textContent = ''; guard(estimate)(); }
-
-async function estimate() {
-  const only = picked(), all = only.length === CFG.reports.length;
-  if (!only.length) { $('estimate').textContent = 'Select at least one report.'; EST = null; return; }
-  const seq = ++EST_SEQ;  // answers can arrive out of order: only the latest request may update the page
-  const est = await api('estimate/?' + q({list: listName(), only: all ? '' : only.join(','), workers: CFG.speeds[$('speed').value]}));
-  if (seq !== EST_SEQ) return;
-  EST = est;
-  const note = EST.assumed.length ? ` (${EST.assumed.length} report(s) have no timings yet: assumed 40 s each)` : '';
-  $('estimate').textContent = `${EST.centers} centers × ${EST.reports} reports = ${EST.pairs} fetches · about ${hours(EST.seconds_low)} to ${hours(EST.seconds_high)} with ${EST.workers} at a time${note}`;
-}
-
-async function checkResume() {
-  const row = $('resumeRow'), st = $('start').value, en = $('end').value;
-  let sid = PRESET.get('session'), label = '';
-  if (!sid && st && en) { const u = await api('unfinished/?' + q({start: st, end: en})); sid = u.session; label = u.created_at; }
-  SID = sid;
-  if (!sid) { row.innerHTML = '<span class="muted">No unfinished session for this period — a new session will start.</span>'; return; }
-  row.innerHTML = `<label><input type="radio" name="mode" value="continue" checked> Continue session <b>${esc(sid)}</b>
-    <span class="muted">${label ? '(started ' + esc(when(label)) + ') ' : ''}only what is missing is fetched</span></label>
-    <label><input type="radio" name="mode" value="new"> Start a new session</label>
-    <label><input type="checkbox" id="retryEmpty"> also retry empty results</label>`;
-}
-['start', 'end'].forEach(id => $(id).addEventListener('change', () => { PRESET.delete('session'); guard(checkResume)(); }));
-document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => {
-  const t = new Date(CFG.today + 'T00:00:00'), iso = d => d.toISOString().slice(0, 10), p = b.dataset.preset;
-  if (p === 'lastmonth') { $('start').value = CFG.default_start; $('end').value = CFG.default_end; }
-  if (p === 'last30') { const s = new Date(t); s.setDate(s.getDate() - 30); const e = new Date(t); e.setDate(e.getDate() - 1); $('start').value = iso(s); $('end').value = iso(e); }
-  if (p === 'mtd') { $('start').value = iso(new Date(t.getFullYear(), t.getMonth(), 1)); $('end').value = CFG.today; }
-  PRESET.delete('session'); guard(checkResume)();
-});
-$('speed').onchange = onChange;
-$('allRep').onclick = () => { setReports(CFG.reports.map(r => r.name)); onChange(); };
-$('coreRep').onclick = () => { setReports(CFG.groups.Core); onChange(); };
-$('noRep').onclick = () => { setReports([]); onChange(); };
-
-$('sendOtp').onclick = guard(async () => { const r = await post('login/send/'); toast(r.ok ? 'OTP sent — check the inbox' : 'Could not send the OTP', !r.ok); });
-$('verifyOtp').onclick = guard(async () => {
-  const r = await post('login/verify/', {otp: $('otp').value}); $('otp').value = '';
-  toast(r.ok ? 'Logged in' : 'OTP not accepted', !r.ok); await refreshStatus(); });
-
-$('startBtn').onclick = guard(async () => {
-  const only = picked(); if (!only.length) throw new Error('Select at least one report');
-  const mode = document.querySelector('input[name=mode]:checked'), cont = !!(mode && mode.value === 'continue');
-  const body = {start: $('start').value, end: $('end').value, list: listName(), speed: $('speed').value,
-    workers: CFG.speeds[$('speed').value], only: only.length === CFG.reports.length ? null : only};
-  if (cont) { body.session = SID; body.retry_empty = !!($('retryEmpty') && $('retryEmpty').checked); }
-  const key = [listName(), only.length, body.workers, cont].join('|');
-  if (!cont && EST && EST.seconds_high > 7200 && ARM !== key) {  // a long run: show the estimate, ask for a second click
-    ARM = key; clearTimeout(ARM_T); ARM_T = setTimeout(() => { ARM = null; $('confirm').textContent = ''; }, 20000);
-    $('confirm').textContent = `This is a long run (about ${hours(EST.seconds_low)} to ${hours(EST.seconds_high)}). Click Start again to confirm.`;
-    return;
-  }
-  ARM = null; $('confirm').textContent = '';
-  await post('run/', body); toast('Started'); await refreshStatus();
-});
-$('pauseBtn').onclick = guard(async () => { await post('pause/', {on: $('pauseBtn').textContent === 'Pause'}); await refreshStatus(); });
-$('stopBtn').onclick = guard(async () => { await post('stop/'); toast('Stopping after the current requests…'); });
-
-function drawJob(j) {
-  const pct = j.total ? Math.round(100 * j.done / j.total) : 0, active = j.state === 'running' || j.state === 'queued';
-  $('jobBar').style.width = pct + '%';
-  $('jobState').textContent = j.paused ? 'paused' : j.stopping ? 'stopping' : j.state;
-  $('jobState').className = 'badge ' + (j.paused ? 'warn' : j.state);
-  $('jobDesc').textContent = j.error || j.desc || (j.state === 'done' ? `session ${j.session} ${j.session_status || ''}` : '');
-  let eta = '';
-  if (active && j.started_at && j.done > 0) { const el = Date.now() / 1000 - j.started_at; eta = ' · about ' + hours(el / j.done * (j.total - j.done)) + ' left'; }
-  $('jobNums').textContent = j.total ? `${j.done} / ${j.total} (${pct}%)${j.session ? ' · session ' + j.session : ''}${eta}` : '';
-  $('jobLog').textContent = j.log.length ? j.log.join('\n') : 'No run yet.'; $('jobLog').scrollTop = 1e9;
-  $('startBtn').disabled = active; $('stopBtn').disabled = !active;
-  $('pauseBtn').disabled = j.state !== 'running'; $('pauseBtn').textContent = j.paused ? 'Resume' : 'Pause';
-}
-guard(init)();
-</script>
+<div id="job-panel" hx-get="{% url 'console:job' %}" hx-trigger="load, every 2s" hx-swap="innerHTML"></div>
 {% endblock %}

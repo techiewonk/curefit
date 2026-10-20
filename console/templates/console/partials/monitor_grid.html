@@ -1,0 +1,34 @@
+{% load unfold %}
+{% if grid %}
+  {% component "unfold/components/card.html" with title="Centers × reports" %}
+    <div class="flex flex-row flex-wrap gap-4 items-center mb-3 text-sm">
+      <strong>Session {{ grid.session.pk }}</strong>
+      <span>{{ grid.session.start_date }} → {{ grid.session.end_date }}</span>
+      <span class="font-medium px-2 py-1 rounded-default text-xs {% if grid.live %}bg-primary-100 text-primary-700{% else %}bg-base-100 text-base-700{% endif %}">
+        {% if grid.live %}running{% else %}{{ grid.session.status }}{% endif %}
+      </span>
+      {% if grid.job %}<span>{{ grid.job.done }} / {{ grid.job.total }}
+        {% if grid.job.pause_requested %}· paused{% endif %}</span>{% endif %}
+    </div>
+
+    <div class="flex flex-row flex-wrap gap-4 mb-4 text-xs">
+      {% for item in grid.legend %}
+        <span class="flex flex-row gap-1.5 items-center">
+          <i class="inline-block rounded-sm size-3 {{ item.color }}"></i>{{ item.label }} <strong>{{ item.count }}</strong>
+        </span>
+      {% endfor %}
+    </div>
+
+    <div class="max-h-[70vh] overflow-auto">
+      <div class="text-xs text-font-subtle-light dark:text-font-subtle-dark mb-2">
+        Columns, left to right: {{ grid.reports|join:", " }}
+      </div>
+      {% for row in grid.rows %}
+        <div class="flex flex-row gap-3 items-center mb-0.5">
+          <div class="shrink-0 truncate text-xs w-56" title="{{ row.name }}">{{ row.center_id }} · {{ row.name }}</div>
+          <div class="grow">{% component "unfold/components/tracker.html" with data=row.cells size="sm" %}{% endcomponent %}</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endcomponent %}
+{% endif %}

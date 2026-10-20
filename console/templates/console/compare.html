@@ -1,42 +1,47 @@
-{% extends "console/page.html" %}
+{% extends "console/base.html" %}
+{% load unfold humanize %}
 
 {% block page %}
-<div class="row">
-  <label class="muted">Baseline <select id="a"></select></label>
-  <label class="muted">Compare with <select id="b"></select></label>
-  <button id="go" class="primary">Compare</button>
-  <label class="muted"><input type="checkbox" id="onlyDiff" checked> only centers that changed</label>
-</div>
-<div class="cards" id="sum"></div>
-<div class="panel"><div style="overflow:auto;max-height:70vh"><table id="tbl"></table></div></div>
+<form method="get" class="flex flex-col gap-2">
+  {% component "unfold/components/card.html" with title="Sessions to compare" %}
+    <div class="grid gap-x-6 md:grid-cols-3">
+      {% include "unfold/helpers/field.html" with field=form.a %}
+      {% include "unfold/helpers/field.html" with field=form.b %}
+      {% include "unfold/helpers/field.html" with field=form.only_changed %}
+    </div>
+    <button type="submit" class="bg-primary-600 border border-transparent font-medium px-4 py-2 rounded-default text-white">Compare</button>
+  {% endcomponent %}
+</form>
 
-<script>
-async function init() {
-  const list = (await api('sessions/')).filter(s => s.centers > 0);
-  const opts = list.map(s => `<option value="${esc(s.session)}">${esc(s.start)} → ${esc(s.end)} · ${esc(s.session)} (${s.centers} centers)</option>`).join('');
-  $('a').innerHTML = opts; $('b').innerHTML = opts;
-  if (list.length > 1) $('b').selectedIndex = 1;
-}
-const sign = n => n == null ? '' : (n > 0 ? '+' : '') + num(n);
-const cls = n => n > 0 ? 'ok' : n < 0 ? 'bad' : 'muted';
-let LAST = null;
-function draw() {
-  if (!LAST) return;
-  const only = $('onlyDiff').checked;
-  const rows = LAST.rows.filter(r => !only || !r.a || !r.b || Object.values(r.diff || {}).some(v => v));
-  let tot = {sales: 0, rev: 0, total: 0};
-  rows.forEach(r => { if (r.diff) { tot.sales += r.diff.sales || 0; tot.rev += r.diff.sales_revenue || 0; tot.total += r.diff.total_revenue || 0; } });
-  $('sum').innerHTML = [['Centers shown', rows.length], ['Sales count change', sign(tot.sales)], ['Sales revenue change', sign(tot.rev)], ['Total revenue change', sign(tot.total)]]
-    .map(x => `<div class="card"><div class="lbl">${esc(x[0])}</div><div class="val">${esc(x[1])}</div></div>`).join('');
-  $('tbl').innerHTML = '<thead><tr><th>Center</th><th>Sales A</th><th>Sales B</th><th>Δ sales</th><th>Sales revenue A</th><th>Sales revenue B</th><th>Δ revenue</th><th>Δ total revenue</th></tr></thead><tbody>' +
-    rows.map(r => `<tr><td>${esc(r.center_id)} · ${esc(r.name)}${!r.a ? ' <span class="badge info">only in B</span>' : !r.b ? ' <span class="badge warn">only in A</span>' : ''}</td>
-      <td>${r.a ? num(r.a.sales) : ''}</td><td>${r.b ? num(r.b.sales) : ''}</td><td class="${r.diff ? cls(r.diff.sales) : ''}">${r.diff ? sign(r.diff.sales) : ''}</td>
-      <td>${r.a ? inr(r.a.sales_revenue) : ''}</td><td>${r.b ? inr(r.b.sales_revenue) : ''}</td>
-      <td class="${r.diff ? cls(r.diff.sales_revenue) : ''}">${r.diff ? sign(r.diff.sales_revenue) : ''}</td>
-      <td class="${r.diff ? cls(r.diff.total_revenue) : ''}">${r.diff ? sign(r.diff.total_revenue) : ''}</td></tr>`).join('') + '</tbody>';
-}
-$('go').onclick = guard(async () => { LAST = await api('compare/?' + q({a: $('a').value, b: $('b').value})); draw(); });
-$('onlyDiff').onchange = draw;
-guard(init)();
-</script>
+{% if rows %}
+  <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+    {% component "unfold/components/card.html" with title="Centers shown" %}<span class="text-2xl font-semibold">{{ rows|length }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Sales change" %}<span class="text-2xl font-semibold">{{ totals.sales|intcomma }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Sales revenue change" %}<span class="text-2xl font-semibold">₹{{ totals.sales_revenue|intcomma }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Total revenue change" %}<span class="text-2xl font-semibold">₹{{ totals.total_revenue|intcomma }}</span>{% endcomponent %}
+  </div>
+  {% component "unfold/components/card.html" %}
+    <div class="max-h-[70vh] overflow-auto">
+      <table class="w-full text-sm">
+        <thead><tr><th class="text-left">Center</th><th class="text-right">Sales A</th><th class="text-right">Sales B</th><th class="text-right">Δ sales</th>
+          <th class="text-right">Revenue A</th><th class="text-right">Revenue B</th><th class="text-right">Δ revenue</th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>{{ r.id }} · {{ r.name }}
+              {% if not r.a %}<span class="bg-blue-100 px-1.5 rounded-default text-blue-700 text-xs">only in B</span>{% endif %}
+              {% if not r.b %}<span class="bg-orange-100 px-1.5 rounded-default text-orange-700 text-xs">only in A</span>{% endif %}</td>
+            <td class="text-right">{{ r.a.sales|default_if_none:"" }}</td><td class="text-right">{{ r.b.sales|default_if_none:"" }}</td>
+            <td class="text-right {% if r.diff.sales > 0 %}text-green-600{% elif r.diff.sales < 0 %}text-red-600{% endif %}">{{ r.diff.sales|default_if_none:""|intcomma }}</td>
+            <td class="text-right">{{ r.a.sales_revenue|default_if_none:""|intcomma }}</td><td class="text-right">{{ r.b.sales_revenue|default_if_none:""|intcomma }}</td>
+            <td class="text-right {% if r.diff.sales_revenue > 0 %}text-green-600{% elif r.diff.sales_revenue < 0 %}text-red-600{% endif %}">{{ r.diff.sales_revenue|default_if_none:""|intcomma }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endcomponent %}
+{% elif form.is_bound and form.is_valid %}
+  {% component "unfold/components/card.html" %}Nothing differs between the two sessions.{% endcomponent %}
+{% endif %}
 {% endblock %}

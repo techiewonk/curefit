@@ -1,176 +1,160 @@
-import json
-import os
 from unittest import mock
 
 from django.test import Client, TransactionTestCase
 from django.utils import timezone
 
 from centers import services as center_services
-from centers.models import Center
-from console import services
-from scraper import engine, jobs
-from scraper.models import Job, SectionResult
+from centers.models import Center, CenterSyncLog
+from console import views
+from console.forms import CompareForm, OtpForm, RunForm
+from scraper import auth, engine, jobs
+from scraper.models import Job, Session
 from scraper.testing import FakeKronosMixin
 
 BASE = "/admin/console/"
-PAGES = ["run/", "monitor/", "analytics/", "compare/", "centers/"]
 
 
-class FakeResp:
-    def __init__(self, code, body=None):
-        self.status_code, self._body = code, body
+class ConsoleViewTests(FakeKronosMixin, TransactionTestCase):
+    """Pages and HTMX fragments render, forms validate, actions do what they say."""
 
-    def json(self):
-        return self._body
-
-
-class ConsoleTests(FakeKronosMixin, TransactionTestCase):
     def setUp(self):
         super().setUp()
         center_services.set_list("test", [1, 2, 3, 4])
         center_services.set_list("actual", [1, 2])
-        self.session = engine.run_session(engine.new_session("2026-07-01", "2026-07-31", [1, 2, 3, 4], list(engine.REPORTS)))
+        self.session = engine.run_session(
+            engine.new_session("2026-07-01", "2026-07-31", [1, 2, 3, 4], list(engine.REPORTS)))
         self.logged_in = True
-        for p in (mock.patch.object(services, "logged_in", lambda fresh=False: self.logged_in),
-                  mock.patch.object(services.C, "send_otp", lambda email=None: FakeResp(200)),
-                  mock.patch.object(services.C, "validate_otp",
-                                    lambda otp, email=None: FakeResp(200, {"token": "x"}) if otp == "123456" else FakeResp(401, {})),
-                  mock.patch.object(services.C, "establish_session", lambda: FakeResp(200)),
-                  mock.patch.object(services.C, "session_ok", lambda: True)):
-            p.start()
-            self.addCleanup(p.stop)
-
-    def get(self, url, **params):
-        return self.client.get(BASE + url, params)
-
-    def post(self, path, body=None, client=None):
-        return (client or self.client).post(BASE + path, json.dumps(body or {}), content_type="application/json")
+        for patcher in (mock.patch.object(auth, "logged_in", lambda fresh=False: self.logged_in),
+                        mock.patch.object(auth, "send_otp", lambda: True),
+                        mock.patch.object(auth, "verify_otp", lambda otp: otp == "123456")):
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     # ------------------------------------------------------------------ pages
-    def test_pages_render(self):
-        for p in PAGES:
-            r = self.get(p)
-            self.assertEqual(r.status_code, 200, p)
-            self.assertIn("console/app.js", r.content.decode())
-        home = self.client.get("/admin/")
-        self.assertEqual(home.status_code, 200)
-        self.assertIn("Needs attention", home.content.decode())
-        self.assertContains(home, self.session.session_id)
+    def test_every_page_renders(self):
+        for url in ("run/", "monitor/", "analytics/", "compare/", "centers/"):
+            r = self.client.get(BASE + url)
+            self.assertEqual(r.status_code, 200, url)
+            self.assertContains(r, "htmx.js")
+        self.assertContains(self.client.get("/admin/"), "Needs attention")
 
-    # ------------------------------------------------------------------ reads
-    def test_read_apis(self):
-        sid = self.session.session_id
-        cfg = self.get("api/config/").json()
-        self.assertEqual(len(cfg["reports"]), 18)
-        self.assertEqual(cfg["lists"], {"actual": 2, "test": 4})
-        self.assertEqual(self.get("api/sessions/").json()[0]["session"], sid)
-        a = self.get("api/analytics/", session=sid).json()
-        self.assertEqual((a["totals"]["centers"], a["totals"]["sales_count"]), (4, 10))
-        self.assertEqual(a["totals"]["total_revenue"], 400.0)
-        d = self.get("api/sales/", session=sid, center_id=3).json()
-        self.assertEqual(len(d["rows"]), 3)
-        files = self.get("api/session-files/", session=sid).json()["files"]
-        self.assertTrue(any(f["path"] == "merged/sales.csv" for f in files))
-        self.assertEqual(self.get("api/unfinished/", start="2026-07-01", end="2026-07-31").json()["session"], None)
+    def test_analytics_and_monitor_show_the_picked_session(self):
+        r = self.client.get(BASE + "analytics/", {"session": self.session.pk})
+        self.assertContains(r, "Per-center analysis")
+        self.assertContains(r, "Cult 3")
+        self.assertEqual(r.context["totals"]["sales_count"], 10)
+        r = self.client.get(BASE + "monitor/", {"session": self.session.pk})
+        self.assertContains(r, f"monitor/grid/?session={self.session.pk}")
 
-    def test_monitor_grid_reflects_results(self):
-        SectionResult.objects.filter(session=self.session, center_id=2, report="perf").update(status="failed", error="HTTP 500")
-        SectionResult.objects.filter(session=self.session, center_id=3, report="gym").update(status="slow", error="timed out")
-        SectionResult.objects.filter(session=self.session, center_id=4, report="sales").update(status="empty", row_count=0)
-        m = self.get("api/monitor/", session=self.session.session_id).json()
-        reps = m["reports"]
-        row = {cid: m["grid"][i] for i, (cid, _) in enumerate(m["centers"])}
-        self.assertEqual(row[2][reps.index("perf")], "f")
-        self.assertEqual(row[3][reps.index("gym")], "s")
-        self.assertEqual(row[4][reps.index("sales")], "e")
-        self.assertEqual(row[1][reps.index("sales")], "o")
-        self.assertEqual(m["errors"][f"2|perf"], "HTTP 500")
-        self.assertEqual(m["rows"][0][reps.index("sales")], 1)
+    def test_monitor_grid_fragment(self):
+        r = self.client.get(BASE + "monitor/grid/", {"session": self.session.pk})
+        self.assertContains(r, "Centers × reports")
+        self.assertContains(r, "bg-green-500")
+        self.assertEqual(len(r.context["grid"]["rows"]), 4)
 
-    def test_estimate_uses_measured_timings(self):
-        SectionResult.objects.filter(session=self.session, report="sales").update(seconds=10)
-        e = self.get("api/estimate/", list="test", only="sales", workers=2).json()
-        self.assertEqual((e["centers"], e["reports"], e["pairs"]), (4, 1, 4))
-        self.assertEqual(e["seconds_low"], round((10 + services.PAIR_OVERHEAD) * 4 / 2))
-        self.assertIn("sales", e["measured"])
-        SectionResult.objects.filter(report="perf_ratings").update(seconds=None)  # no timings recorded yet
-        e2 = self.get("api/estimate/", list="test", only="perf_ratings", workers=1).json()
-        self.assertIn("perf_ratings", e2["assumed"])
-        self.assertEqual(self.get("api/estimate/", list="nope").status_code, 400)
-
-    def test_compare_two_sessions(self):
+    def test_compare_page(self):
         other = engine.run_session(engine.new_session("2026-08-01", "2026-08-31", [1, 2], ["sales", "perf"]))
-        c = self.get("api/compare/", a=self.session.session_id, b=other.session_id).json()
-        rows = {r["center_id"]: r for r in c["rows"]}
-        self.assertEqual(rows[1]["diff"]["sales"], 0)
-        self.assertIsNone(rows[3]["b"])  # center 3 is only in the first session
-        self.assertEqual(self.get("api/compare/", a="zzz", b="yyy").status_code, 404)
+        r = self.client.get(BASE + "compare/", {"a": self.session.pk, "b": other.pk, "only_changed": "on"})
+        self.assertEqual(r.status_code, 200)
+        ids = [row["id"] for row in r.context["rows"]]
+        self.assertEqual(ids, [3, 4])  # only the centers that are not in both sessions have changed
+        r = self.client.get(BASE + "compare/", {"a": self.session.pk, "b": "nope"})
+        self.assertContains(r, "Select a valid choice")
 
-    # ------------------------------------------------------------------ login / run
-    def test_login_flow(self):
-        self.assertTrue(self.post("api/login/send/").json()["ok"])
-        self.assertEqual(self.post("api/login/verify/", {"otp": "abc"}).status_code, 400)
-        self.assertFalse(self.post("api/login/verify/", {"otp": "000000"}).json()["ok"])
-        self.assertTrue(self.post("api/login/verify/", {"otp": "123456"}).json()["ok"])
-
-    def test_run_requires_login_and_validates(self):
-        body = {"start": "2026-09-01", "end": "2026-09-30", "list": "test", "workers": 2}
-        self.logged_in = False
-        self.assertEqual(self.post("api/run/", body).status_code, 401)
-        self.logged_in = True
-        self.assertEqual(self.post("api/run/", {**body, "start": "2026-13-01"}).status_code, 400)
-        self.assertEqual(self.post("api/run/", {**body, "workers": 9}).status_code, 400)
-        self.assertEqual(self.post("api/run/", {**body, "only": ["nope"]}).status_code, 400)
-
-    def test_run_stop_pause_cycle(self):
-        body = {"start": "2026-09-01", "end": "2026-09-30", "list": "test", "workers": 2, "only": ["sales"]}
+    # ------------------------------------------------------------------ run
+    def test_run_form_posts_a_job(self):
+        data = {"start": "2026-09-01", "end": "2026-09-30", "centers": "test", "speed": "fast",
+                "reports": ["sales", "perf"]}
         with mock.patch.object(jobs, "async_task") as queued:
-            r = self.post("api/run/", body)
-            self.assertEqual(r.status_code, 200)
-            queued.assert_called_once()
-            self.assertEqual(self.post("api/run/", body).status_code, 409)  # one job at a time
-            job = Job.objects.get(pk=r.json()["job"])
-            self.assertEqual(job.state, Job.QUEUED)
-            Job.objects.filter(pk=job.pk).update(state=Job.RUNNING, heartbeat=timezone.now())
-            self.assertTrue(self.post("api/pause/", {"on": True}).json()["paused"])
-            self.assertTrue(self.get("api/status/").json()["job"]["paused"])
-            self.post("api/pause/", {"on": False})
-            self.post("api/stop/")
-            self.assertTrue(Job.objects.get(pk=job.pk).stop_requested)
-            Job.objects.filter(pk=job.pk).update(state=Job.DONE)
-            self.assertEqual(self.post("api/pause/", {"on": True}).status_code, 409)
+            r = self.client.post(BASE + "run/", data, follow=True)
+        self.assertEqual(r.status_code, 200)
+        queued.assert_called_once()
+        job = Job.objects.get()
+        self.assertEqual((job.state, job.spec["workers"], job.spec["only"]), (Job.QUEUED, 4, ["sales", "perf"]))
+        self.assertContains(r, "queued for session")
+
+    def test_run_form_errors(self):
+        data = {"start": "2026-09-30", "end": "2026-09-01", "centers": "test", "speed": "normal", "reports": ["sales"]}
+        r = self.client.post(BASE + "run/", data)
+        self.assertContains(r, "end date is before")
+        self.assertFalse(Job.objects.exists())
+        self.logged_in = False
+        r = self.client.post(BASE + "run/", {**data, "start": "2026-09-01", "end": "2026-09-30"})
+        self.assertContains(r, "Not logged in")
+        self.assertFalse(Job.objects.exists())
+
+    def test_run_form_continues_an_unfinished_session(self):
+        Session.objects.filter(pk=self.session.pk).update(status="incomplete")
+        data = {"start": "2026-07-01", "end": "2026-07-31", "centers": "test", "speed": "normal",
+                "reports": ["sales"], "session": self.session.pk}
+        with mock.patch.object(jobs, "async_task"):
+            self.client.post(BASE + "run/", data)
+        self.assertEqual(Job.objects.get().session, self.session)
+
+    def test_resume_fragment_offers_unfinished_sessions_for_the_period(self):
+        Session.objects.filter(pk=self.session.pk).update(status="incomplete")
+        r = self.client.get(BASE + "run/resume/", {"start": "2026-07-01", "end": "2026-07-31"})
+        self.assertContains(r, self.session.pk)
+        self.assertContains(r, "Start a new session")
+        r = self.client.get(BASE + "run/resume/", {"start": "2026-08-01", "end": "2026-08-31"})
+        self.assertContains(r, "No unfinished session")
+
+    def test_estimate_fragment(self):
+        r = self.client.get(BASE + "run/estimate/", {"centers": "test", "reports": ["sales", "perf"], "speed": "normal"})
+        self.assertContains(r, "4 centers × 2 reports = 8 fetches")
+        self.assertNotContains(self.client.get(BASE + "run/estimate/", {"centers": "test"}), "fetches")
+
+    def test_login_fragment(self):
+        self.assertContains(self.client.get(BASE + "run/login/"), "logged in")
+        self.assertContains(self.client.post(BASE + "run/login/", {"action": "send"}), "OTP sent")
+        self.assertContains(self.client.post(BASE + "run/login/", {"action": "verify", "otp": "123456"}), "Logged in.")
+        self.assertContains(self.client.post(BASE + "run/login/", {"action": "verify", "otp": "000000"}), "not accepted")
+        self.assertContains(self.client.post(BASE + "run/login/", {"action": "verify", "otp": "abc"}), "numeric code")
+
+    def test_job_fragment_pause_and_stop(self):
+        self.assertContains(self.client.get(BASE + "run/job/"), "Current run")
+        job = Job.objects.create(id="j", state=Job.RUNNING, session=self.session, heartbeat=timezone.now(), total=4)
+        self.assertContains(self.client.get(BASE + "run/job/"), "Pause")
+        self.client.post(BASE + "run/job/pause/")
+        job.refresh_from_db()
+        self.assertTrue(job.pause_requested)
+        self.assertContains(self.client.get(BASE + "run/job/"), "Resume")
+        self.client.post(BASE + "run/job/pause/")
+        self.client.post(BASE + "run/job/stop/")
+        job.refresh_from_db()
+        self.assertEqual((job.pause_requested, job.stop_requested), (False, True))
 
     # ------------------------------------------------------------------ centers
-    def test_centers_list_and_sync(self):
-        data = self.get("api/centers/").json()
-        self.assertEqual(len(data["centers"]), 4)
-        r = self.post("api/centers/list/", {"list": "test", "ids": [1, 2, 3]})
-        self.assertEqual(r.json()["count"], 3)
-        self.assertEqual(center_services.list_ids("test"), [1, 2, 3])
-        self.assertEqual(self.post("api/centers/list/", {"list": "test", "ids": [999]}).status_code, 400)
-        self.assertEqual(self.post("api/centers/list/", {"list": "Bad Name!", "ids": []}).status_code, 400)
+    def test_centers_sync(self):
         diff = {"added": [], "removed": [], "state_changed": [], "renamed": [], "total": 4, "active": 4}
-        with mock.patch.object(services.sync, "sync_from_kronos", lambda: diff):
-            self.assertEqual(self.post("api/centers/sync/").json()["total"], 4)
+        with mock.patch.object(views.sync, "sync_from_kronos", lambda: diff):
+            r = self.client.post(BASE + "centers/", follow=True)
+        self.assertContains(r, "Updated 4 centers")
         self.logged_in = False
-        self.assertEqual(self.post("api/centers/sync/").status_code, 401)
+        self.assertContains(self.client.post(BASE + "centers/", follow=True), "Not logged in")
+
+    # ------------------------------------------------------------------ forms
+    def test_forms(self):
+        self.assertFalse(OtpForm({"otp": "12"}).is_valid())
+        self.assertTrue(OtpForm({"otp": "123456"}).is_valid())
+        form = RunForm({"start": "2026-07-01", "end": "2026-07-31", "centers": "actual", "speed": "gentle",
+                        "reports": list(engine.REPORTS)})
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertIsNone(form.to_spec()["only"])  # every report = no filter
+        self.assertEqual(form.workers, 1)
+        self.assertFalse(RunForm({"start": "x", "end": "y", "centers": "nope", "speed": "warp", "reports": []}).is_valid())
+        self.assertEqual(CompareForm().fields["a"].queryset.count(), 1)
 
     # ------------------------------------------------------------------ safety
-    def test_download_is_confined_to_the_session_folder(self):
-        sid = self.session.session_id
-        ok = self.get("download/", session=sid, path="merged/sales.csv")
-        self.assertEqual(ok.status_code, 200)
-        self.assertIn("attachment", ok["Content-Disposition"])
-        for evil in ("../../db.sqlite3", "..\\..\\db.sqlite3", "/etc/passwd", "centers"):
-            self.assertEqual(self.get("download/", session=sid, path=evil).status_code, 404, evil)
-        self.assertEqual(self.get("download/", session="nope", path="x").status_code, 404)
-
     def test_post_needs_csrf_and_host_is_checked(self):
         strict = Client(enforce_csrf_checks=True)
-        self.assertEqual(self.post("api/stop/", client=strict).status_code, 403)
+        self.assertEqual(strict.post(BASE + "run/job/stop/").status_code, 403)
         quiet = Client(raise_request_exception=False)
-        self.assertEqual(quiet.get(BASE + "api/status/", HTTP_HOST="evil.com").status_code, 400)
+        self.assertEqual(quiet.get(BASE + "run/", HTTP_HOST="evil.com").status_code, 400)
 
-    def test_get_endpoints_reject_post_and_vice_versa(self):
-        self.assertEqual(self.client.post(BASE + "api/status/").status_code, 405)
-        self.assertEqual(self.client.get(BASE + "api/run/").status_code, 405)
+    def test_sync_logs_changes(self):
+        center_services.upsert_from_kronos([{"id": 1, "name": "Renamed", "state": "INACTIVE"},
+                                            {"id": 99, "name": "New", "state": "ACTIVE"}])
+        log = CenterSyncLog.objects.get()
+        self.assertEqual((len(log.added), len(log.renamed), len(log.state_changed)), (1, 1, 1))
+        self.assertEqual(Center.objects.get(pk=1).name, "Renamed")

@@ -1,0 +1,18 @@
+{% if sessions %}
+  <div class="form-field flex flex-col mb-4">
+    <label class="font-semibold mb-1 text-sm">Unfinished session for this period</label>
+    <label class="flex flex-row gap-2 items-center"><input type="radio" name="session" value="" checked> Start a new session</label>
+    {% for s in sessions %}
+      <label class="flex flex-row gap-2 items-center">
+        <input type="radio" name="session" value="{{ s.pk }}">
+        Continue session <strong>{{ s.pk }}</strong>
+        <span class="text-font-subtle-light dark:text-font-subtle-dark">
+          (started {{ s.created_at|date:"j M H:i" }} · {{ s.missing_count }} pairs missing · only what is missing is fetched)
+        </span>
+      </label>
+    {% endfor %}
+    <label class="flex flex-row gap-2 items-center mt-2"><input type="checkbox" name="retry_empty"> Also retry empty results</label>
+  </div>
+{% else %}
+  <p class="mb-4 text-font-subtle-light dark:text-font-subtle-dark">No unfinished session for this period — a new session will start.</p>
+{% endif %}

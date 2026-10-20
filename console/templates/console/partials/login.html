@@ -1,0 +1,26 @@
+{% load unfold %}
+<form hx-post="{% url 'console:login' %}" hx-target="this" hx-swap="outerHTML">
+  {% component "unfold/components/card.html" with title="Kronos login" %}
+    <div class="flex flex-row flex-wrap gap-3 items-center mb-3">
+      {% if logged_in %}
+        <span class="bg-green-100 font-medium px-2 py-1 rounded-default text-green-700 text-xs">logged in</span>
+        <span>The saved session is valid. You can start a scrape.</span>
+      {% else %}
+        <span class="bg-orange-100 font-medium px-2 py-1 rounded-default text-orange-700 text-xs">not logged in</span>
+        <span>Send the OTP, then enter the code from the email.</span>
+      {% endif %}
+      {% if notice %}<strong class="{% if ok %}text-green-600{% else %}text-red-600{% endif %}">{{ notice }}</strong>{% endif %}
+    </div>
+    <div class="flex flex-row flex-wrap gap-3 items-end">
+      <button name="action" value="send" type="submit"
+              class="border border-base-200 font-medium px-3 py-2 rounded-default dark:border-base-700">
+        Send OTP
+      </button>
+      <div class="w-40">{% include "unfold/helpers/field.html" with field=form.otp %}</div>
+      <button name="action" value="verify" type="submit"
+              class="bg-primary-600 border border-transparent font-medium mb-4 px-3 py-2 rounded-default text-white">
+        Verify
+      </button>
+    </div>
+  {% endcomponent %}
+</form>

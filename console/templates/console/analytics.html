@@ -1,86 +1,54 @@
-{% extends "console/page.html" %}
+{% extends "console/base.html" %}
+{% load unfold humanize %}
 
 {% block page %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<div class="row">
-  <label class="muted">Session <select id="sess"></select></label>
-  <button id="reload">↻ Reload</button>
-  <span style="flex:1"></span>
-  <span id="files"></span>
-</div>
-<div class="cards" id="cards"></div>
-<div class="grid2">
-  <div class="panel"><h2>Revenue by center</h2><canvas id="revChart" height="230"></canvas></div>
-  <div class="panel"><h2>New vs Repeat revenue</h2><canvas id="mixChart" height="230"></canvas></div>
-</div>
-<div class="panel"><h2>Per-center analysis <span class="muted" style="text-transform:none">(click a row for member detail)</span></h2>
-  <div style="overflow:auto;max-height:430px"><table id="tbl"></table></div></div>
-<div class="grid2">
-  <div class="panel"><h2>Pack mix — revenue share</h2><canvas id="packChart" height="240"></canvas></div>
-  <div class="panel"><h2>Pack breakdown</h2><div style="overflow:auto;max-height:300px"><table id="packTbl"></table></div></div>
-</div>
-<div class="panel hide" id="detailPanel"><h2 id="detailTitle"></h2>
-  <div style="overflow:auto;max-height:430px"><table id="detail"></table></div></div>
+<form method="get" class="flex flex-row flex-wrap gap-3 items-end">
+  <div class="w-96">{% include "unfold/helpers/field.html" with field=picker.session %}</div>
+  <button type="submit" class="border border-base-200 font-medium mb-4 px-3 py-2 rounded-default dark:border-base-700">Show</button>
+  {% if session %}
+    <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'admin:scraper_salesrecord_changelist' %}?session__session_id__exact={{ session.pk }}">Browse the rows →</a>
+  {% endif %}
+</form>
 
-<script>
-let revChart, mixChart, packChart, CUR;
-async function init() {
-  const list = (await api('sessions/')).filter(s => s.centers > 0);
-  const want = new URLSearchParams(location.search).get('session');
-  $('sess').innerHTML = list.map(s => `<option value="${esc(s.session)}" ${s.session === want ? 'selected' : ''}>${esc(s.start)} → ${esc(s.end)} · ${esc(s.session)} · ${esc(s.status)} (${s.centers} centers)</option>`).join('') || '<option value="">no data yet</option>';
-  await load();
-}
-async function load() {
-  const sid = $('sess').value; if (!sid) return; CUR = sid;
-  const d = await api('analytics/?' + q({session: sid}));
-  cards(d.totals); table(d); charts(d); packs(d.packs); $('detailPanel').classList.add('hide'); files(sid);
-}
-async function files(sid) {
-  const f = await api('session-files/?' + q({session: sid}));
-  $('files').innerHTML = f.files.filter(x => /merged\//.test(x.path) || /dashboard|coverage/.test(x.path)).slice(0, 4).map(x =>
-    `<a class="lnk" style="margin-left:12px" href="/admin/console/download/?${q({session: sid, path: x.path})}">${esc(x.path)}</a>`).join('');
-}
-function cards(t) {
-  const c = [['Centers', num(t.centers)], ['Sales count', num(t.sales_count)], ['Sales revenue', inr(t.sales_revenue)],
-    ['Total revenue', inr(t.total_revenue)], ['New revenue', inr(t.new_revenue)], ['Repeat revenue', inr(t.repeat_revenue)],
-    ['Avg ticket', inr(t.avg_ticket)], ['Active rate', t.active_rate + '%']];
-  $('cards').innerHTML = c.map(x => `<div class="card"><div class="lbl">${esc(x[0])}</div><div class="val">${esc(x[1])}</div></div>`).join('');
-}
-function table(d) {
-  const H = d.header, R = d.rows, ex = d.extra || {}, money = [3, 6, 7, 8];
-  let t = '<thead><tr>' + H.concat(['active_%', 'avg_ticket']).map(h => `<th>${esc(h)}</th>`).join('') + '</tr></thead><tbody>';
-  t += R.map(r => { const e = ex[String(r[0])] || {};
-    return `<tr class="click" data-cid="${esc(r[0])}" data-cname="${esc(r[1])}">` + r.map((v, i) => `<td>${v == null ? '' : esc(money.includes(i) ? inr(v) : v)}</td>`).join('') +
-      `<td>${e.active_rate == null ? '' : esc(e.active_rate) + '%'}</td><td>${esc(inr(e.avg_ticket))}</td></tr>`; }).join('');
-  $('tbl').innerHTML = t + '</tbody>';
-}
-$('tbl').addEventListener('click', guard(async e => {
-  const tr = e.target.closest('tr.click'); if (!tr) return;
-  document.querySelectorAll('#tbl tr').forEach(x => x.classList.remove('sel')); tr.classList.add('sel');
-  const d = await api('sales/?' + q({session: CUR, center_id: tr.dataset.cid}));
-  $('detail').innerHTML = '<thead><tr>' + d.header.map(h => `<th>${esc(h)}</th>`).join('') + '</tr></thead><tbody>' +
-    d.rows.map(r => '<tr>' + r.map((v, i) => `<td>${v == null ? '' : esc(i === 7 ? inr(v) : v)}</td>`).join('') + '</tr>').join('') + '</tbody>';
-  $('detailTitle').textContent = `Member detail — ${tr.dataset.cname} (${d.rows.length} sales)`; $('detailPanel').classList.remove('hide');
-}));
-function packs(p) {
-  p = p || [];
-  $('packTbl').innerHTML = '<thead><tr><th>Pack</th><th>Sales</th><th>Revenue</th></tr></thead><tbody>' +
-    p.map(x => `<tr><td>${esc(x.pack)}</td><td>${num(x.count)}</td><td>${esc(inr(x.revenue))}</td></tr>`).join('') + '</tbody>';
-  const top = p.filter(x => x.revenue > 0).slice(0, 8), pal = ['#4f8cff', '#33c48d', '#f5a623', '#e5567b', '#9b6dff', '#2ec5c5', '#c9d14a', '#ff8a5c'];
-  packChart && packChart.destroy();
-  packChart = new Chart($('packChart'), {type: 'doughnut', data: {labels: top.map(x => x.pack), datasets: [{data: top.map(x => x.revenue), backgroundColor: pal}]},
-    options: {plugins: {legend: {position: 'right', labels: {boxWidth: 12, font: {size: 11}}}}}});
-}
-function charts(d) {
-  const H = d.header, R = d.rows, idx = n => H.indexOf(n), names = R.map(r => r[1] || r[0]);
-  const opt = st => ({scales: {x: {stacked: st}, y: {stacked: st}}});
-  revChart && revChart.destroy(); mixChart && mixChart.destroy();
-  revChart = new Chart($('revChart'), {type: 'bar', data: {labels: names, datasets: [{label: 'Total revenue', data: R.map(r => r[idx('total_revenue')]), backgroundColor: '#4f8cff'}]},
-    options: {...opt(false), plugins: {legend: {display: false}}}});
-  mixChart = new Chart($('mixChart'), {type: 'bar', data: {labels: names, datasets: [{label: 'New', data: R.map(r => r[idx('new_revenue')]), backgroundColor: '#33c48d'},
-    {label: 'Repeat', data: R.map(r => r[idx('repeat_revenue')]), backgroundColor: '#f5a623'}]}, options: opt(true)});
-}
-$('reload').onclick = guard(load); $('sess').onchange = guard(load);
-guard(init)();
-</script>
+{% if totals %}
+  <div class="grid gap-4 grid-cols-2 lg:grid-cols-4">
+    {% component "unfold/components/card.html" with title="Centers" %}<span class="text-2xl font-semibold">{{ totals.centers }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Sales count" %}<span class="text-2xl font-semibold">{{ totals.sales_count|intcomma }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Sales revenue" %}<span class="text-2xl font-semibold">₹{{ totals.sales_revenue|floatformat:0|intcomma }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Total revenue" %}<span class="text-2xl font-semibold">₹{{ totals.total_revenue|floatformat:0|intcomma }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="New revenue" %}<span class="text-2xl font-semibold">₹{{ totals.new_revenue|floatformat:0|intcomma }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Repeat revenue" %}<span class="text-2xl font-semibold">₹{{ totals.repeat_revenue|floatformat:0|intcomma }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Average ticket" %}<span class="text-2xl font-semibold">₹{{ totals.avg_ticket|intcomma }}</span>{% endcomponent %}
+    {% component "unfold/components/card.html" with title="Active rate" %}<span class="text-2xl font-semibold">{{ totals.active_rate }}%</span>{% endcomponent %}
+  </div>
+
+  <div class="grid gap-4 lg:grid-cols-2">
+    {% component "unfold/components/card.html" with title="Revenue by center" %}
+      {% component "unfold/components/chart/bar.html" with data=revenue_chart height=260 %}{% endcomponent %}
+    {% endcomponent %}
+    {% component "unfold/components/card.html" with title="New vs repeat revenue" %}
+      {% component "unfold/components/chart/bar.html" with data=mix_chart height=260 %}{% endcomponent %}
+    {% endcomponent %}
+  </div>
+
+  {% component "unfold/components/card.html" with title="Per-center analysis" %}
+    {% component "unfold/components/table.html" with table=table card_included=1 striped=1 height=480 %}{% endcomponent %}
+  {% endcomponent %}
+
+  <div class="grid gap-4 lg:grid-cols-2">
+    {% component "unfold/components/card.html" with title="Pack mix — revenue share" %}
+      {% component "unfold/components/chart/bar.html" with data=pack_chart height=260 %}{% endcomponent %}
+    {% endcomponent %}
+    {% component "unfold/components/card.html" with title="Packs" %}
+      <div class="max-h-72 overflow-auto">
+        <table class="w-full text-sm">
+          <thead><tr><th class="text-left">Pack</th><th class="text-right">Sales</th><th class="text-right">Revenue</th></tr></thead>
+          <tbody>{% for p in packs %}<tr><td>{{ p.pack_name }}</td><td class="text-right">{{ p.sales|intcomma }}</td><td class="text-right">₹{{ p.revenue|default:0|floatformat:0|intcomma }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+    {% endcomponent %}
+  </div>
+{% else %}
+  {% component "unfold/components/card.html" %}No data yet — start a scrape from <a class="text-primary-600" href="{% url 'console:run' %}">Run a scrape</a>.{% endcomponent %}
+{% endif %}
 {% endblock %}

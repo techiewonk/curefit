@@ -43,8 +43,7 @@ def new_session(start, end, center_ids, reports, speed="normal", workers=1):
 
 def find_unfinished(start, end):
     """Latest session for exactly this period that did not complete."""
-    return (Session.objects.filter(start_date=start, end_date=end)
-            .exclude(status__in=[Session.COMPLETE, Session.LEGACY]).order_by("-created_at").first())
+    return Session.objects.for_period(start, end).unfinished().first()
 
 
 # ------------------------------------------------------------------ run

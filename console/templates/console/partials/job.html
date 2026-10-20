@@ -1,0 +1,39 @@
+{% load unfold %}
+{% component "unfold/components/card.html" with title="Current run" %}
+  {% if not job %}
+    <p>No run yet.</p>
+  {% else %}
+    <div class="flex flex-row flex-wrap gap-3 items-center mb-3">
+      <span class="font-medium px-2 py-1 rounded-default text-xs
+        {% if job.state == 'done' %}bg-green-100 text-green-700
+        {% elif job.state == 'error' or job.state == 'interrupted' %}bg-red-100 text-red-700
+        {% else %}bg-primary-100 text-primary-700{% endif %}">
+        {% if job.pause_requested and job.is_active %}paused{% elif job.stop_requested and job.is_active %}stopping{% else %}{{ job.state }}{% endif %}
+      </span>
+      <span>Session <a class="text-primary-600" href="{% url 'admin:scraper_session_change' job.session_id %}">{{ job.session_id }}</a></span>
+      <span class="text-font-subtle-light dark:text-font-subtle-dark">{{ job.desc }}</span>
+      {% if job.error %}<strong class="text-red-600">{{ job.error }}</strong>{% endif %}
+    </div>
+
+    {% component "unfold/components/progress.html" with value=job.percent title="Progress" %}{% endcomponent %}
+    <p class="mt-2 text-sm">
+      {{ job.done }} / {{ job.total }} ({{ job.percent }}%)
+      {% if job.eta_seconds %}· about {{ job.eta_seconds|floatformat:0 }} s left{% endif %}
+    </p>
+
+    {% if job.is_active %}
+      <div class="flex flex-row gap-3 my-3">
+        <button hx-post="{% url 'console:job_action' 'pause' %}" hx-target="#job-panel"
+                class="border border-base-200 font-medium px-3 py-2 rounded-default dark:border-base-700">
+          {% if job.pause_requested %}Resume{% else %}Pause{% endif %}
+        </button>
+        <button hx-post="{% url 'console:job_action' 'stop' %}" hx-target="#job-panel"
+                class="border border-red-500 font-medium px-3 py-2 rounded-default text-red-600">Stop</button>
+        <a class="px-3 py-2 text-primary-600" href="{% url 'console:monitor' %}?session={{ job.session_id }}">Open the live monitor →</a>
+      </div>
+    {% endif %}
+
+    <pre class="bg-base-100 dark:bg-base-800 max-h-64 overflow-auto p-3 rounded-default text-xs whitespace-pre-wrap">{% for line in job.log|slice:"-40:" %}{{ line }}
+{% empty %}No log lines yet.{% endfor %}</pre>
+  {% endif %}
+{% endcomponent %}

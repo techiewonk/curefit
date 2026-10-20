@@ -191,7 +191,7 @@ class Command(BaseCommand):
                 f"SELECT DISTINCT report FROM scrape_log WHERE {sid_expr}=? AND start_date=? "
                 f"AND end_date=?", (sid, start, end))]
             defaults = {"start_date": _date(start), "end_date": _date(end),
-                        "status": Session.LEGACY, "created_at": _aware(times[0]),
+                        "status": Session.COMPLETE, "created_at": _aware(times[0]),
                         "finished_at": _aware(times[1]), "reports": reps,
                         "center_ids": sorted(ids, key=int)}
             if sid in info:

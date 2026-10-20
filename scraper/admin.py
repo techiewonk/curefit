@@ -16,7 +16,7 @@ from .models import (CardColumns, CardRow, GymMember, Job, PerfMetric, SalesReco
 
 STATUS_LABELS = {"complete": "success", "ok": "success", "done": "success", "incomplete": "warning",
                  "slow": "warning", "empty": "info", "running": "info", "queued": "info",
-                 "legacy": "info", "interrupted": "danger", "failed": "danger", "error": "danger",
+                 "interrupted": "danger", "failed": "danger", "error": "danger",
                  "skipped": "danger"}
 
 

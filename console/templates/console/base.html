@@ -1,0 +1,12 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+{# HTMX (bundled with Unfold) swaps the live panels; every POST it makes carries the CSRF token #}
+<script src="{% static 'unfold/js/htmx/htmx.js' %}"></script>
+<div hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}' class="flex flex-col gap-6">
+  {% block page %}{% endblock %}
+</div>
+{% endblock %}

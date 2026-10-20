@@ -1,0 +1,5 @@
+{% if estimate %}
+  {{ estimate.centers }} centers × {{ estimate.reports }} reports = {{ estimate.pairs }} fetches ·
+  roughly {{ estimate.low_text }} to {{ estimate.high_text }} with {{ estimate.workers }} at a time
+  {% if estimate.assumed %}<span class="block text-xs">{{ estimate.assumed|length }} report(s) have no timings yet and are assumed at 40 s each.</span>{% endif %}
+{% endif %}
