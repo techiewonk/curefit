@@ -82,7 +82,7 @@ def send_otp(email=EMAIL):
         "namespace": NAMESPACE,
         "callbackURL": CALLBACK_URL,
     }
-    r = s.post(f"{ACCOUNTS}/login/otp/email/send", json=payload)
+    r = s.post(f"{ACCOUNTS}/login/otp/email/send", json=payload, timeout=30)
     print(f"[send] status={r.status_code}")
     print(f"[send] body={r.text}")
     save_session(s)
@@ -100,7 +100,7 @@ def validate_otp(otp, email=EMAIL):
     }
     # don't auto-follow so we can inspect any redirect / erpToken
     r = s.post(f"{ACCOUNTS}/login/otp/email/validate", json=payload,
-               allow_redirects=False)
+               allow_redirects=False, timeout=30)
     print(f"[validate] status={r.status_code}")
     print(f"[validate] headers={json.dumps(dict(r.headers), indent=2)}")
     print(f"[validate] cookies={requests.utils.dict_from_cookiejar(s.cookies)}")
@@ -149,7 +149,7 @@ def establish_session():
         "accept": ("text/html,application/xhtml+xml,application/xml;q=0.9,"
                    "image/avif,image/webp,image/apng,*/*;q=0.8"),
         "referer": f"{ACCOUNTS}/",
-    }, allow_redirects=True)
+    }, allow_redirects=True, timeout=30)
     print(f"[session] status={r.status_code} final_url={r.url}")
     print(f"[session] cookies={requests.utils.dict_from_cookiejar(s.cookies)}")
     save_session(s, extra)
@@ -161,7 +161,7 @@ def get_centers():
     r = s.get(f"{KRONOS}/v1/user/centers", headers={
         "accept": "application/json",
         "referer": f"{KRONOS}/",
-    })
+    }, timeout=30)
     print(f"[centers] status={r.status_code}")
     if r.status_code == 200:
         data = r.json()
@@ -173,6 +173,19 @@ def get_centers():
     else:
         print(f"[centers] body={r.text[:500]}")
     return r
+
+
+def session_ok():
+    """True if the saved session is accepted by Kronos (cheap authenticated call)."""
+    s, extra = load_session()
+    if not extra.get("erpToken"):
+        return False
+    try:
+        r = s.get(f"{KRONOS}/v1/user/centers", headers={"accept": "application/json",
+                                                         "referer": f"{KRONOS}/"}, timeout=30)
+    except requests.RequestException:
+        return False
+    return r.status_code == 200
 
 
 def interactive_login(email=EMAIL):

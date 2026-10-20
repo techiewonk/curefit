@@ -16,3 +16,6 @@ __pycache__/
 .venv/
 *.bak
 gym_members_*.csv
+# any generated per-period report
+*_20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]_*.csv
+coverage_*.csv

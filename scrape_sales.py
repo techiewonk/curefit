@@ -54,6 +54,9 @@ DELAY_MAX = 3.0          # max seconds between requests
 MAX_RETRIES = 4          # retries per failed request
 BACKOFF_BASE = 2.0       # exponential backoff base (seconds)
 ROW_CAP = 10000          # Metabase's default result cap; a 3,293-row result was seen intact, so 2,000 is not the limit
+POLL_SECONDS = 240        # how long to wait for a slow Metabase query (HTTP 202 / not completed)
+AUTH_FAIL_LIMIT = 3      # consecutive 401/403s before the run stops and asks for a re-login
+REPORT_FAIL_LIMIT = 3    # a report failing this many times in a row with no success is skipped
 TIMEOUT = 300            # per-request read timeout (seconds) - metabase can be slow
 
 # report definitions -- add a new dict here to scrape another dashboard
@@ -78,6 +81,41 @@ REPORTS = {
         "data_params": lambda s, e: {"start": s, "end": e, "granular": "month"},
     },
 }
+
+
+def _perf_card(dashcard, card):
+    return {"dashboard": 1750, "dashcard": dashcard, "card": card,
+            "referer": "https://kronos.curefit.co/reports/perf-dashboard",
+            "iframe_query": lambda cid, s, e: {"start": s, "end": e},
+            "data_params": lambda s, e: {"start": s, "end": e, "granular": "month"}}
+
+
+def _sales_card(dashcard, card):
+    return {"dashboard": 2536, "dashcard": dashcard, "card": card,
+            "referer": "https://kronos.curefit.co/reports/sales_perfromance",
+            "iframe_query": lambda cid, s, e: {"start_date": s, "end_date": e, "center_id": str(cid)},
+            "data_params": lambda s, e: {"start_date": s, "end_date": e}}
+
+
+# extra cards, stored generically (card columns are not known in advance)
+GENERIC_REPORTS = {
+    "perf_pack_purchase": _perf_card(13385, 24754),      # Pack Purchase and Split
+    "perf_packs_split": _perf_card(13423, 24773),        # Packs Split
+    "perf_membership": _perf_card(13424, 24774),         # Membership Count
+    "perf_expiries": _perf_card(14436, 25931),           # Expiries and Retention
+    "perf_trial_funnel": _perf_card(13426, 24776),       # Trial Funnel
+    "perf_walkin_funnel": _perf_card(13432, 24783),      # Walkin Funnel
+    "perf_workout_feedback": _perf_card(13429, 24779),   # Workout Feedback
+    "perf_ratings": _perf_card(13431, 24781),            # Ratings
+    "perf_trainer_rating": _perf_card(18537, 34056),     # Trainer level rating
+    "sales_center_trials": _sales_card(19818, 39680),    # Center Overview (Trials)
+    "sales_cm_trials": _sales_card(19819, 39681),        # CM Overview (Trials)
+    "sales_lead_view": _sales_card(19817, 39679),        # Lead View (Assigned Manager) - 30 days
+    "sales_lead_quality": _sales_card(21562, 43869),     # Lead Quality & Conversion
+    "sales_center_walkins": _sales_card(19820, 39682),   # Center Overview (Walk-Ins)
+    "sales_cm_walkins": _sales_card(19821, 39683),       # CM Overview (Walk-Ins)
+}
+REPORTS.update(GENERIC_REPORTS)
 # ===================================================================
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -141,6 +179,12 @@ def init_db(conn):
         scraped_at TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_gym_period ON gym_members (center_id, start_date, end_date);
+    CREATE TABLE IF NOT EXISTS card_rows (
+        report TEXT, center_id TEXT, center_name TEXT, center_code TEXT,
+        start_date TEXT, end_date TEXT, row_num INTEGER, data TEXT, scraped_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_card_rows ON card_rows (report, center_id, start_date, end_date);
+    CREATE TABLE IF NOT EXISTS card_columns (report TEXT PRIMARY KEY, columns TEXT);
     CREATE TABLE IF NOT EXISTS scrape_log (
         report TEXT, center_id TEXT, start_date TEXT, end_date TEXT,
         row_count INTEGER, scraped_at TEXT,
@@ -171,16 +215,28 @@ def _migrate_sales(conn):
 
 
 # ------------------------- HTTP core -------------------------
+class AuthError(Exception):
+    """Session rejected (401/403): retrying is pointless, a re-login is needed."""
+
+
 def _with_retry(fn, what):
     last = None
     for attempt in range(MAX_RETRIES):
         try:
             return fn()
+        except requests.HTTPError as e:
+            code = e.response.status_code if e.response is not None else None
+            if code in (401, 403):
+                raise AuthError(f"{what}: HTTP {code}") from e
+            if code in (400, 404):
+                raise
+            last = e
         except Exception as e:
             last = e
-            wait = BACKOFF_BASE * (2 ** attempt) + random.uniform(0, 1)
-            print(f"    ! {what} failed ({e}); retry {attempt+1}/{MAX_RETRIES} in {wait:.1f}s")
-            time.sleep(wait)
+        wait = BACKOFF_BASE * (2 ** attempt) + random.uniform(0, 1)
+        log.warning("retry", what=what, error=str(last), attempt=attempt + 1,
+                    of=MAX_RETRIES, wait_s=round(wait, 1))
+        time.sleep(wait)
     raise last
 
 
@@ -224,21 +280,31 @@ def warm_up(mb, token):
             log.warning("warmup_failed", url=url.split("?")[0], error=str(e))
 
 
-def get_rows(mb, rep, token, start, end, tries=6):
+def get_rows(mb, rep, token, start, end):
+    """Return (rows, column_names) once Metabase reports the query completed."""
     params = urllib.parse.quote(json.dumps(rep["data_params"](start, end)))
     url = (f"https://metabase.curefit.co/api/embed/dashboard/{token}"
            f"/dashcard/{rep['dashcard']}/card/{rep['card']}?parameters={params}")
     hdr = {**_embed_headers(token), "x-metabase-guest-embed": "true"}
 
     def do():
-        for _ in range(tries):
+        deadline = time.time() + POLL_SECONDS
+        status = None
+        while True:
             r = mb.get(url, headers=hdr, timeout=TIMEOUT)
             r.raise_for_status()
-            j = r.json()
-            if j.get("status") == "completed":
-                return j["data"]["rows"]
-            time.sleep(1.5)  # metabase still computing
-        raise RuntimeError(f"metabase query not completed (status={j.get('status')!r})")
+            if r.status_code != 202:  # 202 = still computing; body is not a result yet
+                j = r.json()
+                status = j.get("status")
+                if status == "completed":
+                    data = j["data"]
+                    return data["rows"], [c.get("name") for c in data.get("cols", [])]
+                if status == "failed":
+                    raise RuntimeError(f"metabase query failed: {j.get('error')}")
+            if time.time() > deadline:
+                raise RuntimeError(f"metabase query not completed after {POLL_SECONDS}s "
+                                   f"(status={status!r})")
+            time.sleep(2)
     return _with_retry(do, "data")
 
 
@@ -270,6 +336,17 @@ def store_gym(conn, cid, name, code, start, end, rows, now):
 
 
 STORE = {"sales": store_sales, "perf": store_perf, "gym": store_gym}
+
+
+def store_generic(conn, report, cols, cid, name, code, start, end, rows, now):
+    """Cards whose columns are not modelled: one JSON row each, columns kept per report."""
+    conn.execute("DELETE FROM card_rows WHERE report=? AND center_id=? AND start_date=? AND end_date=?",
+                 (report, cid, start, end))
+    conn.executemany(
+        "INSERT INTO card_rows VALUES (?,?,?,?,?,?,?,?,?)",
+        [(report, cid, name, code, start, end, i, json.dumps(r, default=str), now)
+         for i, r in enumerate(rows)])
+    conn.execute("INSERT OR REPLACE INTO card_columns VALUES (?,?)", (report, json.dumps(cols)))
 
 
 # --------------------------- reports ---------------------------
@@ -339,6 +416,25 @@ def export_reports(conn, start, end):
         f"ORDER BY CAST(center_id AS INT), username", (start, end)).fetchall()
     p = versioned_path(os.path.join(HERE, f"gym_members_{start}_{end}_{ts}"))
     _write_csv(p, gcols, grows); written.append(p)
+
+    # 3c) generic cards: one CSV per report that has data for this period
+    for rname in GENERIC_REPORTS:
+        row = conn.execute("SELECT columns FROM card_columns WHERE report=?", (rname,)).fetchone()
+        data = conn.execute(
+            "SELECT center_id, center_name, center_code, data, scraped_at FROM card_rows "
+            "WHERE report=? AND start_date=? AND end_date=? "
+            "ORDER BY CAST(center_id AS INT), row_num", (rname, start, end)).fetchall()
+        if not row or not data:
+            continue
+        cols = json.loads(row[0])
+        out = []
+        for cid, cn, cc, d, scraped in data:
+            vals = json.loads(d)
+            vals += [None] * (len(cols) - len(vals))
+            out.append([cid, cn, cc] + vals + [scraped])
+        p = versioned_path(os.path.join(HERE, f"{rname}_{start}_{end}_{ts}"))
+        _write_csv(p, ["center_id", "center_name", "center_code"] + cols + ["scraped_at"], out)
+        written.append(p)
 
     # 4) analysis: revenue summary + new/repeat split + combined
     analysis = build_analysis(conn, start, end, metrics)
@@ -516,6 +612,20 @@ def print_analysis(analysis, start, end):
 
 
 # ----------------------------- runner -----------------------------
+def _write_coverage(stats, start, end):
+    ts = time.strftime("%Y%m%d-%H%M%S")
+    path = versioned_path(os.path.join(HERE, f"coverage_{start}_{end}_{ts}"))
+    rows = []
+    for rep_name, st in stats.items():
+        rows.append([rep_name, st["requested"], st["already_done"], st["ok"], len(st["empty"]),
+                     len(st["failed"]), len(st["capped"]), "yes" if st["skipped"] else "",
+                     " ".join(st["empty"]), " ".join(st["failed"])])
+    _write_csv(path, ["report", "requested", "already_done", "scraped", "empty", "failed",
+                      "possibly_truncated", "skipped_after_failures", "empty_center_ids",
+                      "failed_center_ids"], rows)
+    return path, rows
+
+
 def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refresh=False):
     """Scrape all configured reports for the centers in the CSV. Callable from run.py."""
     csv_path = centers_csv if os.path.isabs(centers_csv) else os.path.join(HERE, centers_csv)
@@ -535,92 +645,133 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
     console.print(Panel.fit(
         f"[bold]Curefit scraper[/bold]\n"
         f"period [cyan]{start} → {end}[/cyan]\n"
-        f"centers [cyan]{len(ids)}[/cyan]   reports [cyan]{', '.join(reports)}[/cyan]\n"
+        f"centers [cyan]{len(ids)}[/cyan]   reports [cyan]{len(reports)}[/cyan]\n"
         f"db [dim]{db_path}[/dim]", border_style="cyan"))
 
-    ok_count = fail_count = 0
-    empty = []
-    capped = []
-    progress = Progress(
-        SpinnerColumn(),
-        TextColumn("[bold]{task.fields[report]}[/bold]"),
-        BarColumn(),
-        MofNCompleteColumn(),
-        TextColumn("{task.description}"),
-        TimeElapsedColumn(),
-        console=console,
-    )
+    stats, done = {}, {}
+    for rep_name in reports:
+        done[rep_name] = set() if refresh else {r[0] for r in conn.execute(
+            "SELECT center_id FROM scrape_log WHERE report=? AND start_date=? AND end_date=? "
+            "AND row_count>0", (rep_name, start, end))}
+        stats[rep_name] = {"requested": len(ids), "already_done": len(done[rep_name] & set(ids)),
+                           "ok": 0, "empty": [], "failed": [], "capped": [], "skipped": False}
+
+    # reports sharing a dashboard share one signed token per center
+    groups = {}
+    for rep_name in reports:
+        groups.setdefault(REPORTS[rep_name]["dashboard"], []).append(rep_name)
+
+    total = sum(len([c for c in ids if c not in done[r]]) for r in reports)
+    fail_streak = {r: 0 for r in reports}
+    auth_failures, aborted = 0, False
+
+    progress = Progress(SpinnerColumn(), BarColumn(), MofNCompleteColumn(),
+                        TextColumn("{task.description}"), TimeElapsedColumn(), console=console)
     with progress:
-        for rep_name in reports:
-            rep = REPORTS[rep_name]
-            done = set()
-            if not refresh:
-                done = {r[0] for r in conn.execute(
-                    "SELECT center_id FROM scrape_log WHERE report=? AND start_date=? AND end_date=? "
-                    "AND row_count>0",
-                    (rep_name, start, end))}
-            todo = [c for c in ids if c not in done]
-            log.info("report_start", report=rep_name, to_scrape=len(todo), skipped=len(done))
-            task = progress.add_task("", report=rep_name, total=len(todo))
-
-            for cid in todo:
-                name, code = meta.get(cid, ("", ""))
-                now = time.strftime("%Y-%m-%dT%H:%M:%S")
-                progress.update(task, description=f"center {cid} [dim]{name or code}[/dim]")
-                try:
-                    rows = []
-                    for attempt in (1, 2):  # an empty 200 gets one retry with a fresh token
-                        token = get_token(session, rep, cid, start, end)
-                        warm_up(mb, token)
-                        rows = get_rows(mb, rep, token, start, end)
-                        if rows:
-                            break
-                        log.info("empty_result_retry", report=rep_name, center_id=cid,
-                                 attempt=attempt)
-                        polite_sleep()
-                    if not rows:
-                        # don't mark as done: an empty result may be a transient miss
-                        conn.rollback()
-                        empty.append((rep_name, cid))
-                        log.warning("center_empty", report=rep_name, center_id=cid,
-                                    center=name or code)
+        task = progress.add_task("", total=total)
+        for cid in ids:
+            name, code = meta.get(cid, ("", ""))
+            for reps in groups.values():
+                token = None
+                for rep_name in [r for r in reps if cid not in done[r]]:
+                    st = stats[rep_name]
+                    if st["skipped"]:
                         progress.advance(task)
-                        polite_sleep()
                         continue
-                    if len(rows) >= ROW_CAP:
-                        capped.append((rep_name, cid, len(rows)))
-                        log.warning("possible_truncation", report=rep_name, center_id=cid,
-                                    rows=len(rows), cap=ROW_CAP)
-                    STORE[rep_name](conn, cid, name, code, start, end, rows, now)
-                    conn.execute("INSERT OR REPLACE INTO scrape_log VALUES (?,?,?,?,?,?)",
-                                 (rep_name, cid, start, end, len(rows), now))
-                    conn.commit()
-                    ok_count += 1
-                    log.info("center_ok", report=rep_name, center_id=cid,
-                             center=name or code, rows=len(rows))
-                except Exception as e:
-                    conn.rollback()
-                    fail_count += 1
-                    log.error("center_failed", report=rep_name, center_id=cid, error=str(e))
-                progress.advance(task)
-                polite_sleep()
+                    rep = REPORTS[rep_name]
+                    now = time.strftime("%Y-%m-%dT%H:%M:%S")
+                    progress.update(task, description=f"{rep_name} · center {cid} "
+                                                      f"[dim]{name or code}[/dim]")
+                    try:
+                        rows, cols = [], []
+                        for attempt in (1, 2):  # an empty result gets one retry, fresh token
+                            if token is None:
+                                token = get_token(session, rep, cid, start, end)
+                                warm_up(mb, token)
+                            rows, cols = get_rows(mb, rep, token, start, end)
+                            if rows:
+                                break
+                            log.info("empty_result_retry", report=rep_name, center_id=cid,
+                                     attempt=attempt)
+                            token = None
+                            polite_sleep()
+                        if not rows:
+                            # not logged as done: an empty result may be a transient miss
+                            st["empty"].append(cid)
+                            log.warning("center_empty", report=rep_name, center_id=cid,
+                                        center=name or code)
+                        else:
+                            if len(rows) >= ROW_CAP:
+                                st["capped"].append(cid)
+                                log.warning("possible_truncation", report=rep_name,
+                                            center_id=cid, rows=len(rows), cap=ROW_CAP)
+                            if rep_name in STORE:
+                                STORE[rep_name](conn, cid, name, code, start, end, rows, now)
+                            else:
+                                store_generic(conn, rep_name, cols, cid, name, code,
+                                              start, end, rows, now)
+                            conn.execute("INSERT OR REPLACE INTO scrape_log VALUES (?,?,?,?,?,?)",
+                                         (rep_name, cid, start, end, len(rows), now))
+                            conn.commit()
+                            st["ok"] += 1
+                            log.info("center_ok", report=rep_name, center_id=cid,
+                                     center=name or code, rows=len(rows))
+                        fail_streak[rep_name] = 0
+                        auth_failures = 0
+                    except AuthError as e:
+                        conn.rollback()
+                        st["failed"].append(cid)
+                        auth_failures += 1
+                        log.error("auth_failed", report=rep_name, center_id=cid, error=str(e))
+                    except Exception as e:
+                        conn.rollback()
+                        token = None
+                        st["failed"].append(cid)
+                        fail_streak[rep_name] += 1
+                        log.error("center_failed", report=rep_name, center_id=cid, error=str(e))
+                        if fail_streak[rep_name] >= REPORT_FAIL_LIMIT and st["ok"] == 0:
+                            st["skipped"] = True
+                            log.error("report_skipped", report=rep_name,
+                                      reason=f"{REPORT_FAIL_LIMIT} failures in a row, none succeeded")
+                    progress.advance(task)
+                    if auth_failures >= AUTH_FAIL_LIMIT:
+                        aborted = True
+                        break
+                    polite_sleep()
+                if aborted:
+                    break
+            if aborted:
+                break
 
-    log.info("scrape_done", ok=ok_count, failed=fail_count, empty=len(empty),
-             possibly_truncated=len(capped))
-    if capped:
-        console.print(f"[red]{len(capped)} results hit the {ROW_CAP}-row cap and may be "
-                      f"incomplete — re-run these centers with a shorter date range:[/red] "
-                      + ", ".join(f"{r}:{c} ({n} rows)" for r, c, n in capped))
-    if empty:
-        console.print(f"[yellow]{len(empty)} center/report pairs returned no rows and will be "
-                      f"retried next run:[/yellow] "
-                      + ", ".join(f"{r}:{c}" for r, c in empty))
+    if aborted:
+        console.print("[bold red]Session rejected (401/403) — stopping. Log in again "
+                      "(python run.py) and re-run; finished centers are kept.[/bold red]")
+
+    totals = {k: sum(len(v[k]) for v in stats.values()) for k in ("empty", "failed", "capped")}
+    totals["ok"] = sum(v["ok"] for v in stats.values())
+    log.info("scrape_done", ok=totals["ok"], failed=totals["failed"], empty=totals["empty"],
+             possibly_truncated=totals["capped"], aborted=aborted)
+
     written, analysis = export_reports(conn, start, end)
+    cov_path, cov_rows = _write_coverage(stats, start, end)
+    written.append(cov_path)
     print_analysis(analysis, start, end)
 
+    cov = Table(title="Coverage", header_style="bold cyan")
+    for h in ("Report", "Centers", "Already done", "Scraped", "Empty", "Failed", "Capped", "Skipped"):
+        cov.add_column(h, justify="right" if h != "Report" else "left")
+    for r in cov_rows:
+        cov.add_row(str(r[0]), str(r[1]), str(r[2]), str(r[3]), str(r[4]), str(r[5]),
+                    str(r[6]), "yes" if r[7] else "")
+    console.print(cov)
+    for rep_name, st in stats.items():
+        if st["capped"]:
+            console.print(f"[red]{rep_name}: {len(st['capped'])} result(s) hit the {ROW_CAP}-row "
+                          f"cap, may be incomplete (centers {', '.join(st['capped'])})[/red]")
+
     files_tbl = Table(title="Files written", header_style="bold green", show_header=False)
-    for p in written:
-        files_tbl.add_row(os.path.basename(p))
+    for pth in written:
+        files_tbl.add_row(os.path.basename(pth))
     console.print(files_tbl)
     conn.close()
     return written

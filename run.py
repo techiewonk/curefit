@@ -52,10 +52,9 @@ def main():
 
     # 1. Login (interactive OTP)
     C.interactive_login()
-    # bail out if session was not established
-    _, extra = C.load_session()
-    if not extra.get("erpToken"):
-        console.print("[red]Login did not complete — aborting.[/red]")
+    # bail out unless Kronos actually accepts the session
+    if not C.session_ok():
+        console.print("[red]Login did not complete (session rejected) — aborting.[/red]")
         sys.exit(1)
 
     # 2. Ask period
@@ -67,9 +66,12 @@ def main():
         console.print("[yellow]Start is after end — swapping them.[/yellow]")
         start, end = end, start
 
+    refresh = Prompt.ask("Re-scrape centers already saved for this period?",
+                         choices=["n", "y"], default="n") == "y"
+
     # 3 + 4. Scrape (centers come from centers_to_process.csv)
     console.rule("[bold]Scraping[/bold]")
-    S.run_scrape(start, end)
+    S.run_scrape(start, end, refresh=refresh)
 
     console.print("\n[bold green]All done.[/bold green] "
                   "Open the dashboard_*.html file to view results.")
