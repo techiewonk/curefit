@@ -1,0 +1,1438 @@
+id,name,centerCode,state,centerType,locality,cityID,countryID,managementClusterArea,capacity,upcoming,saleDisabled,isPublished,phone,launchDate,shutdownDate,centerServiceId,sellerId
+1,Cult Indiranagar ,IND,ACTIVE,BLACK,Indiranagar,1,1,Central Blr,945,False,False,True,+918012345679,2016-12-01,,115,SELLER_CULT_BLR_2
+2,Cult JP Nagar,JPN,ACTIVE,BLACK,JP Nagar,1,1,South2 Blr,1386,False,False,True,+918012345679,2016-12-01,,116,SELLER_CULT_BLR_2
+3,Cult HSR 19th Main,HSR,ACTIVE,BLACK,HSR Layout,1,1,South1 Blr,2394,False,False,True,+918012345679,2016-12-01,,117,SELLER_CULT_BLR_2
+4,Cult Sarjapur,SJP,ACTIVE,BLACK,Others,1,1,South1 Blr,1176,False,False,True,+918012345679,2016-12-01,,118,SELLER_CULT_BLR_2
+5,Cult Bellandur,BLD,ACTIVE,BLACK,Bellandur,1,1,South1 Blr,3339,False,False,True,+918012345679,2017-01-09,,119,SELLER_CULT_BLR_2
+6,Cult Koramangala 80ft Rd,KOR,ACTIVE,BLACK,Koramangala,1,1,Central Blr,2016,False,False,True,+918012345679,2017-03-06,,120,SELLER_CULT_BLR_2
+7,Cult Tribe Indiranagar,TID,ACTIVE,BLACK,Indiranagar,1,1,Central Blr,2415,False,False,True,+918012345679,2017-04-03,,121,SELLER_CULT_BLR_2
+9,Cult Whitefield,WFL,ACTIVE,BLACK,Whitefield,1,1,East Blr,798,False,False,True,+918012345679,2017-05-29,,123,SELLER_CULT_BLR_2
+10,Cult Koramangala JNC,KORJNC,INACTIVE,BLACK,Koramangala,1,1,Central Blr,540,False,False,True,+918012345679,2017-06-26,2019-06-28,124,SELLER_CULT_BLR_2
+11,Cult Koramangala Bethany,KOR20,INACTIVE,BLACK,Koramangala,1,1,Central Blr,735,False,True,True,+918012345679,2017-06-26,,125,SELLER_CULT_BLR_2
+12,Cult HSR Sector 7,HSR7,INACTIVE,BLACK,HSR Layout,1,1,BLR - South1,735,False,False,True,+918012345679,2017-07-24,,126,SELLER_CULT_BLR_2
+13,Cult HSR 27th Main,HSR27,INACTIVE,BLACK,HSR Layout,1,1,BLR - South2,0,False,True,True,+918012345679,2017-07-31,2018-02-28,127,SELLER_CULT_BLR_2
+14,Mind.fit Koramangala,MKOR,INACTIVE,BLACK,Koramangala,1,1,BLR - Central,504,False,False,True,+918012345679,2017-08-28,,128,SELLER_CULT_BLR_2
+15,"Cult Whitefield, Shantiniketan",WFLSNT,ACTIVE,BLACK,Whitefield,1,1,East Blr,2793,False,False,True,+918012345679,2017-08-21,,129,SELLER_CULT_BLR_2
+16,"Cult Indiranagar, 80 feet road",IND80,INACTIVE,BLACK,Indiranagar,1,1,BLR - Central,672,False,True,True,+918012345679,2017-08-31,,130,SELLER_CULT_BLR_2
+17,"Cult BTM, 6th Main Rd",BTM6,INACTIVE,BLACK,BTM Layout,1,1,South2 Blr,504,False,False,True,+918012345679,2017-09-20,,131,SELLER_CULT_BLR_2
+18,Mind.fit Whitefield,MWFD,INACTIVE,BLACK,Whitefield,1,1,BLR - East,525,False,False,True,+918012345679,2017-10-30,,132,SELLER_CULT_BLR_2
+19,"Cult Baani, Sector 56",GBAN,INACTIVE,BLACK,Others,2,1,NCR Gurgaon Golf Course Road,1596,False,True,True,+911242345679,2017-11-13,,133,SELLER_CULT_CFS_GGN
+20,Cult Mahadevapura ,MDP,ACTIVE,BLACK,Mahadevpura,1,1,East Blr,1932,False,False,True,+918012345679,2017-11-14,,134,SELLER_CULT_BLR_2
+21,Cult Malleshwaram,MLS,ACTIVE,BLACK,Malleshwaram,1,1,North Blr,1260,False,False,True,+918012345679,2017-11-20,,135,SELLER_CULT_BLR_2
+22,Cult DLF Cyber Greens ,GDCG,INACTIVE,BLACK,DLF Phase 2,2,1,NCR Gurgaon Golf Course Road,840,False,True,True,+911242345679,2017-12-12,,136,SELLER_CULT_CFS_GGN
+23,Mind.fit Bellandur,MBLD,INACTIVE,BLACK,Bellandur,1,1,BLR - South1,861,False,False,True,+918012345679,2017-12-10,,137,SELLER_CULT_BLR_2
+24,Cult Jayanagar,JAY,INACTIVE,BLACK,Jayanagar,1,1,South2 Blr,945,False,False,True,+918012345679,2017-12-18,,138,SELLER_CULT_BLR_2
+25,Cult Basaveshwar Nagar,BSN,INACTIVE,BLACK,Basaveshwar Nagar,1,1,West Blr,882,False,False,True,+918012345679,2017-12-22,,139,SELLER_CULT_BLR_2
+26,Cult Galleria,GGLR,INACTIVE,BLACK,DLF Phase 4,2,1,NCR Gurgaon Central,1500,False,True,True,+911242345679,2017-12-25,,140,SELLER_CULT_CFS_GGN
+27,Cult Outdoors Koramangala,CKOUT,INACTIVE,BLACK,Koramangala,1,1,BLR - Central,120,False,False,True,+918012345679,2017-12-04,2019-01-19,141,SELLER_CULT_BLR_2
+28,Cult CSE,CCSE,INACTIVE,BLACK,Jala Hobli,1,1,BLR - North,315,False,False,True,+918012345679,2017-12-22,,142,SELLER_CULT_BLR_2
+30,Cult RMV 2nd Stage (Deprecated),RMV2,INACTIVE,BLACK,RMV 2nd Stage,1,1,North Blr,1155,False,False,True,+918012345679,2018-01-22,,143,SELLER_CULT_BLR_2
+31,Cult Electronic City,ECITY,ACTIVE,BLACK,Electronic City,1,1,South2 Blr,1554,False,False,True,+918012345679,2018-01-22,,144,SELLER_CULT_BLR_2
+32,Cult Sector 29,GSC29,INACTIVE,BLACK,Sector 29,2,1,GGN,840,False,False,True,+911242345679,2018-01-25,,145,SELLER_CULT_CFS_GGN
+33,Mind.fit HSR,MHSR,INACTIVE,BLACK,HSR,1,1,BLR - South1,714,False,False,True,+918012345679,2018-01-29,,146,SELLER_CULT_BLR_2
+34,Cult Sector 54,EMAR,INACTIVE,BLACK,Sector 54,2,1,GGN,630,False,False,True,+911242345679,2018-01-31,,147,SELLER_CULT_CFS_GGN
+35,Mind.fit Indiranagar,MIND,INACTIVE,BLACK,Indiranagar,1,1,BLR - Central,798,False,False,True,+918012345679,2018-02-13,,148,SELLER_CULT_BLR_2
+36,Cult Hauz Khas,HZK,INACTIVE,BLACK,Hauz Khas,2,1,NCR Delhi South,1600,False,False,True,+911242345679,2018-03-09,,149,SELLER_CULT_CFS_DELHI
+38,Cult Sports Center Malleshwaram,SCMLM,INACTIVE,BLACK,Malleshwaram,1,1,BLR - North,170,False,True,True,+918012345679,2018-02-26,,151,SELLER_CULT_BLR_2
+40,Cult Banashankari,BNSK,ACTIVE,BLACK,Banashankari,1,1,West Blr,1785,False,False,True,+918012345679,2018-03-25,,152,SELLER_CULT_BLR_2
+41,Cult BTM,BTMOR,INACTIVE,BLACK,BTM Layout,1,1,South2 Blr,798,False,False,True,+918012345679,2018-04-23,,153,SELLER_CULT_BLR_2
+42,Cult JP Nagar 7th Phase,JPN7,ACTIVE,BLACK,JP Nagar,1,1,South2 Blr,1722,False,False,True,+918012345679,2018-05-24,,154,SELLER_CULT_BLR_2
+43,Cult Harlur (deprecated),HRLR,INACTIVE,BLACK,Harlur,1,1,South1 Blr,1470,False,True,True,+918012345679,2018-06-15,,155,SELLER_CULT_BLR_2
+44,Cult Sahakar Nagar,SKNG,ACTIVE,BLACK,Sahakar Nagar,1,1,North Blr,1092,False,False,True,+918012345679,2018-05-18,,156,SELLER_CULT_BLR_2
+45,Cult Marathahalli,MTHL,ACTIVE,BLACK,Marathahalli,1,1,East Blr,3003,False,False,True,+918012345679,2018-06-14,,157,SELLER_CULT_BLR_2
+46,Mind.fit JP Nagar 7th Phase,MJPN7,INACTIVE,BLACK,JP Nagar,1,1,BLR - South2,630,False,False,True,+918012345679,2018-05-24,,158,SELLER_CULT_BLR_2
+47,Cult Yelahanka ,YLH,ACTIVE,BLACK,Yelahanka,1,1,North Blr,1491,False,False,True,+918012345679,2018-07-05,,159,SELLER_CULT_BLR_2
+48,Cult Bannerghatta Main Rd,BGR,INACTIVE,BLACK,Others,1,1,South2 Blr,1197,False,False,True,+918012345679,2018-06-04,,160,SELLER_CULT_BLR_2
+49,Cult RR Nagar,RRN,ACTIVE,BLACK,RR Nagar,1,1,West Blr,1575,False,False,True,+918012345679,2018-06-12,,161,SELLER_CULT_BLR_2
+50,Cult Kannamangala,KDG,INACTIVE,BLACK,Kannamangala,1,1,East Blr,924,False,False,True,,2018-07-10,,162,SELLER_CULT_BLR_2
+51,Cult RT Nagar (deprecated),RTN,INACTIVE,BLACK,RT Nagar,1,1,North Blr,1092,False,False,True,,2018-06-30,,163,SELLER_CULT_BLR_2
+52,Cult Punjabi Bagh,PJB,INACTIVE,BLACK,Punjabi Bagh,2,1,NCR Delhi West,1008,False,True,True,,2018-06-30,,164,SELLER_CULT_CFS_DELHI
+53,Mind.fit Malleshwaram,MMLS,INACTIVE,BLACK,Malleshwaram,1,1,BLR - North,504,False,False,True,,2018-06-30,,165,SELLER_CULT_BLR_2
+54,Cult Outdoors Ireo City,IREO,INACTIVE,BLACK,Sector 58,2,1,GGN,,False,False,True,,2018-05-14,2018-11-15,166,SELLER_CULT_GGN_2
+55,Cult Banjara Hills,BJR,ACTIVE,BLACK,Banjara Hills,3,1,Hyderabad Central,2016,False,False,True,,2018-07-23,,167,SELLER_CULT_HYD_2
+56,Cult Kondapur,KDP,ACTIVE,BLACK,Kondapur,3,1,Hyderabad West,1701,False,False,True,,2018-07-30,,168,SELLER_CULT_HYD_2
+69,Mind.fit Banjara Hills,MBJR,INACTIVE,BLACK,Banjara Hills,3,1,HYD,735,False,False,True,,2018-07-23,,169,SELLER_CULT_HYD_2
+70,Cult Kukatpally,KPL,ACTIVE,BLACK,Kukatpally,3,1,Hyderabad West,2058,False,False,True,,2018-09-04,,170,SELLER_CULT_HYD_2
+71,Cult Vasant Kunj,VKJ,INACTIVE,BLACK,Vasant Kunj,2,1,NCR Delhi South,1491,False,False,True,,2018-08-10,,171,SELLER_CULT_CFS_DELHI
+72,Cult Gachibowli,GCB,ACTIVE,BLACK,Gachibowli,3,1,Hyderabad West,2982,False,False,True,,2018-08-20,,172,SELLER_CULT_HYD_2
+73,Cult Jubilee Hills,JBH,INACTIVE,BLACK,Jubilee Hills,3,1,HYD,1197,False,False,True,,2018-08-31,,173,SELLER_CULT_HYD_2
+74,Cult Rajouri Garden,RJG,INACTIVE,BLACK,Rajouri Garden,2,1,NCR Delhi West,1659,False,False,True,,2018-08-31,,174,SELLER_CULT_CFS_DELHI
+75,Cult Microsoft (Employees only),MSFT,INACTIVE,BLACK,Bellandur,1,1,BLR - South1,,False,True,True,,2018-08-20,,175,SELLER_CULT_BLR_2
+76,Mind.fit Embassy Tech Village (Employees only),METV,INACTIVE,BLACK,Bellandur,1,1,BLR - South1,576,False,False,True,,2018-08-20,2018-10-08,176,SELLER_CULT_BLR_2
+77,Cult Embassy Tech Village (Employees only),ETV,INACTIVE,BLACK,Bellandur,1,1,South1 Blr,1911,False,True,True,,2018-08-20,,177,SELLER_CULT_BLR_2
+78,Cult Outdoors RR Nagar,RRNOD,INACTIVE,BLACK,RR Nagar,1,1,BLR - North,336,False,True,True,,2018-07-25,,178,SELLER_CULT_BLR_2
+79,Cult Outdoors HSR,HSROD,INACTIVE,BLACK,HSR Layout,1,1,BLR - South1,294,False,False,True,,2018-08-01,,179,SELLER_CULT_BLR_2
+80,Cult Outdoors Indiranagar,INDOD,INACTIVE,BLACK,Indiranagar,1,1,BLR - Central,252,False,True,True,,2018-08-01,,180,SELLER_CULT_BLR_2
+81,Cult Outdoors Electronic City,ECOD,INACTIVE,BLACK,Electronic City - Phase 1,1,1,BLR - South2,336,False,False,True,,2018-08-01,,181,SELLER_CULT_BLR_2
+82,Cult Basavanagudi,BSG,INACTIVE,BLACK,Basavanagudi,1,1,South2 Blr,1596,False,False,True,,2018-09-30,,182,SELLER_CULT_BLR_2
+83,Cult Chandra Layout Maruthi Nagar,CHL,ACTIVE,BLACK,Chandra Layout,1,1,West Blr,1680,False,False,True,,2018-09-25,,183,SELLER_CULT_BLR_2
+84,Cult Begumpet ,BGP,INACTIVE,BLACK,Begumpet,3,1,Hyderabad Central,1281,False,False,True,,2018-09-25,,184,SELLER_CULT_HYD_2
+85,Cult Dwarka Sector 5,DWK,INACTIVE,BLACK,Dwarka,2,1,NCR Delhi West,1029,False,False,True,,2018-09-25,,185,SELLER_CULT_CFS_DELHI
+86,Cult Sector 14 ,S14,INACTIVE,BLACK,Sector 14,2,1,NCR Gurgaon Central,1155,False,True,True,,2018-09-25,,186,SELLER_CULT_CFS_GGN
+87,Mind.fit Gachibowli,MGCH,INACTIVE,BLACK,Gachibowli ,3,1,HYD,735,False,False,True,,2018-09-20,,187,SELLER_CULT_HYD_2
+88,Mind.fit HSR Sector 7,MHSR7,INACTIVE,BLACK,HSR ,1,1,BLR - South1,,False,False,True,,2018-08-26,2018-08-31,188,SELLER_CULT_BLR_2
+89,Mind.fit KML JNC,MJNC,INACTIVE,BLACK,Koramangala,1,1,BLR - Central,100,False,True,True,,2018-08-26,,189,SELLER_CULT_BLR_2
+90,Mind.fit Koramangala 80 ft Rd,MKML2,INACTIVE,BLACK,Koramangala,1,1,BLR - Central,252,False,False,True,,2018-09-30,,190,SELLER_CULT_BLR_2
+91,Cult Janakpuri ,JKP,ACTIVE,BLACK,Janakpuri,2,1,DEL,1617,False,False,True,,2018-10-15,,191,SELLER_CULT_CFS_DELHI
+92,Cult Patel Nagar ,PTLN,INACTIVE,BLACK,Patel Nagar,2,1,NCR Delhi West,1302,False,False,True,,2018-10-18,,192,SELLER_CULT_CFS_DELHI
+93,Cult Kalyan Nagar,KLYN,ACTIVE,BLACK,Kalyan Nagar,1,1,North Blr,1743,False,False,True,,2018-11-01,,193,SELLER_CULT_BLR_2
+94,Cult Botanical Garden Rd,KNDP2,ACTIVE,BLACK,Kondapur,3,1,Hyderabad West,2520,False,False,True,,2018-11-15,,194,SELLER_CULT_HYD_2
+95,Cult Hitec City,HC,INACTIVE,BLACK,Hitec City,3,1,Hyderabad West,1092,False,True,True,,2018-12-14,,195,SELLER_CULT_HYD_2
+96,Cult Outdoors Sahakar Nagar,COSN,INACTIVE,BLACK,Sahakar Nagar,1,1,BLR - North,,False,False,True,,2018-10-03,2019-06-28,196,SELLER_CULT_BLR_2
+97,Cult Outdoors Manyata Tech Park,COMTP,INACTIVE,BLACK,Hebbal,1,1,BLR - North,,False,False,True,,2018-10-08,2018-12-03,197,SELLER_CULT_BLR_2
+98,"Mind.fit Baani, Sector 56",MBS56,INACTIVE,BLACK,"Baani, Sector 56",2,1,GGN,441,False,False,True,,2018-10-31,,198,SELLER_CULT_CFS_GGN
+99,Cult Palam Vihar,PLM,INACTIVE,BLACK,Palam Vihar,2,1,GGN,1428,False,False,True,,2018-10-31,,199,SELLER_CULT_CFS_DELHI
+100,Cult Madinaguda,MDN,ACTIVE,BLACK,Madinaguda,3,1,Hyderabad West,1785,False,False,True,,2018-11-29,,200,SELLER_CULT_HYD_2
+101,Cult Pitampura,CPMP,ACTIVE,BLACK,Pitampura,2,1,DEL,1890,False,False,True,,2018-12-30,,201,SELLER_CULT_CFS_DELHI
+102,Cult Whitefield Hopefarm,WFHF,ACTIVE,BLACK,Whitefield,1,1,East Blr,987,False,False,True,,2018-12-06,,202,SELLER_CULT_BLR_2
+103,Cult Frazer Town,FT,INACTIVE,BLACK,Frazer Town,1,1,Central Blr,840,False,False,True,,2018-12-03,,203,SELLER_CULT_BLR_2
+104,Cult Vasant Vihar,FFVV,INACTIVE,BLACK,Vasant Vihar,2,1,DEL,840,False,False,True,,2018-11-12,,204,SELLER_CULT_CFS_DELHI
+105,Cult Palladium ,PLDM,INACTIVE,BLACK,Lower Parel,4,1,South Mum,2205,False,True,True,,2018-11-17,,205,SELLER_CULT_BOM_2
+106,Cult Outdoors Sector 54,CO54,INACTIVE,BLACK,Sector 54,2,1,GGN,378,False,False,True,,2018-11-18,,206,SELLER_CULT_CFS_GGN
+107,Cult Paschim Vihar,CPV,INACTIVE,BLACK,Others,2,1,NCR Delhi West,1449,False,True,True,,2018-12-28,,207,SELLER_CULT_CFS_DELHI
+108,Cult Model Town,CMT,ACTIVE,BLACK,Model Town,2,1,DEL,1785,False,False,True,,2018-12-24,,208,SELLER_CULT_CFS_DELHI
+109,Cult Nehru Place ,FNP,INACTIVE,BLACK,Nehru Place,2,1,NCR Delhi South,1638,False,True,True,,2018-12-04,,209,SELLER_CULT_CFS_DELHI
+110,Cult GK-2,GK2,INACTIVE,BLACK,GK-2,2,1,DEL,777,False,True,True,,2018-12-28,2019-11-27,210,SELLER_CULT_CFS_DELHI
+111,Cult Pritech Park,PTC,INACTIVE,BLACK,Bellandur,1,1,BLR - South1,1932,False,False,True,,2018-12-18,,211,SELLER_CULT_BLR_2
+112,Cult Sarjapur Doddakannalli,SJP2,ACTIVE,BLACK,Doddakannelli,1,1,South1 Blr,1848,False,False,True,,2018-12-20,,212,SELLER_CULT_BLR_2
+113,Cult Rajajinagar ,RJN,ACTIVE,BLACK,Rajajinagar,1,1,North Blr,1365,False,False,True,,2018-12-24,,213,SELLER_CULT_BLR_2
+114,Cult Outdoors Jubilee Hills,COJH,INACTIVE,BLACK,Jubilee Hills,3,1,HYD,176,False,True,True,,2018-12-04,,214,SELLER_CULT_HYD_2
+115,Cult Outdoors Begumpet,COB,INACTIVE,BLACK,Begumpet,3,1,HYD,102,False,False,True,,2018-12-05,,215,SELLER_CULT_HYD_2
+116,Cult Eros Sector 49,GS49,ACTIVE,BLACK,Others,2,1,GGN,1260,False,False,True,,2018-12-31,,216,SELLER_CULT_CFS_GGN
+117,Cult New Friends Colony,NFC,INACTIVE,BLACK,New Friends Colony,2,1,DEL,693,False,False,True,,2019-01-10,,217,SELLER_CULT_CFS_DELHI
+118,Cult Outdoors Harlur,COH,INACTIVE,BLACK,Harlur,1,1,BLR - South1,336,False,True,True,,2018-12-12,,218,SELLER_CULT_BLR_2
+119,Cult Madhapur ,MPR,ACTIVE,BLACK,Madhapur,3,1,Hyderabad West,1281,False,False,True,,2019-01-10,,219,SELLER_CULT_HYD_2
+120,Cult Jubilee Hills Checkpost,JCP,INACTIVE,BLACK,Jubilee Hills,3,1,Hyderabad Central,1596,False,True,True,,2018-12-31,,220,SELLER_CULT_HYD_2
+121,Cult South Extension (deprecated),FSE,INACTIVE,BLACK,Defence Colony,2,1,NCR Delhi South,945,False,True,True,,2018-12-24,,221,SELLER_CULT_CFS_DELHI
+122,Cult BKC,FMX,INACTIVE,BLACK,Bandra,4,1,South Mum,1533,False,True,True,,2018-12-23,,222,SELLER_CULT_BOM_2
+123,Cult Outdoors Lower Parel,COLP,INACTIVE,BLACK,Lower Parel,4,1,MUM,184,False,False,True,,2018-12-20,2019-08-05,223,SELLER_CULT_BOM_2
+124,Cult Hiranandani Gardens,HN,ACTIVE,BLACK,Powai,4,1,Central Mum,1113,False,False,True,,2019-04-28,,224,SELLER_CULT_BOM_2
+125,Cult Somajiguda ,CSJG,INACTIVE,BLACK,Somajiguda,3,1,Hyderabad Central,1596,False,False,True,,2019-02-03,,225,SELLER_CULT_HYD_2
+126,Cult Hennur (Deprecated),CHNR,INACTIVE,BLACK,Hennur,1,1,North Blr,777,False,False,True,,2019-01-25,,226,SELLER_CULT_BLR_2
+127,Cult AS Rao Nagar ,ARN,ACTIVE,BLACK,AS Rao Nagar,3,1,Hyderabad North,1491,False,False,True,,2019-02-28,,227,SELLER_CULT_HYD_2
+128,Cult Himayatnagar ,HMN,ACTIVE,BLACK,Himayatnagar,3,1,Hyderabad Central,1659,False,False,True,,2019-02-26,,228,SELLER_CULT_HYD_2
+129,Cult Outdoors Koramangala (Near ThoughtWorks),COKM,INACTIVE,BLACK,Koramangala,1,1,BLR - Central,315,False,False,True,,2019-01-19,,229,SELLER_CULT_BLR_2
+130,Cult Hoodi,HOD,ACTIVE,BLACK,Mahadevpura,1,1,East Blr,1512,False,False,True,,2019-03-08,,230,SELLER_CULT_BLR_2
+131,Cult Akshayanagar,CAKN,ACTIVE,BLACK,Akshayanagar,1,1,South2 Blr,1512,False,False,True,,2019-02-26,,231,SELLER_CULT_BLR_2
+132,Cult Brigade Road,CBR,ACTIVE,BLACK,Brigade Road,1,1,Central Blr,1554,False,False,True,,2019-03-02,,232,SELLER_CULT_BLR_2
+133,Mind.fit Botanical Garden Rd,MBGR,INACTIVE,BLACK,Kondapur,3,1,HYD,588,False,False,True,,2019-02-24,,233,SELLER_CULT_HYD_2
+134,Cult TFD Koramangala ,CFD1,INACTIVE,BLACK,Koramangala,1,1,Central Blr,1296,False,True,True,,2019-02-04,,234,SELLER_CULT_BLR_2
+135,Cult Lajpat Nagar (earlier Ring Road),CRR,ACTIVE,BLACK,Lajpat Nagar,2,1,,1302,False,False,True,,2019-03-05,,235,SELLER_CULT_CFS_DELHI
+136,Cult Preet Vihar ,PV,ACTIVE,BLACK,Preet Vihar,2,1,,1260,False,False,True,,2019-03-02,,236,SELLER_CULT_CFS_DELHI
+137,Mind.fit Hoodi,MHOD,INACTIVE,BLACK,Mahadevpura,1,1,,462,False,False,True,,2019-03-08,,237,SELLER_CULT_BLR_2
+139,Mind.fit Sarjapur Doddakannalli,MSJ2,INACTIVE,BLACK,Sarjapur Road,1,1,,630,False,False,True,,2019-02-12,,239,SELLER_CULT_BLR_2
+140,Mind.fit Marathahalli,MMT,INACTIVE,BLACK,Marathahalli,1,1,,735,False,False,True,,2019-02-13,,240,SELLER_CULT_BLR_2
+141,Cult Indirapuram,IPM,INACTIVE,BLACK,Indirapuram,2,1,NCR East Delhi/Noida,1176,False,True,True,,2019-03-20,,241,SELLER_CULT_CFS_DELHI
+142,Cult Tardeo ,TAR,ACTIVE,BLACK,Tardeo,4,1,South Mum,1260,False,False,True,,2019-03-31,,242,SELLER_CULT_BOM_2
+143,Cult Banaswadi,CBNS,ACTIVE,BLACK,Others,1,1,North Blr,1491,False,False,True,,2019-04-03,,243,SELLER_CULT_BLR_2
+144,Mind.fit Kalyan Nagar,MKN,INACTIVE,BLACK,Kalyan Nagar,1,1,,735,False,False,True,,2019-03-28,,244,SELLER_CULT_BLR_2
+145,Cult DLF Phase 1,DLP1,ACTIVE,BLACK,DLF Phase 1,2,1,,1743,False,False,True,,2019-04-02,,245,SELLER_CULT_CFS_GGN
+146,Cult Sector 62 Noida,NS62,INACTIVE,BLACK,Sector 62 - Noida,2,1,,1281,False,False,True,,2019-04-18,,246,SELLER_CULT_NOI_2
+147,Cult LB Nagar ,CLBN,INACTIVE,BLACK,LB Nagar,3,1,Hyderabad East,2373,False,False,True,,2019-04-08,,247,SELLER_CULT_HYD_2
+148,Cult Manikonda(OLD),CMNK,INACTIVE,BLACK,Manikonda,3,1,Hyderabad West,1386,False,False,True,,2019-04-10,,248,SELLER_CULT_HYD_2
+149,Mind.fit Jubilee Hills,MJH,INACTIVE,BLACK,Jubilee Hills,3,1,,945,False,False,True,,2019-04-09,,249,SELLER_CULT_HYD_2
+150,Cult JP Nagar 1st Phase,CJPN3,INACTIVE,BLACK,JP Nagar,1,1,South2 Blr,1176,False,True,True,,2019-04-04,,250,SELLER_CULT_BLR_2
+151,Cult SG Palya (Near Forum Koramangala),CADG,INACTIVE,BLACK,Koramangala,1,1,Central Blr,1176,False,False,True,,2019-04-05,,251,SELLER_CULT_BLR_2
+152,Cult Indiranagar 12th Main,CI12,INACTIVE,BLACK,Indiranagar,1,1,Central Blr,924,False,False,True,,2019-03-20,,252,SELLER_CULT_BLR_2
+153,Mind.fit Indiranagar 80 Ft Rd,MIND80,INACTIVE,BLACK,Indiranagar,1,1,,630,False,False,True,,2019-04-07,,253,SELLER_CULT_BLR_2
+154,Cult Secunderabad,CSCB,INACTIVE,BLACK,Secunderabad,3,1,,1029,False,False,True,,2019-03-31,,254,SELLER_CULT_HYD_2
+155,Cult Apple Bellandur,CAB01,INACTIVE,BLACK,Bellandur,1,1,,1218,False,False,True,,2019-03-31,,255,SELLER_CULT_BLR_2
+156,Cult Swimming Play Arena Sarjapur,CSPA01,INACTIVE,BLACK,Sarjapur,1,1,,420,False,True,True,,2019-04-01,,256,SELLER_CULT_BLR_2
+157,Cult Swimming Reliance Club JP Nagar,CSRC01,INACTIVE,BLACK,JP Nagar,1,1,,420,False,True,True,,2019-04-01,,257,SELLER_CULT_BLR_2
+158,Cult Swimming Euro School Whitefield,CSES01,INACTIVE,BLACK,Hoodi,1,1,,420,False,True,True,,2019-04-01,,258,SELLER_CULT_BLR_2
+159,Cult Swimming Candor School Electronic City,CSCS01,INACTIVE,BLACK,Electronic City,1,1,,420,False,True,True,,2019-04-01,,259,SELLER_CULT_BLR_2
+160,Cult Juhu ,JUH,INACTIVE,BLACK,Juhu,4,1,West Mum,1113,False,False,True,,2019-04-18,,260,SELLER_CULT_BOM_2
+161,Cult Malad,MAL,INACTIVE,BLACK,Others,4,1,West Mum,1029,False,False,True,,2019-04-25,,261,SELLER_CULT_BOM_2
+162,Cult Swimming Ekya BTM Layout,SEBL1,INACTIVE,BLACK,"BTM Layout, JP Nagar",1,1,,480,False,True,True,,2019-05-10,2019-05-13,262,SELLER_CULT_BLR_2
+163,Cult Swimming Ekya Byrathi,SEB,INACTIVE,BLACK,Hennur,1,1,,480,False,True,True,,2019-04-23,2019-10-23,263,SELLER_CULT_BLR_2
+164,Cult Swimming Grand Mercure Koramangala,SGM1,INACTIVE,BLACK,Koramangala,1,1,,480,False,True,True,,2019-04-01,,264,SELLER_CULT_BLR_2
+165,Ashmayu Yoga JP Nagar,MAJ,INACTIVE,BLACK,JP Nagar,1,1,,588,False,False,True,,2019-04-12,,265,SELLER_CULT_BLR_2
+166,Cult Swimming Bellandur,CSB,INACTIVE,BLACK,Bellandur,1,1,,480,False,True,True,,2019-05-10,,266,SELLER_CULT_BLR_2
+167,Cult Swimming Yemlur,CSY,INACTIVE,BLACK,Yemlur,1,1,,480,False,True,True,,2019-05-15,2019-05-13,267,SELLER_CULT_BLR_2
+168,Cult Velachery Chennai - Hybrid,CVLC,ACTIVE,BLACK,Velachery,5,1,,1701,False,False,True,,2019-05-20,,268,SELLER_CULT_TN_2
+169,Cult Vaishali Nagar,CJVN,INACTIVE,BLACK,Vaishali Nagar,6,1,Central Jaipur,1995,False,False,True,,2019-05-22,,269,SELLER_CULT_CFS_RAJASTHAN
+171,Cult Kalyani Nagar old,CPKN,INACTIVE,BLACK,Kalyani Nagar,7,1,Pune East,1638,False,False,True,,2019-06-30,,270,SELLER_CULT_BOM_2
+172,Cult Swimming HSR,SHS1,INACTIVE,BLACK,HSR,1,1,,480,False,True,True,,2019-04-03,,271,SELLER_CULT_BLR_2
+174,Cult Nagavara - Manyata Tech Park,MTP,ACTIVE,BLACK,Nagavara,1,1,North Blr,1995,False,False,True,,2019-05-26,,272,SELLER_CULT_BLR_2
+175,Cult Electronic City Phase I,CEC1,INACTIVE,BLACK,Electronic City,1,1,,2100,False,False,True,,2019-05-09,,273,SELLER_CULT_BLR_2
+176,Cult Banashankari 2nd Stage,BN2,INACTIVE,BLACK,Banashankari,1,1,,1575,False,False,True,,2019-05-10,,274,SELLER_CULT_BLR_2
+177,"Cult Indiranagar, Gachibowli",CGCH,INACTIVE,BLACK,Gachibowli,3,1,Hyderabad West,1491,False,False,True,,2019-05-17,,275,SELLER_CULT_HYD_2
+178,Mind.fit Banashankari,MBNS,INACTIVE,BLACK,Banashankari,1,1,,924,False,False,True,,2019-05-20,,276,SELLER_CULT_BLR_2
+179,Cult Nirlon Knowledge Park (deprecated old center),NKP,INACTIVE,BLACK,Goregaon East,4,1,,1428,False,False,True,,2019-07-20,,277,SELLER_CULT_BOM_2
+183,Cult Malviya Nagar,CJMN,ACTIVE,BLACK,Malviya Nagar,6,1,,2142,False,False,True,,2019-06-04,,278,SELLER_CULT_CFS_RAJASTHAN
+184,Mind.fit Aayana HSR,MAY,INACTIVE,BLACK,HSR,1,1,,714,False,False,True,,2019-05-17,,279,SELLER_CULT_BLR_2
+185,Mind.fit Aayana Jayanagar,MFAYJ,INACTIVE,BLACK,Jayanagar,1,1,,378,False,False,True,,2019-05-23,,280,SELLER_CULT_BLR_2
+186,Mind.fit Bellandur Opp. Central Mall,MFOCEM,INACTIVE,BLACK,Bellandur,1,1,,504,False,False,True,,2019-05-10,,281,SELLER_CULT_BLR_2
+187,Cult Saket ,DSKT,ACTIVE,BLACK,Saket,2,1,,1113,False,False,True,,2019-06-04,,282,SELLER_CULT_CFS_DELHI
+188,Cult Dwarka Sector 12,DDWK,ACTIVE,BLACK,Dwarka,2,1,,1260,False,False,True,,2019-06-15,,283,SELLER_CULT_CFS_DELHI
+189,Cult Sector 18 Noida (Deprecated),STND,INACTIVE,BLACK,"Sector 18, Noida",2,1,NCR East Delhi/Noida,1302,False,True,True,,2019-06-30,,284,SELLER_CULT_NOI_2
+190,Cult OMR Perungudi,CCOMR1,INACTIVE,BLACK,OMR,5,1,Chennai Central,1911,False,True,True,,2019-06-15,,285,SELLER_CULT_TN_2
+191,Cult Prestige Tech Park,CBPTP,INACTIVE,BLACK,Bellandur,1,1,,1302,False,False,True,,2019-06-10,,286,SELLER_CULT_BLR_2
+192,"Cult Whitefield, EPIP Zone",CBWFD4,INACTIVE,BLACK,Whitefield,1,1,,1806,False,False,True,,2019-06-05,,287,SELLER_CULT_BLR_2
+193,Cult SR Nagar(Deprecated),CHSRN,INACTIVE,BLACK,SR Nagar,3,1,Hyderabad Central,924,False,False,True,,2019-06-15,,288,SELLER_CULT_HYD_2
+194,Cult Nizampet x Roads,CHNZP,ACTIVE,BLACK,Kukatpally,3,1,Hyderabad West,1533,False,False,True,,2019-06-08,,289,SELLER_CULT_HYD_2
+195,Cult Dilsukhnagar ,CHDSN,ACTIVE,BLACK,Dilsukhnagar,3,1,Hyderabad East,1554,False,False,True,,2019-06-26,,290,SELLER_CULT_HYD_2
+196,Cult Srinagar Colony,CHSNC,INACTIVE,BLACK,Srinagar Colony,3,1,Hyderabad Central,1407,False,False,True,,2019-06-18,,291,SELLER_CULT_HYD_2
+197,Cult Powai-Raheja Vihar ,PRHV,ACTIVE,BLACK,Powai,4,1,Central Mum,1092,False,False,True,,2019-09-07,,292,SELLER_CULT_BOM_2
+198,Cult Chembur (deprecated old center),CMBR,INACTIVE,BLACK,Chembur,4,1,Central Mum,1554,False,True,True,,2019-05-30,,293,SELLER_CULT_BOM_2
+199,Cult Prabhadevi ,PBDV,ACTIVE,BLACK,Prabhadevi,4,1,South Mum,1701,False,False,True,,2023-10-06,,294,SELLER_CULT_BOM_2
+200,Cult Kandivali West ,KNDW,ACTIVE,BLACK,Kandivali West,4,1,West Mum,1155,False,False,True,,2019-06-18,,295,SELLER_CULT_BOM_2
+201,Mind.fit Vaishali Nagar,JMVN,INACTIVE,BLACK,Vaishali Nagar,6,1,,630,False,False,True,,2019-05-22,,296,SELLER_CULT_RAJ
+202,Cult Apple RMV,CARMV,INACTIVE,BLACK,RMV Stage 2,1,1,,1659,False,False,True,,2019-05-30,,297,SELLER_CULT_BLR_2
+203,Cult B2B CrossFit Vasant Kunj,CB2B,INACTIVE,BLACK,Vasant Kunj,2,1,,420,False,False,True,,2019-06-23,,298,SELLER_CULT_CFS_DELHI
+204,Cult Reebok CrossFit DLF Ph 1,CRCFG,INACTIVE,BLACK,Gurgaon,2,1,,735,False,False,True,,2019-06-25,,299,SELLER_CULT_CFS_GGN
+205,Mind.fit Au Hom Koramangala,MAH,INACTIVE,BLACK,Kormangala ,1,1,,336,False,False,True,,2019-06-03,,300,SELLER_CULT_BLR_2
+206,Cult Nirvana Country Sector 50,GNCS,INACTIVE,BLACK,Gurgaon,2,1,,1512,False,False,True,,2019-07-20,,301,SELLER_CULT_CFS_GGN
+207,Cult Outdoors Vasant Kunj,COVK01,INACTIVE,BLACK,Vasant Kunj,2,1,,196,False,False,True,,2019-05-13,2019-08-05,302,SELLER_CULT_CFS_DELHI
+208,Cult Pioneer Square Sector 62,GGST,INACTIVE,BLACK,Gurgaon,2,1,NCR Gurgaon Golf Course Road,1806,False,False,True,,2019-08-03,,303,SELLER_CULT_CFS_GGN
+209,Cult Nallagandla ,CHNLG,ACTIVE,BLACK,Nallagandla,3,1,Hyderabad West,1554,False,False,True,,2019-07-16,,304,SELLER_CULT_HYD_2
+210,Cult Kompally ,CHKMP,ACTIVE,BLACK,Kompally,3,1,Hyderabad North,2142,False,False,True,,2019-07-15,,305,SELLER_CULT_HYD_2
+211,Cult Kondapur Whitefields,CHKTH,INACTIVE,BLACK,Kondapur,3,1,,1155,False,False,True,,2019-07-14,,306,SELLER_CULT_HYD_2
+212,Cult Marathahalli ORR,MTO,INACTIVE,BLACK,Marathahalli,1,1,East Blr,1260,False,False,True,,2019-07-20,,307,SELLER_CULT_BLR_2
+213,Mind.fit Electronic City,MBEC,INACTIVE,BLACK,Electronic City,1,1,,609,False,False,True,,2019-07-07,,308,SELLER_CULT_BLR_2
+214,Mind.fit Basavanagudi,CBBSD,INACTIVE,BLACK,Basavanagudi,1,1,,840,False,False,True,,2019-06-22,,309,SELLER_CULT_BLR_2
+215,Mind.fit Basaveshwar Nagar,MBBVN,INACTIVE,BLACK,Basaveshwar Nagar,1,1,,777,False,False,True,,2019-06-26,,310,SELLER_CULT_BLR_2
+216,"Cult Palm Strip, near La Mer",CDPS,INACTIVE,BLACK,Palm Strip ,8,1,,1344,False,False,True,,2019-06-10,,311,SELLER_CULT_DUB
+217,mind.fit East of Kailash,MDEK,INACTIVE,BLACK,Greater Kailash,2,1,,483,False,False,True,,2019-07-15,,312,SELLER_CULT_CFS_DELHI
+218,Apple Kalyan Nagar,AKN,INACTIVE,BLACK,Kalyan Nagar,1,1,,1155,False,False,True,,2019-06-28,,313,SELLER_CULT_BLR_2
+219,Apple Jayanagar,AJN,INACTIVE,BLACK,Jayanagar,1,1,,1050,False,False,True,,2019-07-02,,314,SELLER_CULT_BLR_2
+220,Cult HSR 24th Main ,HS24,ACTIVE,BLACK,HSR Layout,1,1,South1 Blr,1827,False,False,True,,2019-07-05,,315,SELLER_CULT_BLR_2
+221,Cult Magarpatta City ,CPMC,INACTIVE,BLACK,Magarpatta City,7,1,Pune East,1659,False,False,True,,2019-08-10,,316,SELLER_CULT_BOM_2
+222,Cult Tolichowki,CHTC,INACTIVE,BLACK,Tolichowki,3,1,Hyderabad West,1323,False,False,True,,2019-08-26,,317,SELLER_CULT_HYD_2
+223,Cult Nagole,CHNL,ACTIVE,BLACK,Nagole,3,1,Hyderabad East,882,False,False,True,,2019-08-22,,318,SELLER_CULT_HYD_2
+224,X60 Crossfit,X60,INACTIVE,BLACK,Jubilee Hills,3,1,,525,False,False,True,,2019-07-25,,319,SELLER_CULT_HYD_2
+225,Cult ECR Palavakkam,ECR,INACTIVE,BLACK,ECR,5,1,,1155,False,False,True,,2019-09-05,,320,SELLER_CULT_TN_2
+226,Cult Habsiguda ,CHHD,ACTIVE,BLACK,Habsiguda,3,1,Hyderabad East,945,False,False,True,,2019-09-10,,321,SELLER_CULT_HYD_2
+227,Apple Banashankari,ABSR,INACTIVE,BLACK,Banashankari,1,1,,1722,False,False,True,,2019-07-23,,322,SELLER_CULT_BLR_2
+228,Mind.fit HSR 24th Main,MH24,INACTIVE,BLACK,HSR Layout,1,1,,819,False,False,True,,2019-08-05,,323,SELLER_CULT_BLR_2
+229,Cult Infosys - Employees Only,CINF,INACTIVE,BLACK,Electronic City ,1,1,,378,False,True,True,,2019-08-01,,324,SELLER_CULT_BLR_2
+230,"Mind.fit Shorooq, Mirdif",MDSM,INACTIVE,BLACK,Mirdif,8,1,,630,False,False,True,,2019-08-05,2019-10-29,325,SELLER_CULT_DUB
+231,Cult Media City,CMDC,INACTIVE,BLACK,Media City,8,1,,1596,False,False,True,,2019-08-31,,326,SELLER_CULT_DUB
+232,Cult Salt Lake Stadium ,SLS,INACTIVE,BLACK,Salt Lake City,12,1,North Kolkata,1953,False,True,True,,2019-09-30,,327,SELLER_CULT_WB_2
+233,Mind.fit Rajajinagar,MRJ,INACTIVE,BLACK,Rajajinagar,1,1,,924,False,False,True,,2019-09-25,,328,SELLER_CULT_BLR_2
+234,Cult Marina,MRN,INACTIVE,BLACK,Marina Select 9,8,1,,1911,False,False,True,,2019-09-22,,329,SELLER_CULT_DUB
+235,Cult Aundh ,AUN,INACTIVE,BLACK,Aundh,7,1,Pune North,1218,False,False,True,,2019-09-29,,330,SELLER_CULT_BOM_2
+236,Cult Wakad(deprecated),WAK,INACTIVE,BLACK,Wakad,7,1,Pune North,2079,False,True,True,,2019-11-07,,331,SELLER_CULT_BOM_2
+237,Mind.fit Velachery,MVL,INACTIVE,BLACK,Velachery,5,1,,798,False,False,True,,2019-09-26,,332,SELLER_CULT_TN_2
+238,Cult Vijayanagar (Mysore),CMTR,ACTIVE,BLACK,Vijaynagar,11,1,Mysore Gym Cluster,1000,False,False,True,,2019-09-30,,333,SELLER_CULT_BLR
+239,"Cult SZR, Umm Al Sheif",SZR,INACTIVE,BLACK,Eiffel 2,8,1,,1470,False,False,True,,2019-10-10,,334,SELLER_CULT_DUB
+240,Cult Kukatpally Metro,KPHB,INACTIVE,BLACK,Kukatpally,3,1,Hyderabad West,1701,False,True,True,,2019-09-25,,335,SELLER_CULT_HYD_2
+241,Cult Navrangpura,CNGP,INACTIVE,BLACK,Navrangpura,9,1,,1407,False,True,True,,2019-10-13,,336,SELLER_CULT_GJ_2
+242,Cult Satellite,CAS,INACTIVE,BLACK,Satellite,9,1,Ahmedabad,1785,False,False,True,,2019-09-30,,337,SELLER_CULT_GJ_2
+243,Cult Sector 9 Panchkula,S9P,ACTIVE,BLACK,Others,10,1,,1617,False,False,True,,2019-09-30,,338,SELLER_CULT_CHANDIGARH
+244,Cult Kalkaji,DYK,INACTIVE,BLACK,Kalkaji,2,1,NCR Delhi South,798,False,False,True,,2019-09-16,,339,SELLER_CULT_CFS_DELHI
+245,Cult Dance and Yoga Sadashivnagar,CBSN,INACTIVE,BLACK,Sadashivnagar,1,1,,525,False,False,True,,2019-10-07,,340,SELLER_CULT_BLR_2
+246,Cult C Scheme (defunct),JCS1,INACTIVE,BLACK,C Scheme,6,1,Central Jaipur,1155,False,False,True,,2019-09-25,,341,SELLER_CULT_CFS_RAJASTHAN
+247,Cult Spaze Sohna Road,GSR1,INACTIVE,BLACK,Sohna Road,2,1,NCR Gurgaon Golf Course Road,1155,False,False,True,,2019-10-11,,342,SELLER_CULT_CFS_GGN
+248,Cult Sector 16 Faridabad,FSS1,INACTIVE,BLACK,Faridabad,2,1,Faridabad,882,False,False,True,,2019-10-13,,343,SELLER_CULT_GGN_2
+249,Mind.fit Sahakar Nagar,MBSN,INACTIVE,BLACK,Sahakar Nagar,1,1,,945,False,False,True,,2019-10-07,,344,SELLER_CULT_BLR_2
+250,Mind.fit Chandra Layout,MBCL,INACTIVE,BLACK,Chandra Layout,1,1,,798,False,False,True,,2019-10-19,,345,SELLER_CULT_BLR_2
+251,Cult Financial District ,CHFD,INACTIVE,BLACK,Others,3,1,Hyderabad West,1260,False,False,True,,2019-10-13,,346,SELLER_CULT_HYD_2
+253,Cult Kokapet (deprecated),KOK,INACTIVE,BLACK,Kokapet,3,1,Hyderabad West,1360,False,True,True,,2019-11-01,,347,SELLER_CULT_HYD_2
+254,Cult Sector 8 Chandigarh,CH8,INACTIVE,BLACK,"Sector 8, Chandigarh",10,1,Chandigarh,1600,False,True,True,,2019-12-02,,348,SELLER_CULT_CHANDIGARH
+255,Cult Elamkulam,KMG,ACTIVE,BLACK,Elamkulam,13,1,Kochi Central,1000,False,False,True,,2019-11-10,,349,SELLER_CULT_CFS_KERALA
+256,Cult Piplod ,PIP,INACTIVE,BLACK,Piplod,15,1,New Surat,1617,False,False,True,,2019-11-22,,350,SELLER_CULT_GJ_2
+257,Cult Sarabha Nagar,CSN,INACTIVE,BLACK,Sarabha Nagar,16,1,Ludhiana Central,1386,False,False,True,,2019-11-23,,351,SELLER_CULT_CFS_PUNJAB
+258,Cult Mirdiff,CSRQ,INACTIVE,BLACK,"Shorooq Community Center, Mirdiff",8,1,,1400,False,False,True,,2019-10-27,,352,SELLER_CULT_DUB
+259,Cult Abids (Deprecated),ABDS,INACTIVE,BLACK,Abids,3,1,Hyderabad Central,1536,False,False,True,,2019-11-17,,353,SELLER_CULT_HYD_2
+260,"Cult JLT, Cluster W",JLT,INACTIVE,BLACK,JLT,8,1,,800,False,False,True,,2019-11-25,,354,SELLER_CULT_DUB
+261,Cult Swimming MKR Sports Arena Marathahalli,BS08,INACTIVE,BLACK,Marathahalli,1,1,,28,False,False,True,,2019-11-26,,355,SELLER_CULT_BLR_2
+262,Cult Swimming Fiton Sports JP Nagar,BS09,INACTIVE,BLACK,JP Nagar,1,1,,28,False,False,True,,2019-11-26,,356,SELLER_CULT_BLR_2
+263,Cult Dance and Yoga Bhiwadi,BH01,INACTIVE,BLACK,Bhiwadi,2,1,,800,False,False,True,,2019-12-15,,357,SELLER_CULT_CFS_GGN
+264,Cult Swimming Golden Fins Whitefield ,BS10,INACTIVE,BLACK,Whitefield,1,1,,28,False,False,True,,2019-11-26,,358,SELLER_CULT_BLR_2
+265,Cult Rajajinagar 4th block ,CBRN,INACTIVE,BLACK,Rajajinagar,1,1,North Blr,846,False,True,True,,2019-11-26,,359,SELLER_CULT_BLR_2
+266,Cult Swimming Dee Sports RT Nagar,BS20,INACTIVE,BLACK,RT Nagar,1,1,,21,False,False,True,,2019-11-26,,360,SELLER_CULT_BLR_2
+267,Cult HSR 14th Main,CBH14,ACTIVE,BLACK,HSR Layout,1,1,South1 Blr,1134,False,False,True,,2019-12-06,,361,SELLER_CULT_BLR_2
+268,"Cult Kanakapura Road, Doddakallasandra",CBKP,ACTIVE,BLACK,Kanakpura Road,1,1,South2 Blr,1134,False,False,True,,2019-12-22,,362,SELLER_CULT_BLR_2
+269,Cult Trimulgherry ,CHTRI,INACTIVE,BLACK,Trimulgherry,3,1,Hyderabad North,1188,False,True,True,,2019-12-16,,363,SELLER_CULT_HYD_2
+270,Cult Park Street ,CKPS,INACTIVE,BLACK,Park Street,12,1,Central Kolkata,1512,False,True,True,,2019-12-17,,364,SELLER_CULT_WB_2
+271,Cult Vivira Mall - Navalur,CCOMRN,INACTIVE,BLACK,OMR Navalur,5,1,,1302,False,False,True,,2019-12-22,,365,SELLER_CULT_TN_2
+272,Cult T N,CCTN,INACTIVE,BLACK,T Nagar,5,1,Chennai Central,1302,False,True,True,,2019-12-25,,366,SELLER_CULT_TN_2
+273,Mind.fit Jayanagar,MBJAY,INACTIVE,BLACK,Jayanagar,1,1,,714,False,False,True,,2019-12-14,,367,SELLER_CULT_BLR_2
+274,Mind.fit Himayatnagar,MHHI,INACTIVE,BLACK,Himayatnagar,3,1,,798,False,False,True,,2019-12-20,,368,SELLER_CULT_HYD_2
+275,Cult Bahu Plaza,JM01,INACTIVE,BLACK,Channi Himat,17,1,Trikuta Nagar,1449,False,True,True,,2019-12-23,,369,SELLER_CULT_CFS_JAMMU
+276,Cult Lokhandwala old,LOK,INACTIVE,BLACK,Lokhandwala,4,1,West Mum,1176,False,False,True,,2019-12-14,,370,SELLER_CULT_BOM_2
+277,Cult Andheri East ,226,ACTIVE,BLACK,Andheri East,4,1,West Mum,1470,False,False,True,,2019-12-19,,371,SELLER_CULT_BOM_2
+278,Cult Ranjit Avenue ,AM01,INACTIVE,BLACK,North Amritsar,19,1,North Amritsar,966,False,False,True,,2019-12-30,,372,SELLER_CULT_CFS_PUNJAB
+279,Mind.fit Harlur,MBHAR,INACTIVE,BLACK,Harlur,1,1,,819,False,False,True,,2019-12-16,,373,SELLER_CULT_BLR_2
+281,Cult Dance and Yoga Varthur,CBVA,INACTIVE,BLACK,Varthur,1,1,,861,False,False,True,,2019-12-17,,374,SELLER_CULT_BLR_2
+282,Mind.fit Kasavanahalli,MBKAS,INACTIVE,BLACK,Kasavanahalli,1,1,,735,False,False,True,,2019-12-19,,375,SELLER_CULT_BLR_2
+283,Cult Dance and Yoga Sholinganallur,CCOMR3,INACTIVE,BLACK,OMR Sholinganalur,5,1,,756,False,False,True,,2020-05-15,2019-12-29,376,SELLER_CULT_WB_2
+284,Mind.fit Madhapur,MHMA,INACTIVE,BLACK,Madhapur,3,1,,924,False,False,True,,2019-12-31,,377,SELLER_CULT_HYD_2
+285,Cult Dance and Yoga Sector 46 Noida,CNOI03,INACTIVE,BLACK,Sector 46 Noida,2,1,,620,False,False,True,,2020-01-10,,378,SELLER_CULT_NOI_2
+286,Cult Sector 104 Noida ( Deprecated ),CNOI04,INACTIVE,BLACK,Others,2,1,NCR East Delhi/Noida,1300,False,False,True,,2020-01-26,,379,SELLER_CULT_NOI_2
+287,Cult Kuvempu Nagara,CMKN,INACTIVE,BLACK,Kuvempu Nagara,11,1,,1134,False,False,True,,2020-01-16,,380,SELLER_CULT_BLR_2
+288,Cult Vashi ,VSH,INACTIVE,BLACK,Vashi,4,1,Navi Mum,1386,False,True,True,,2020-01-27,,381,SELLER_CULT_BOM_2
+289,Mind.fit Mahadevapura,MBMAH,INACTIVE,BLACK,Mahadevapura,1,1,,693,False,False,True,,2020-01-11,,382,SELLER_CULT_BLR_2
+290,Mind.fit Sector 51 Gurgaon,GM02,INACTIVE,BLACK,Gurgaon,2,1,,640,False,False,True,,2020-02-15,,383,SELLER_CULT_CFS_GGN
+291,Cult Siripuram,CVSRM,ACTIVE,BLACK,Siripuram,21,1,,1050,False,False,True,,2020-02-03,,384,SELLER_CULT_CFS_AP
+292,Cult Kharghar,KHR,INACTIVE,BLACK,Navi Mumbai,64,1,Navi Mumbai,1575,False,True,True,,2020-02-21,,385,SELLER_CULT_BOM_2
+293,Cult Madhu Milan Square,CIMM,INACTIVE,BLACK,New Palasia,18,1,Indore East,0,False,False,True,,2020-02-20,,386,SELLER_CULT_CFS_MP
+294,Cult Adarsh Rhythm Apartments,GO-ARA,INACTIVE,BLACK,Panduranga Nagar,1,1,,,False,True,True,,2020-02-14,,387,SELLER_CULT_BLR_2
+295,Cult Mahindra Lifespace Windchimes,GO-MLW,INACTIVE,BLACK,Arekere,1,1,,,False,True,True,,2020-02-14,,388,SELLER_CULT_BLR_2
+296,Cult Nandi Citadel Apartments,GO-NCA,INACTIVE,BLACK,Chandrasekarapura,1,1,,,False,True,True,,2020-02-14,,389,SELLER_CULT_BLR_2
+297,Cult Salarpuria Serenity Apartment,GO-SSA,INACTIVE,BLACK,HSR Layout,1,1,,,False,True,True,,2020-02-14,,390,SELLER_CULT_BLR_2
+299,"Cult MG Road, Mangalore",CMLR1,ACTIVE,BLACK,MG Road,23,1,,1100,False,False,True,,2020-09-16,,391,SELLER_CULT_BLR_2
+300,Cult JBR,CDJBR,INACTIVE,BLACK,JBR,8,1,,1000,False,False,True,,2020-02-24,,392,SELLER_CULT_DUB
+301,"Cult Bandra, Linking Road",247,INACTIVE,BLACK,Bandra West,4,1,South Mum,1200,False,True,True,,2020-03-28,,393,SELLER_CULT_BOM_2
+302,Cult Race Course Rd,CCBERCR,ACTIVE,BLACK,Race Course Road,22,1,,950,False,False,True,,2020-09-04,,394,SELLER_CULT_TN_2
+303,Cult Marina Walk ,MWDXB,INACTIVE,BLACK,Dubai Marina Phase 1,8,1,,525,False,False,True,,2020-06-01,,395,SELLER_CULT_DUB
+304,"Cult Sushant Lok, Phase 1",CGGN43,ACTIVE,BLACK,Huda City Centre,2,1,,1240,False,False,True,,2020-05-15,,396,SELLER_CULT_CFS_GGN
+305,"Cult Thane, Ghodbunder Road",CFMUM18,ACTIVE,BLACK,Thane West,64,1,Thane New,1680,False,False,True,,2021-09-10,,114,SELLER_CULT_BOM_2
+306,Atom Sports,ASB,INACTIVE,BLACK,Gottigere,1,1,South2 Blr,100,False,False,True,,2021-08-09,,397,SELLER_CULT_BLR_2
+307,Active Arena,AAB,INACTIVE,BLACK,Marathahalli,1,1,East Blr,100,False,False,True,,2021-08-09,,398,SELLER_CULT_BLR_2
+308,Power Play Sports 2,PPSB,INACTIVE,BLACK,Whitefield,1,1,East Blr,100,False,False,True,,2021-08-09,,399,SELLER_CULT_BLR_2
+309,Sporthood Dee Sports,SDSB,INACTIVE,BLACK,RT Nagar,1,1,North Blr,100,False,False,True,,2021-08-09,,400,SELLER_CULT_BLR_2
+310,Baddyzone ,BZB,INACTIVE,BLACK,HSR,1,1,South1 Blr,100,False,False,True,,2021-08-09,,401,SELLER_CULT_BLR_2
+311,Racketlon Sports Academy,RSAB,INACTIVE,BLACK,Bilekahalli,1,1,South2 Blr,100,False,False,True,,2021-08-09,,402,SELLER_CULT_BLR_2
+391,Team Core,GYM405,INACTIVE,BLACK,Sec 104 Noida,2,1,,,False,False,True,,2021-08-30,,405,
+392,Team Core,GYM406,INACTIVE,BLACK,Sec 104 Noida,2,1,,,False,False,True,,2021-08-30,,406,
+393,Team Core,GYM407,INACTIVE,BLACK,Sec 104 Noida,2,1,,,False,False,True,,2021-08-30,,407,
+394,Team Core,GYM408,INACTIVE,BLACK,Sec 104 Noida,2,1,,,False,False,True,,2021-08-30,,408,
+395,Team Core,GYM409,INACTIVE,BLACK,Sec 104 Noida,2,1,,,False,False,True,,2021-08-30,,409,
+396,Team Core,GYM410,INACTIVE,BLACK,Sec 104 Noida,2,1,,,False,False,True,,2021-08-30,,410,
+397,Team Core,GYM411,INACTIVE,BLACK,Sec 104 Noida,2,1,,,False,False,True,,2021-08-30,,411,
+398,Team Core,GYM412,INACTIVE,BLACK,Sec 104 Noida,2,1,,,False,False,True,,2021-08-30,,412,
+399,Team Core,GYM413,INACTIVE,BLACK,Sec 104 Noida,2,1,,,False,False,True,,2021-08-30,,413,
+400,Team Core,GYM415,INACTIVE,BLACK,Hari Nagar,2,1,,,False,False,True,,2021-08-29,,415,
+401,Team Core,GYM416,INACTIVE,BLACK,Hari Nagar,2,1,,,False,False,True,,2021-08-29,,416,
+402,Team Core,GYM417,INACTIVE,BLACK,Hari Nagar,2,1,,,False,False,True,,2021-08-29,,417,
+403,Team Core,GYM418,INACTIVE,BLACK,Hari Nagar,2,1,,,False,False,True,,2021-08-29,,418,
+404,Team Core,GYM419,INACTIVE,BLACK,Hari Nagar,2,1,,,False,False,True,,2021-08-29,,419,
+405,Team Core,GYM420,INACTIVE,BLACK,Hari Nagar,2,1,,,False,False,True,,2021-08-29,,420,
+406,Team Core,GYM421,INACTIVE,BLACK,Hari Nagar,2,1,,,False,False,True,,2021-08-29,,421,
+407,Team Core,GYM422,INACTIVE,BLACK,Hari Nagar,2,1,,,False,False,True,,2021-08-29,,422,
+408,Team Core,GYM423,INACTIVE,BLACK,Hari Nagar,2,1,,,False,False,True,,2021-08-29,,423,
+409,Team Core,GYM425,INACTIVE,BLACK,"Sec 22, GGN",2,1,,,False,False,True,,2021-08-31,,425,
+410,Team Core,GYM426,INACTIVE,BLACK,"Sec 22, GGN",2,1,,,False,False,True,,2021-08-31,,426,
+411,Team Core,GYM427,INACTIVE,BLACK,"Sec 22, GGN",2,1,,,False,False,True,,2021-08-31,,427,
+412,Team Core,GYM428,INACTIVE,BLACK,"Sec 22, GGN",2,1,,,False,False,True,,2021-08-31,,428,
+413,Team Core,GYM429,INACTIVE,BLACK,"Sec 22, GGN",2,1,,,False,False,True,,2021-08-31,,429,
+414,Team Core,GYM430,INACTIVE,BLACK,"Sec 22, GGN",2,1,,,False,False,True,,2021-08-31,,430,
+415,Team Core,GYM431,INACTIVE,BLACK,"Sec 22, GGN",2,1,,,False,False,True,,2021-08-31,,431,
+416,Team Core,GYM432,INACTIVE,BLACK,"Sec 22, GGN",2,1,,,False,False,True,,2021-08-31,,432,
+417,Team Core,GYM433,INACTIVE,BLACK,"Sec 22, GGN",2,1,,,False,False,True,,2021-08-31,,433,
+418,Balance Fitness Lounge,GYM435,INACTIVE,BLACK,"Sec 14, GGN",2,1,,,False,False,True,,2021-08-30,,435,
+419,Balance Fitness Lounge,GYM436,INACTIVE,BLACK,"Sec 14, GGN",2,1,,,False,False,True,,2021-08-30,,436,
+420,Balance Fitness Lounge,GYM437,INACTIVE,BLACK,"Sec 14, GGN",2,1,,,False,False,True,,2021-08-30,,437,
+421,Balance Fitness Lounge,GYM438,INACTIVE,BLACK,"Sec 14, GGN",2,1,,,False,False,True,,2021-08-30,,438,
+422,Balance Fitness Lounge,GYM439,INACTIVE,BLACK,"Sec 14, GGN",2,1,,,False,False,True,,2021-08-30,,439,
+423,Balance Fitness Lounge,GYM440,INACTIVE,BLACK,"Sec 14, GGN",2,1,,,False,False,True,,2021-08-30,,440,
+424,Balance Fitness Lounge,GYM441,INACTIVE,BLACK,"Sec 14, GGN",2,1,,,False,False,True,,2021-08-30,,441,
+425,Balance Fitness Lounge,GYM442,INACTIVE,BLACK,"Sec 14, GGN",2,1,,,False,False,True,,2021-08-30,,442,
+426,Balance Fitness Lounge,GYM443,INACTIVE,BLACK,"Sec 14, GGN",2,1,,,False,False,True,,2021-08-30,,443,
+427,The Training Camp Gym,GYM445,INACTIVE,BLACK,Malviya Nagar,2,1,,,False,False,True,,2021-08-30,,445,
+428,The Training Camp Gym,GYM446,INACTIVE,BLACK,Malviya Nagar,2,1,,,False,False,True,,2021-08-30,,446,
+429,The Training Camp Gym,GYM448,INACTIVE,BLACK,Malviya Nagar,2,1,,,False,False,True,,2021-08-30,,448,
+430,The Training Camp Gym,GYM447,INACTIVE,BLACK,Malviya Nagar,2,1,,,False,False,True,,2021-08-30,,447,
+431,The Training Camp Gym,GYM449,INACTIVE,BLACK,Malviya Nagar,2,1,,,False,False,True,,2021-08-30,,449,
+432,The Training Camp Gym,GYM450,INACTIVE,BLACK,Malviya Nagar,2,1,,,False,False,True,,2021-08-30,,450,
+433,The Training Camp Gym,GYM451,INACTIVE,BLACK,Malviya Nagar,2,1,,,False,False,True,,2021-08-30,,451,
+434,The Training Camp Gym,GYM452,INACTIVE,BLACK,Malviya Nagar,2,1,,,False,False,True,,2021-08-30,,452,
+435,The Training Camp Gym,GYM453,INACTIVE,BLACK,Malviya Nagar,2,1,,,False,False,True,,2021-08-30,,453,
+436,The Training Camp Gym,GYM454,INACTIVE,BLACK,Malviya Nagar,2,1,,,False,False,True,,2021-08-30,,454,
+437,Fitness Culture,GYM456,INACTIVE,BLACK,Sultanpur,2,1,,,False,False,True,,2021-08-30,,456,
+438,Fitness Culture,GYM457,INACTIVE,BLACK,Sultanpur,2,1,,,False,False,True,,2021-08-30,,457,
+439,Fitness Culture,GYM458,INACTIVE,BLACK,Sultanpur,2,1,,,False,False,True,,2021-08-30,,458,
+440,Fitness Culture,GYM459,INACTIVE,BLACK,Sultanpur,2,1,,,False,False,True,,2021-08-30,,459,
+441,Fitness Culture,GYM460,INACTIVE,BLACK,Sultanpur,2,1,,,False,False,True,,2021-08-30,,460,
+442,Fitness Culture,GYM461,INACTIVE,BLACK,Sultanpur,2,1,,,False,False,True,,2021-08-30,,461,
+443,Fitness Culture,GYM462,INACTIVE,BLACK,Sultanpur,2,1,,,False,False,True,,2021-08-30,,462,
+444,Fitness Culture,GYM463,INACTIVE,BLACK,Sultanpur,2,1,,,False,False,True,,2021-08-30,,463,
+445,Fitness Culture,GYM464,INACTIVE,BLACK,Sultanpur,2,1,,,False,False,True,,2021-08-30,,464,
+459,Team Core,GYM414,INACTIVE,BLACK,Hari Nagar,2,1,,,False,False,True,,2021-08-29,,414,
+461,Team Core,GYM424,INACTIVE,BLACK,"Sec 22, GGN",2,1,,,False,False,True,,2021-08-31,,424,
+462,Balance Fitness Lounge,GYM434,INACTIVE,BLACK,"Sec 14, GGN",2,1,,,False,False,True,,2021-08-30,,434,
+463,The Training Camp Gym,GYM444,INACTIVE,BLACK,Malviya Nagar,2,1,,,False,False,True,,2021-08-30,,444,
+464,Fitness Culture,GYM455,INACTIVE,BLACK,Sultanpur,2,1,,,False,False,True,,2021-08-30,,455,
+465,Stallion Fitness,GYM465,INACTIVE,BLACK,Kompally,3,1,,,False,False,True,,2021-08-30,,465,SELLER_CULT_HYD_2
+466,Heeaatz Fitness,GYM466,ACTIVE,BLACK,"Gurgaon , Sector 50",2,1,,,False,False,True,,2021-08-30,,466,SELLER_CULT_CFS_GGN
+467,Thew Fitness,GYM467,ACTIVE,BLACK,Others,2,1,Gurgaon Gym Cluster,100,False,False,True,,2021-08-30,,467,SELLER_CULT_CFS_GGN
+468,Fitness Culture,GYM469,INACTIVE,BLACK,Sultanpur,2,1,,,False,False,True,,2021-08-30,,469,SELLER_CULT_CFS_DELHI
+469,Studio Velocity,GYM468,ACTIVE,BLACK,Baner,7,1,,,False,False,True,,2021-08-30,,468,SELLER_CULT_BOM_2
+470,Fitmax,GYM470,ACTIVE,BLACK,Madinaguda,3,1,,,False,False,True,,2021-08-30,,470,SELLER_CULT_HYD_2
+471,Test Premium,GYM403,INACTIVE,BLACK,Koramangala,1,1,,,False,False,True,,2021-08-15,,403,SELLER_CULT_BLR_2
+472,Cult Gym Banashankari 2nd Stage,GYM471,ACTIVE,BLACK,Banashankari,1,1,,1000,False,False,True,,2021-09-06,,471,SELLER_CULT_BLR_2
+473,Cult Circular Road,CFRAN1,INACTIVE,BLACK,Lalpur,31,1,Central Ranchi,1000,False,False,True,,2021-09-01,,472,SELLER_CULT_CFS_JARKHAND
+474,"Select Citywalk, Saket, Delhi",GYM1,INACTIVE,BLACK,South Delhi,2,1,,,False,False,True,,2019-05-31,,1,
+475,"South Point Mall, Gurgaon",GYM2,INACTIVE,BLACK,Sector 53,2,1,,,False,False,True,,2019-05-31,,2,
+476,"Hamilton House, CP, Delhi",GYM3,INACTIVE,BLACK,Central Delhi,2,1,,,False,False,True,,2019-05-31,,3,
+477,"Mall of India, Noida",GYM4,INACTIVE,BLACK,Noida,2,1,,,False,False,True,,2019-05-31,,4,
+478,"Mega Mall, Mumbai",GYM5,INACTIVE,BLACK,Andheri West,4,1,,,False,False,True,,2019-05-31,,5,
+479,"Indiranagar, Bangalore",GYM6,INACTIVE,BLACK,Indiranagar,1,1,,,False,False,True,,2019-05-31,,6,SELLER_CULT_BLR_2
+480,FP Dogfood Test Center,GYM7,INACTIVE,BLACK,HSR,1,1,,,False,False,True,,2020-12-06,,7,SELLER_CULT_BLR_2
+481,Hyd dogfood test centre,GYM8,INACTIVE,BLACK,Whitefield,3,1,,,False,False,True,,2021-01-27,,8,SELLER_CULT_HYD_2
+482,Delhi Dogfood Test Centre,GYM9,INACTIVE,BLACK,Green Park,2,1,,,False,False,True,,2021-06-18,,9,SELLER_CULT_CFS_DELHI
+483,Pune Dogfood Test Centre,GYM473,INACTIVE,BLACK,Hinjewadi,7,1,,,False,False,True,,2021-08-30,,473,SELLER_CULT_BOM_2
+484,Fuerza,GYM10,INACTIVE,BLACK,Koramangala,1,1,,,False,False,True,,2020-12-15,,10,SELLER_CULT_BLR_2
+485,Fuerza,GYM11,INACTIVE,BLACK,HSR,1,1,,,False,False,True,,2020-12-23,,11,SELLER_CULT_BLR_2
+486,GymX,GYM12,INACTIVE,BLACK,Kasavanahalli,1,1,,,False,False,True,,2019-11-23,,12,SELLER_CULT_BLR_2
+487,GymX,GYM13,INACTIVE,BLACK,AECS Layout,1,1,,,False,False,True,,2020-11-02,,13,SELLER_CULT_BLR_2
+488,GymX,GYM14,INACTIVE,BLACK,Electronic City,1,1,,,False,False,True,,2020-01-19,,14,SELLER_CULT_BLR_2
+489,GymX,GYM15,INACTIVE,BLACK,Marathahalli,1,1,,,False,False,True,,2021-03-25,,15,SELLER_CULT_BLR_2
+490,The Street Code,GYM16,INACTIVE,BLACK,JP Nagar,1,1,,,False,False,True,,2019-12-30,,16,SELLER_CULT_BLR_2
+491,121 Premium Fitness Studio,GYM17,INACTIVE,BLACK,JP Nagar,1,1,,,False,False,True,,2020-11-29,,17,SELLER_CULT_BLR_2
+492,Fit 24,GYM18,INACTIVE,BLACK,Kanakapura Road,1,1,,,False,False,True,,2021-07-23,,18,SELLER_CULT_BLR_2
+493,Global Wings Fitness,GYM19,INACTIVE,BLACK,Kalyan Nagar,1,1,,,False,False,True,,2020-12-15,,19,SELLER_CULT_BLR_2
+494,Moments Fitness Hub 2.0,GYM20,ACTIVE,BLACK,Electronic City,1,1,,1000,False,False,True,,2020-11-02,,20,SELLER_CULT_BLR_2
+495,Zest Fitness,GYM21,INACTIVE,BLACK,HSR Sector 6,1,1,,,False,False,True,,2020-11-24,,21,SELLER_CULT_BLR_2
+496,SPL Fitness,GYM22,INACTIVE,BLACK,Kalyan nagar,1,1,,,False,False,True,,2020-11-29,,22,SELLER_CULT_BLR_2
+497,Fit365 Wellness Studio,GYM23,INACTIVE,BLACK,Kundanahalli Gate,1,1,,,False,False,True,,2020-11-30,,23,SELLER_CULT_BLR_2
+498,Conquer Gym,GYM24,INACTIVE,BLACK,Bannerghatta Road,1,1,,,False,False,True,,2020-11-29,,24,SELLER_CULT_BLR_2
+499,LMNT Fitness Club,GYM25,INACTIVE,BLACK,Mahadevpura,1,1,,,False,False,True,,2020-11-30,,25,SELLER_CULT_BLR_2
+500,Elite Fitness Club,GYM26,INACTIVE,BLACK,RMV,1,1,,,False,False,True,,2020-11-30,,26,SELLER_CULT_BLR_2
+501,Training Demo Center,GYM28,INACTIVE,BLACK,HSR Sector 6,1,1,,,False,False,True,,2020-12-09,,28,
+502,T99 Fitness,GYM27,INACTIVE,BLACK,Horamavu,1,1,,,False,False,True,,2020-12-08,,27,SELLER_CULT_BLR_2
+503,Rage Fitness,GYM30,INACTIVE,BLACK,Indiranagar,1,1,,,False,False,True,,2020-12-13,,30,SELLER_CULT_BLR_2
+504,Power Fitness Club,GYM32,INACTIVE,BLACK,Hennur,1,1,,,False,False,True,,2020-12-17,,32,
+505,The Monkey Fitness,GYM31,INACTIVE,BLACK,Kumarswamy Layout,1,1,,,False,False,True,,2021-07-23,,31,SELLER_CULT_BLR_2
+506,Supergym,GYM33,INACTIVE,BLACK,Pai Layout,1,1,,,False,False,True,,2020-12-26,,33,SELLER_CULT_BLR_2
+507,Supergym,GYM34,INACTIVE,BLACK,Thippasandra,1,1,,,False,False,True,,2021-02-25,,34,SELLER_CULT_BLR_2
+508,Supergym,GYM35,INACTIVE,BLACK,Vignan Nagar,1,1,,,False,False,True,,2020-12-26,,35,SELLER_CULT_BLR_2
+509,Shred Fitness,GYM36,INACTIVE,BLACK,Frazer Town,1,1,,,False,False,True,,2021-01-27,,36,SELLER_CULT_BLR_2
+510,Pledge Fitness,GYM37,INACTIVE,BLACK,Kukatpally,3,1,,,False,False,True,,2021-01-27,,37,SELLER_CULT_HYD_2
+511,Creed Gym,GYM38,INACTIVE,BLACK,Madinaguda,3,1,,,False,False,True,,2021-01-27,,38,SELLER_CULT_HYD_2
+512,Krish Fitness,GYM40,INACTIVE,BLACK,Madhapur,3,1,,,False,False,True,,2021-01-27,,40,
+513,Chizel Fitness Studio,GYM39,INACTIVE,BLACK,Jubilee Hills,3,1,,,False,False,True,,2021-01-27,,39,SELLER_CULT_HYD_2
+514,Wild Iron The Gym,GYM41,INACTIVE,BLACK,Manikonda,3,1,,,False,False,True,,2021-01-27,,41,SELLER_CULT_HYD_2
+515,Platinum Fitness Club,GYM42,INACTIVE,BLACK,Attapur,3,1,,,False,False,True,,2021-02-23,,42,SELLER_CULT_HYD_2
+516,The Fitness Zone,GYM43,INACTIVE,BLACK,Yelahanka,1,1,,,False,False,True,,2021-02-24,,43,SELLER_CULT_BLR_2
+517,The Training Camp Gym,GYM474,INACTIVE,BLACK,Malviya Nagar,2,1,,,False,False,True,,2021-08-30,,474,SELLER_CULT_CFS_DELHI
+518,Gryt.Fit Gym,GYM475,INACTIVE,BLACK,Camp,7,1,,,False,False,True,,2021-08-25,,475,SELLER_CULT_BOM_2
+519,Paradise Fitness Club,GYM476,INACTIVE,BLACK,Wanowrie,7,1,,,False,False,True,,2021-08-29,,476,SELLER_CULT_BOM_2
+520,Kratos,GYM477,INACTIVE,BLACK,Hinjewadi,7,1,,,False,False,True,,2021-08-25,,477,SELLER_CULT_BOM_2
+521,An.Fit,GYM478,INACTIVE,BLACK,CV Raman Nagar,1,1,,,False,False,True,,2021-08-30,,478,SELLER_CULT_BLR_2
+522,MH Fitness,GYM479,INACTIVE,BLACK,Bachupally,3,1,,,False,False,True,,2021-08-29,,479,SELLER_CULT_HYD_2
+523,Energym,GYM480,INACTIVE,BLACK,Kukatpally,3,1,,,False,False,True,,2021-08-29,,480,SELLER_CULT_HYD_2
+524,KVRFitnessHYD,GYM481,INACTIVE,BLACK,LB Nagar,3,1,,,False,False,True,,2021-08-30,,481,
+525,Balance Fitness Lounge,GYM482,INACTIVE,BLACK,"Sec 14, GGN",2,1,,,False,False,True,,2021-08-30,,482,SELLER_CULT_CFS_GGN
+526,Aim Fit,GYM483,INACTIVE,BLACK,Sahakar Nagar,1,1,,,False,False,True,,2021-08-24,,483,SELLER_CULT_BLR_2
+527,Team Core,GYM484,INACTIVE,BLACK,Sec 104 Noida,2,1,,,False,False,True,,2021-08-30,,484,SELLER_CULT_NOI_2
+528,Team Core,GYM485,INACTIVE,BLACK,Hari Nagar,2,1,,,False,False,True,,2021-08-29,,485,SELLER_CULT_CFS_DELHI
+529,Body Zone Gym and Fitness Center,GYM486,INACTIVE,BLACK,Shivam Road,3,1,,,False,False,True,,2021-08-30,,486,SELLER_CULT_HYD_2
+530,Team Core,GYM487,INACTIVE,BLACK,"Sec 22, GGN",2,1,,,False,False,True,,2021-08-31,,487,SELLER_CULT_CFS_GGN
+531,FitLifez Gym and Spa,GYM488,INACTIVE,BLACK,Mansarovar,3,1,,,False,False,True,,2021-08-26,,488,SELLER_CULT_HYD_2
+532,Body Formula Fitness,GYM489,INACTIVE,BLACK,LB Nagar,3,1,,,False,False,True,,2021-08-30,,489,SELLER_CULT_HYD_2
+533,Vigour Fitness Studio,GYM44,INACTIVE,BLACK,Kompally,3,1,,,False,False,True,,2021-02-21,,44,SELLER_CULT_HYD_2
+534,The Bodyline Gym,GYM98,INACTIVE,BLACK,"Gurgaon , Sector 64",2,1,,,False,False,True,,2021-07-25,,98,SELLER_CULT_CFS_GGN
+535,Millennium Fitness Club,GYM47,INACTIVE,BLACK,Somajiguda,3,1,,,False,False,True,,2021-02-26,,47,SELLER_CULT_HYD_2
+536,The Cronus Fitness,GYM48,INACTIVE,BLACK,RT Nagar,1,1,,,False,False,True,,2021-03-26,,48,SELLER_CULT_BLR_2
+537,Drona The Fitness Gurukul,GYM49,INACTIVE,BLACK,Nagarbhavi,1,1,,,False,False,True,,2021-03-25,,49,SELLER_CULT_BLR_2
+538,Wellcare Fitness,GYM55,INACTIVE,BLACK,Kudlu Gate,1,1,,,False,False,True,,2021-07-13,,55,SELLER_CULT_BLR_2
+539,JL Fitness,GYM61,INACTIVE,BLACK,Barkatpura,3,1,,,False,False,True,,2021-04-14,,61,SELLER_CULT_HYD_2
+540,Armour Fitness Studio,GYM62,INACTIVE,BLACK,Malleshwaram,1,1,,,False,False,True,,2021-07-01,,62,SELLER_CULT_BLR_2
+541,Changeover Fitness Studio,GYM64,INACTIVE,BLACK,Vijayanagar,1,1,,,False,False,True,,2021-06-24,,64,SELLER_CULT_BLR_2
+542,My Fitness Pro,GYM67,INACTIVE,BLACK,"Sec 63, Gurgaon",2,1,,,False,False,True,,2021-07-24,,67,SELLER_CULT_CFS_GGN
+543,Dangal Gym,GYM71,INACTIVE,BLACK,Mehdipatnam,3,1,,,False,False,True,,2021-07-23,,71,SELLER_CULT_HYD_2
+544,Workout Zone,GYM74,INACTIVE,BLACK,"Sector 122, Noida",2,1,,,False,False,True,,2021-05-20,,74,SELLER_CULT_NOI_2
+545,Republic Fitness,GYM75,INACTIVE,BLACK,Uttarahalli,1,1,,,False,False,True,,2021-08-12,,75,SELLER_CULT_BLR_2
+546,SR FIT CUBE,GYM90,INACTIVE,BLACK,Naredmet,3,1,,,False,False,True,,2021-07-23,,90,SELLER_CULT_HYD_2
+547,Fit Gym,GYM95,INACTIVE,BLACK,Greater Noida,2,1,,,False,False,True,,2021-06-29,,95,SELLER_CULT_NOI_2
+548,Motto Fitness,GYM96,INACTIVE,BLACK,ChanderNagar,2,1,,,False,False,True,,2021-08-04,,96,SELLER_CULT_NOI_2
+549,Mani's Core Fit,GYM103,INACTIVE,BLACK,Malleshwaram,1,1,,,False,False,True,,2021-08-05,,103,SELLER_CULT_BLR_2
+550,Fitt Lounge,GYM104,INACTIVE,BLACK,"Sector 56, Gurugram",2,1,,,False,False,True,,2021-08-12,,104,SELLER_CULT_CFS_GGN
+551,F7 Fitness Exclusive,GYM106,INACTIVE,BLACK,Alwal,3,1,,,False,False,True,,2021-08-04,,106,SELLER_CULT_HYD_2
+552,True Fit,GYM107,INACTIVE,BLACK,"Sector 22, Noida",2,1,,,False,False,True,,2021-08-12,,107,SELLER_CULT_NOI_2
+553,Cult Gym Indiranagar,GYM490,ACTIVE,BLACK,Indiranagar,1,1,,1000,False,False,True,,2021-09-06,,490,SELLER_CULT_BLR_2
+554,Cult Gym Richmond Road,GYM492,ACTIVE,BLACK,Richmond Road,1,1,,1000,False,False,True,,2021-09-11,,492,SELLER_CULT_BLR_2
+555,Cult Anna Nagar,CCAN,ACTIVE,BLACK,Anna Nagar,5,1,,987,False,False,True,,2021-09-17,,493,SELLER_CULT_TN_2
+556,Cult Nungambakkam,CCNGBK,ACTIVE,BLACK,Nungambakkam,5,1,,966,False,False,True,,2021-09-17,,494,SELLER_CULT_TN_2
+557,Everyday Fitness Gym,GYM500,INACTIVE,BLACK,Serilingampally,3,1,,,False,False,True,,2021-09-29,,500,
+558,High Fitness,GYM502,INACTIVE,BLACK,Vignan Nagar,1,1,,,False,False,True,,2021-09-29,,502,SELLER_CULT_BLR_2
+559,Fitternity MigCx Black Bangalore,GYM512,INACTIVE,BLACK,Banashankari,1,1,,,False,False,True,,2021-09-10,,512,
+560,MultiFit Indiranagar,GYM513,ACTIVE,BLACK,Indiranagar,1,1,,,False,False,True,,2021-09-18,,513,SELLER_CULT_BLR_2
+561,MultiFit Hennur,GYM514,ACTIVE,BLACK,Hennur,1,1,,,False,False,True,,2021-09-18,,514,SELLER_CULT_BLR_2
+562,MultiFit Hinjewadi,GYM515,ACTIVE,BLACK,Hinjewadi,7,1,,,False,False,True,,2021-09-18,,515,SELLER_CULT_BOM_2
+563,MultiFit,GYM516,INACTIVE,BLACK,Hinjewadi,7,1,,,False,False,True,,2021-09-29,,516,
+564,MultiFit HRBR Layout,GYM517,ACTIVE,BLACK,HRBR Layout,1,1,,,False,False,True,,2021-09-18,,517,SELLER_CULT_BLR_2
+565,MultiFIt Mundhwa,GYM518,ACTIVE,BLACK,Mundhwa,7,1,,,False,False,True,,2021-09-18,,518,SELLER_CULT_BOM_2
+566,MultiFit Pimple Saudagar,GYM519,ACTIVE,BLACK,Pimple Saudagar,7,1,,,False,False,True,,2021-09-18,,519,SELLER_CULT_BOM_2
+567,MultiFit Ulsoor,GYM520,ACTIVE,BLACK,Ulsoor,1,1,,,False,False,True,,2021-12-05,,520,SELLER_CULT_BLR_2
+568,MultiFit Kalyani Nagar,GYM521,ACTIVE,BLACK,Kalyani Nagar,7,1,,,False,False,True,,2021-10-06,,521,SELLER_CULT_BOM_2
+569,Turbo Fitness,GYM524,ACTIVE,BLACK,Waterfield Road,4,1,,,False,False,True,,2021-09-29,,524,SELLER_CULT_BOM_2
+570,Cult Adyar,CCADY,ACTIVE,BLACK,Adyar,5,1,,1000,False,False,True,,2021-10-16,,530,SELLER_CULT_TN_2
+571,"Cult Crystal Point, Andheri West",CMAW2,INACTIVE,BLACK,Andheri West,4,1,West Mum,1000,False,True,True,,2021-10-20,,531,SELLER_CULT_BOM_2
+572,Afterburn Fitness Studio,GYM536,ACTIVE,BLACK,Alwal,3,1,,,False,False,True,,2021-10-31,,536,SELLER_CULT_HYD_2
+573,Fitness Square,GYM540,INACTIVE,BLACK,Ambedkar Road,2,1,,,False,False,True,,2021-10-25,,540,SELLER_CULT_NOI_2
+575,Power Fitness,GYM543,INACTIVE,BLACK,Krishnarajapura,1,1,,,False,False,True,,2021-10-23,,543,SELLER_CULT_BLR_2
+576,G L The Fitness Club,GYM545,INACTIVE,BLACK,Pitampura,2,1,,,False,False,True,,2021-10-24,,545,SELLER_CULT_CFS_DELHI
+577,Bomiso Gym,GYM546,INACTIVE,BLACK,"Sector 41, Gurgaon",2,1,,,False,False,True,,2021-10-23,,546,SELLER_CULT_CFS_GGN
+578,Iron Sanctuary,GYM549,ACTIVE,BLACK,Kothrud,7,1,,,False,False,True,,2021-10-31,,549,SELLER_CULT_BOM_2
+579,Stark Fitness Studio,GYM552,INACTIVE,BLACK,Quthbullapur,3,1,,,False,False,True,,2021-10-23,,552,SELLER_CULT_HYD_2
+580,cure.fit Bangalore BLACK,GYM557,INACTIVE,BLACK,Koramangala,1,1,,,False,False,True,,2021-10-30,,557,SELLER_CULT_BLR_2
+581,cure.fit Hyderabad BLACK,GYM558,INACTIVE,BLACK,Jubilee Hills,3,1,,,False,False,True,,2021-10-30,,558,SELLER_CULT_HYD_2
+582,cure.fit Delhi BLACK,GYM559,INACTIVE,BLACK,Saket,2,1,,,False,False,True,,2021-10-30,,559,SELLER_CULT_CFS_DELHI
+583,cure.fit Pune BLACK,GYM560,INACTIVE,BLACK,Hinjewadi,7,1,,,False,False,True,,2021-10-30,,560,SELLER_CULT_BOM_2
+584,cure.fit Mumbai BLACK,GYM561,INACTIVE,BLACK,Andheri West,4,1,,,False,False,True,,2021-10-30,,561,SELLER_CULT_BOM_2
+585,cure.fit Chennai BLACK,GYM567,INACTIVE,BLACK,George Town,5,1,,,False,False,True,,2021-10-30,,567,SELLER_CULT_TN_2
+586,Sehat World Green,GYM569,ACTIVE,BLACK,Dwarka,2,1,,,False,False,True,,2021-10-31,,569,SELLER_CULT_CFS_DELHI
+587,UFO Fit,GYM570,INACTIVE,BLACK,Tilak Nagar,4,1,,,False,False,True,,2021-10-30,,570,
+588,Multifit (Xion Mall) Hinjewadi,GYM573,ACTIVE,BLACK,Hinjewadi,7,1,,,False,False,True,,2021-10-31,,573,SELLER_CULT_BOM_2
+589,Cult Vidyaranyapura,CBVID,ACTIVE,BLACK,Vidyaranyapura,1,1,North Blr,1000,False,False,True,,2021-11-01,,574,SELLER_CULT_BLR_2
+590,Fitness One Gym ,GYM577,INACTIVE,BLACK,Vasant Kunj,2,1,,,False,False,True,,2021-11-13,,577,SELLER_CULT_CFS_DELHI
+591,Phantom Fitness Club,GYM579,INACTIVE,BLACK,Kompally,3,1,,,False,False,True,,2021-11-13,,579,SELLER_CULT_HYD_2
+592,Fly Fit,GYM584,ACTIVE,BLACK,New Friends Colony,2,1,,,False,False,True,,2021-11-29,,584,SELLER_CULT_CFS_DELHI
+593,Ovalnet Badminton Academy,OBA,INACTIVE,BLACK,Sahakar Nagar,1,1,North Blr,100,False,False,True,,2021-12-01,,586,SELLER_CULT_BLR_2
+594,B3 Wellness Studio,GYM587,INACTIVE,BLACK,Mahadevapura,1,1,,100,False,False,True,,2021-12-03,,587,SELLER_CULT_BLR_2
+595,Lifestyle Fitness Gym and Cardio,GYM590,ACTIVE,BLACK,Kothapet,3,1,,,False,False,True,,2021-12-18,,590,SELLER_CULT_HYD_2
+596,Stallion Fitness,GYM591,INACTIVE,BLACK,Kondapur,3,1,,,False,False,True,,2021-12-30,,591,SELLER_CULT_HYD_2
+599,Cult Pal Heights,CBBSRPH,INACTIVE,BLACK,Pal Heights,33,1,Bhubaneswar Central,1000,False,False,True,,2021-12-30,,600,SELLER_CULT_CFS_ODISHA
+600,Cult Dharampeth,CNAG1,ACTIVE,BLACK,Dharampeth,27,1,,1000,False,False,True,,2022-01-03,,603,SELLER_CULT_BOM_2
+601,Cult Race Course,CDDN1,INACTIVE,BLACK,Race Course,34,1,Dehradun Central,1000,False,False,True,,2022-03-08,,605,SELLER_CULT_CFS_UTTARAKHAND
+602,"Cult Gym RDC, Ghaziabad",GYM606,ACTIVE,BLACK,"Ambedkar Road, Ghaziabad",2,1,,,False,False,True,,2022-02-15,,606,SELLER_CULT_NOI_2
+603,Cult Gym Bellandur,GYM607,ACTIVE,BLACK,Bellandur,1,1,Bangalore Gym Cluster,1000,False,False,True,,2022-02-20,,607,SELLER_CULT_BLR_2
+604,Cult Gym HSR,GYM608,ACTIVE,BLACK,HSR Layout,1,1,,,False,False,True,,2022-02-03,,608,SELLER_CULT_BLR_2
+605,Cult Alwarpet,CCHNAL,ACTIVE,BLACK,Alwarpet,5,1,,1000,False,False,True,,2022-03-14,,613,SELLER_CULT_TN_2
+606,Cult Gym Golf Course Rd,GYM615,ACTIVE,BLACK,DLF Phase 1,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2022-03-08,,615,SELLER_CULT_CFS_GGN
+607,Cult Golf Course Rd,CGGCRGX,ACTIVE,BLACK,DLF Phase-1,2,1,,1000,False,False,True,,2022-03-08,,616,SELLER_CULT_CFS_GGN
+608,Cult Gomti Nagar,CCLKO1,ACTIVE,BLACK,Gomti Nagar,24,1,,1000,False,False,True,,2022-02-25,,617,SELLER_CULT_NOI_2
+609,Being Gymaholic,GYM602,ACTIVE,BLACK,Vasna,9,1,,,False,False,True,,2021-12-20,,602,SELLER_CULT_GJ_2
+610,Fitness Experts the GYM,GYM609,ACTIVE,BLACK,Satellite,9,1,,,False,False,True,,2021-12-29,,609,SELLER_CULT_GJ_2
+613,Cult Gym Gomti Nagar,GYM614,ACTIVE,BLACK,Gomti Nagar,24,1,,,False,False,True,,2022-02-25,,614,SELLER_CULT_NOI_2
+614,Amida Fitness Club,GYM625,INACTIVE,BLACK,Sinhagad Road,7,1,,,False,False,True,,2022-01-28,,625,SELLER_CULT_BOM_2
+615,Fit Dock,GYM665,INACTIVE,BLACK,Ramanthapur,3,1,,,False,False,True,,2022-01-30,,665,SELLER_CULT_HYD_2
+616,Cubbon Park,CR001,ACTIVE,BLACK,Brigade Road,1,1,,1000,False,False,True,,2022-01-25,,672,SELLER_CULT_BLR_2
+617,Agara Lake,CR002,ACTIVE,BLACK,HSR Layout,1,1,,1000,False,False,True,,2022-02-04,,675,SELLER_CULT_BLR_2
+618,Cult Napier Town,CJBL1,ACTIVE,BLACK,Napier Town,35,1,,1000,False,False,True,,2022-04-14,,678,SELLER_CULT_CFS_MP
+619,Cult Vijay Nagar,CIND2,ACTIVE,BLACK,Vijay Nagar,18,1,Indore East,1000,False,False,True,,2022-04-17,,681,SELLER_CULT_CFS_MP
+620,Cult Gym Napier Town,GYM677,ACTIVE,BLACK,Napier Town,35,1,,100,False,False,True,,2022-04-13,,677,SELLER_CULT_CFS_MP
+621,Cult Gym Vijay Nagar,GYM680,INACTIVE,BLACK,Vijay Nagar,18,1,,,False,False,True,,2022-04-17,,680,SELLER_CULT_CFS_MP
+622,Stallions Fitness,GYM610,INACTIVE,BLACK,Bopal,9,1,,,False,False,True,,2022-02-12,,610,SELLER_CULT_GJ_2
+623,Cult Nariman Point,CMUMNP,INACTIVE,BLACK,Nariman Point,4,1,South Mum,1000,False,True,True,,2022-07-18,,684,SELLER_CULT_BOM_2
+624,Cult Gym Pitampura,GYM685,ACTIVE,BLACK,Pitampura,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2022-03-30,,685,SELLER_CULT_CFS_DELHI
+625,Cult Gym BTM Layout,GYM686,INACTIVE,BLACK,BTM Layout,1,1,,,False,False,True,,2022-04-07,,686,SELLER_CULT_BLR_2
+626,Cult BTM Layout,BTM,ACTIVE,BLACK,BTM Layout,1,1,South2 Blr,1000,False,False,True,,2022-04-07,,687,SELLER_CULT_BLR_2
+627,Gold’s Gym (Kalyani Nagar),GYM690,ACTIVE,BLACK,Kalyani Nagar,7,1,,,False,False,True,,2022-03-14,,690,SELLER_CULT_BOM_2
+628,Gold’s Gym Hadapsar,GYM691,ACTIVE,BLACK,Magarpatta City,7,1,,1000,False,False,True,,2022-03-14,,691,SELLER_CULT_BOM_2
+629,Cult Mulund West,CMUMMW,INACTIVE,BLACK,Mulund,4,1,North East Mum,1000,False,False,True,,2022-04-27,,693,SELLER_CULT_BOM_2
+630,"Defence Colony, Indiranagar",CR03,ACTIVE,BLACK,Indiranagar,1,1,,1000,False,False,True,,2022-03-15,,696,SELLER_CULT_BLR_2
+631,Kaikondrahalli Lake(Inactive),CR04,INACTIVE,BLACK,Sarjapur,1,1,South1 Blr,1000,False,False,True,,2022-03-15,,697,SELLER_CULT_CFS_CHHATTISGARH
+632,Sarakki Lake,CR05,ACTIVE,BLACK,JP Nagar,1,1,,1000,False,False,True,,2022-03-15,,698,SELLER_CULT_BLR_2
+633,Sheelavanthakere Lake,CR06,ACTIVE,BLACK,Whitefield,1,1,,1000,False,False,True,,2022-03-15,,699,SELLER_CULT_BLR_2
+634,Lalbagh Botanical Garden,CR07,ACTIVE,BLACK,Others,1,1,,1000,False,False,True,,2022-03-15,,700,SELLER_CULT_BLR_2
+635,JP Park,CR08,ACTIVE,BLACK,RMV,1,1,,1000,False,False,True,,2022-03-15,,701,SELLER_CULT_BLR_2
+636,The Kiro Fitness,GYM702,INACTIVE,BLACK,New Sanghvi,7,1,,,False,False,True,,2022-03-26,,702,SELLER_CULT_BOM_2
+637,The Power House,GYM704,INACTIVE,BLACK,Vasanth Nagar,3,1,,,False,False,True,,2022-03-26,,704,SELLER_CULT_HYD_2
+638,Cult Gym Kukatpally,GYM708,ACTIVE,BLACK,KPHB,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2022-06-01,,708,SELLER_CULT_HYD_2
+639,Bomiso Gym,GYM709,ACTIVE,BLACK,"Sector 50, Gurgaon",2,1,,,False,False,True,,2022-03-30,,709,SELLER_CULT_CFS_GGN
+640,Stark Fitness Studio,GYM712,ACTIVE,BLACK,Shapur,3,1,,,False,False,True,,2022-04-23,,712,SELLER_CULT_HYD_2
+641,Stark Fitness Studio,GYM715,ACTIVE,BLACK,Nizampet,3,1,,,False,False,True,,2022-04-16,,715,SELLER_CULT_HYD_2
+642,Jacked Fitness,GYM707,ACTIVE,BLACK,"Sec-8, Panchkula",10,1,,,False,False,True,,2022-03-26,,707,SELLER_CULT_CHANDIGARH
+643,GKVK,CR10,ACTIVE,BLACK,Yelahanka,1,1,,1000,False,False,True,,2022-04-05,,717,SELLER_CULT_BLR_2
+644,Anna Nagar Tower Park,ANTP,ACTIVE,BLACK,Anna Nagar,5,1,Chennai North,50,False,False,True,,2022-04-08,,718,SELLER_CULT_TN_2
+645,Gold's Gym (Lower Parel),GYM720,ACTIVE,BLACK,Lower Parel,4,1,,,False,False,True,,2022-04-15,,720,SELLER_CULT_BOM_2
+646,Immune Fitness,GYM713,ACTIVE,BLACK,Sector 9 C Chandigarh,10,1,,,False,False,True,,2022-04-14,,713,SELLER_CULT_CHANDIGARH
+647,Gold's Gym (Yelahanka),GYM721,INACTIVE,BLACK,Yelahanka,1,1,,1000,False,False,True,,2022-04-26,,721,SELLER_CULT_BLR_2
+648,Gold's Gym (Malleshwaram),GYM722,ACTIVE,BLACK,Malleshwaram,1,1,,1000,False,False,True,,2022-04-26,,722,SELLER_CULT_BLR_2
+649,Gold's Gym (Basavershwara Nagar),GYM723,INACTIVE,BLACK,Basaveshwar Nagar,1,1,,,False,False,True,,2022-04-26,,723,SELLER_CULT_BLR_2
+651,Gold's Gym (BEL Road),GYM725,ACTIVE,BLACK,New Bel Road,1,1,,1000,False,False,True,,2022-04-27,,725,SELLER_CULT_BLR_2
+652,Gold's Gym (Janakpuri),GYM726,ACTIVE,BLACK,Janakpuri,2,1,,1000,False,False,True,,2022-04-26,,726,SELLER_CULT_CFS_DELHI
+653,Gold's Gym (Powai),GYM732,ACTIVE,BLACK,Powai,4,1,,,False,False,True,,2022-04-29,,732,SELLER_CULT_BOM_2
+654,Gold's Gym (Kalyan Nagar),GYM733,ACTIVE,BLACK,Kalyan Nagar,1,1,,,False,False,True,,2022-04-29,,733,SELLER_CULT_BLR_2
+655,Fit Gym,GYM734,INACTIVE,BLACK,East Patel Nagar,2,1,,,False,False,True,,2022-04-29,,734,SELLER_CULT_CFS_DELHI
+656,Lesiure Valley Park,CR008,ACTIVE,BLACK,DLF Phase 4,2,1,,1000,False,False,True,,2022-04-26,,736,SELLER_CULT_CFS_GGN
+657,Paschim Vihar District Park,009,ACTIVE,BLACK,Paschim Vihar,2,1,,1000,False,False,True,,2022-04-26,,737,SELLER_CULT_CFS_DELHI
+658,Priya Park,0010,ACTIVE,BLACK,Vasant Vihar,2,1,,1000,False,False,True,,2022-04-26,,738,SELLER_CULT_CFS_DELHI
+660,Gold's Gym Baner,GYM740,ACTIVE,BLACK,Baner,7,1,,1000,False,False,True,,2022-05-12,,740,SELLER_CULT_BOM_2
+661,Gold's Gym (Whitefield),GYM741,ACTIVE,BLACK,Whitefield,1,1,,,False,False,True,,2022-05-12,,741,SELLER_CULT_BLR_2
+662,White House,000102,INACTIVE,BLACK,HSR Layout,1,1,South1 Blr,100,False,False,True,,2022-04-27,,742,SELLER_CULT_BLR
+663,Gold's Gym (Moshi),GYM743,ACTIVE,BLACK,Moshi,7,1,,,False,False,True,,2022-05-12,,743,SELLER_CULT_BOM_2
+665,Cult Gym Malviya Nagar,GYM735,ACTIVE,BLACK,Malviya Nagar,6,1,Jaipur Gym Cluster,1000,False,False,True,,2022-06-19,,735,SELLER_CULT_CFS_RAJASTHAN
+666,Gold's Gym (Dwarka),GYM744,ACTIVE,BLACK,Dwarka,2,1,,,False,False,True,,2022-05-27,,744,SELLER_CULT_CFS_DELHI
+667,Xzert Fitness Club,GYM747,ACTIVE,BLACK,Thane West,64,1,,,False,False,True,,2022-05-28,,747,SELLER_CULT_BOM_2
+668,Clout Fitness,GYM753,ACTIVE,BLACK,Whitefield,1,1,,,False,False,True,,2022-05-28,,753,SELLER_CULT_BLR_2
+669,Gym Point The Fitness Studio,GYM754,ACTIVE,BLACK,Hi-Tech City,3,1,,,False,False,True,,2022-05-25,,754,SELLER_CULT_HYD_2
+670,Fitness Forever,GYM755,ACTIVE,BLACK,Satellite,9,1,,,False,False,True,,2022-05-28,,755,SELLER_CULT_GJ_2
+672,Gold's Gym (Mulund),GYM757,ACTIVE,BLACK,Mulund,4,1,,,False,False,True,,2022-05-19,,757,SELLER_CULT_BOM_2
+674,Cult Greater Noida West,CGNW,INACTIVE,BLACK,Greater Noida West,2,1,NCR - Greater Noida West,1000,False,False,True,,2022-07-23,,761,SELLER_CULT_NOI_2
+677,Cult Gym Dwarka Sector 12,GYM764,ACTIVE,BLACK,Others,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2022-09-25,,764,SELLER_CULT_CFS_DELHI
+678,Gold's Gym (Jayalakshmipuram),GYM745,ACTIVE,BLACK,Jayalakshmipuram,11,1,,,False,False,True,,2022-05-26,,745,SELLER_CULT_BLR_2
+679,Dance Fitness Party  - 4th June,007,INACTIVE,BLACK,Siripuram,21,1,Central Visakhapatnam,250,False,False,True,,2022-06-01,,765,SELLER_CULT_CFS_AP
+680,Adapt Fitness,GYM766,INACTIVE,BLACK,Indiranagar,1,1,,,False,False,True,,2022-06-24,,766,
+681,Cult RDC Ghaziabad,CRDCG,ACTIVE,BLACK,Others,2,1,NCR Ghaziabad,1000,False,False,True,,2022-09-15,,769,SELLER_CULT_NOI_2
+682,Gold's Gym (Rajahmundry),GYM776,INACTIVE,BLACK,Jawaharlal Nehru Road,43,1,Bhubaneswar Central,100,False,False,True,,2022-06-10,,776,SELLER_CULT_CFS_AP
+683,Gold's Gym (Ganeshguri),GYM777,ACTIVE,BLACK,Ganeshguri,42,1,,,False,False,True,,2022-06-10,,777,SELLER_CULT_CFS_ASSAM
+684,Gold's Gym (Shillong),GYM778,INACTIVE,BLACK,Lachumiere,41,1,,,False,False,True,,2022-06-10,,778,SELLER_CULT_CFS_MEGHALAYA
+685,Big Box,GYM780,INACTIVE,BLACK,RR Nagar,1,1,,,False,False,True,,2022-06-23,,780,SELLER_CULT_BLR_2
+686,Dance Fitness Party - 18th June,0077,INACTIVE,BLACK,Temple Road,11,1,Central Mysore,250,False,False,True,,2022-06-14,,783,SELLER_CULT_BLR_2
+687,cure.fit Nashik BLACK,GYM787,INACTIVE,BLACK,Canada Corner,38,1,,,False,False,True,,2022-06-30,,787,SELLER_CULT_BOM_2
+688,cure.fit Surat BLACK,GYM637,INACTIVE,BLACK,Piplod,15,1,,,False,False,True,,2022-01-30,,637,SELLER_CULT_GJ_2
+689,Orca Fitness,GYM788,ACTIVE,BLACK,Pimpri Chinchwad,7,1,,,False,False,True,,2022-06-24,,788,SELLER_CULT_BOM_2
+690,Gold's Gym Canada Corner,GYM785,ACTIVE,BLACK,Canada Corner,38,1,,,False,False,True,,2022-06-15,,785,SELLER_CULT_BOM_2
+691,Gold's Gym Vesu,GYM784,ACTIVE,BLACK,Vesu,15,1,,,False,False,True,,2022-06-15,,784,SELLER_CULT_GJ_2
+692,Cult Gym KR Puram,GYM789,ACTIVE,BLACK,KR Puram,1,1,Bangalore Gym Cluster,1000,False,False,True,,2022-11-26,,789,SELLER_CULT_BLR_2
+693,Cult KR Puram,KRP1,ACTIVE,BLACK,KR Puram,1,1,North Blr,1000,False,False,True,,2022-10-05,,790,SELLER_CULT_BLR_2
+694,cure.fit Belgaum,GYM791,INACTIVE,BLACK,Tilakwadi,53,1,,,False,False,True,,2022-07-28,,791,
+695,cure.fit Belgaum BLACK,GYM792,INACTIVE,BLACK,Tilakwadi,53,1,,,False,False,True,,2022-07-28,,792,SELLER_CULT_BLR_2
+696,cure.fit Bilaspur BLACK,GYM794,INACTIVE,BLACK,Sakri,39,1,,,False,False,True,,2022-07-28,,794,SELLER_CULT_CFS_CHHATTISGARH
+697,Gold's Gym Bilaspur,GYM795,ACTIVE,BLACK,Bhartiya Nagar,39,1,,,False,False,True,,2022-06-24,,795,SELLER_CULT_CFS_CHHATTISGARH
+698,Gold's Gym Bilaspur,GYM796,INACTIVE,BLACK,Bhartiya Nagar,39,1,,,False,False,True,,2022-06-24,,796,
+699,cure.fit Allahabad BLACK,GYM798,INACTIVE,BLACK,Bamrauli,50,1,,,False,False,True,,2022-07-27,,798,SELLER_CULT_NOI_2
+700,cure.fit Bareili BLACK,GYM800,INACTIVE,BLACK,Ekta Nagar,51,1,,,False,False,True,,2022-07-28,,800,SELLER_CULT_NOI_2
+701,Gold's Gym Belgaum,GYM801,ACTIVE,BLACK,Tilakwadi,53,1,,,False,False,True,,2022-06-28,,801,SELLER_CULT_BLR_2
+702,cure.fit Imphal BLACK,GYM803,INACTIVE,BLACK,Kwakeithel Road,52,1,,,False,False,True,,2022-07-28,,803,SELLER_CULT_CFS_MANIPUR
+703,cure.fit Jalgaon BLACK,GYM805,INACTIVE,BLACK,Amalner,45,1,,,False,False,True,,2022-07-27,,805,SELLER_CULT_BOM_2
+704,cure.fit Jamshedpur BLACK,GYM807,INACTIVE,BLACK,Adityapur,47,1,,,False,False,True,,2022-07-28,,807,SELLER_CULT_CFS_JARKHAND
+705,cure.fit Jorhat BLACK,GYM809,INACTIVE,BLACK,Dohabora,54,1,,,False,False,True,,2022-07-28,,809,SELLER_CULT_CFS_ASSAM
+706,cure.fit Tumkur BLACK,GYM811,INACTIVE,BLACK,TUDA Layout,60,1,,,False,False,True,,2022-06-29,,811,SELLER_CULT_BLR_2
+707,cure.fit Khanna BLACK,GYM814,INACTIVE,BLACK,Model Town,55,1,,,False,False,True,,2022-07-27,,814,
+708,cure.fit Sangli BLACK,GYM815,INACTIVE,BLACK,Miraj,40,1,,,False,False,True,,2022-06-29,,815,SELLER_CULT_BOM_2
+709,cure.fit Rourkela_BLACK,GYM817,INACTIVE,BLACK,Bisra,59,1,,,False,False,True,,2022-06-29,,817,SELLER_CULT_CFS_ODISHA
+710,cure.fit Roorkee_BLACK,GYM819,INACTIVE,BLACK,Haridwar road,58,1,,,False,False,True,,2022-06-29,,819,SELLER_CULT_CFS_UTTARAKHAND
+711,cure.fit Latur BLACK,GYM821,INACTIVE,BLACK,Sikandarpur,56,1,,,False,False,True,,2022-07-19,,821,SELLER_CULT_BOM_2
+712,cure.fit Moradabad BLACK,GYM823,INACTIVE,BLACK,Kant Road,57,1,,,False,False,True,,2022-07-26,,823,SELLER_CULT_NOI_2
+713,cure.fit Patna BLACK,GYM825,INACTIVE,BLACK,Danapur,44,1,,,False,False,True,,2022-07-26,,825,SELLER_CULT_CFS_BIHAR
+714,Gold's Gym Moradabad,GYM826,ACTIVE,BLACK,MDA,57,1,,,False,False,True,,2022-07-01,,826,SELLER_CULT_NOI_2
+715,Gold's Gym Sangli,GYM827,ACTIVE,BLACK,Khanbhag,40,1,,,False,False,True,,2022-07-01,,827,SELLER_CULT_BOM_2
+716,Gold's Gym Ashiana Nagar,GYM828,INACTIVE,BLACK,Ashiana - Digha Road,44,1,Patna Gym Cluster,100,False,False,True,,2022-07-01,,828,SELLER_CULT_CFS_BIHAR
+717,Gold's Gym Imphal,GYM829,ACTIVE,BLACK,Singjamei Chingamathak,52,1,,,False,False,True,,2022-07-01,,829,SELLER_CULT_CFS_MANIPUR
+718,Gold's Gym Bareilly,GYM830,ACTIVE,BLACK,Rampur Garden,51,1,,,False,False,True,,2022-07-01,,830,SELLER_CULT_NOI_2
+719,Gold's Gym PCMC Akurdi,GYM831,ACTIVE,BLACK,Pimpri Chinchwad,7,1,,,False,False,True,,2022-07-01,,831,SELLER_CULT_BOM_2
+720,Gold's Gym Tumkur,GYM832,ACTIVE,BLACK,TUDA Layout,60,1,,,False,False,True,,2022-07-01,,832,SELLER_CULT_BLR_2
+721,Gold's Gym Hesaraghatta Main Road,GYM833,INACTIVE,BLACK,Bagalakunte,1,1,,,False,False,True,,2022-07-01,,833,SELLER_CULT_BLR_2
+722,The Mohali Club,GYM835,ACTIVE,BLACK,"Sector-65, Mohali",10,1,,,False,False,True,,2022-06-25,,835,SELLER_CULT_CHANDIGARH
+723,LMNT Fitness Club,GYM836,ACTIVE,BLACK,Mahadevapura,1,1,,,False,False,True,,2022-06-29,,836,SELLER_CULT_BLR_2
+724,Gold's Gym Greater Kailash,GYM837,INACTIVE,BLACK,East of Kailash,2,1,,,False,False,True,,2022-07-01,,837,SELLER_CULT_CFS_DELHI
+725,Gold's Gym (Dayanand Vihar),GYM838,INACTIVE,BLACK,Dayanand Vihar,2,1,,,False,False,True,,2022-07-01,,838,SELLER_GOLDS_HSR_LAYOUT
+726,F7 Fitness by Prasad Konda,GYM839,ACTIVE,BLACK,Bolarum,3,1,,,False,False,True,,2022-07-23,,839,SELLER_CULT_HYD_2
+727,Gold's Gym Khanna,GYM841,ACTIVE,BLACK,Bullepur,55,1,,,False,False,True,,2022-07-10,,841,SELLER_CULT_CFS_PUNJAB
+728,Ultimate Fitness Club,GYM842,ACTIVE,BLACK,Satellite,9,1,,,False,False,True,,2022-07-30,,842,SELLER_CULT_GJ_2
+729,Your Life Fitness Gym,GYM843,ACTIVE,BLACK,"Sector 62, Noida",2,1,,,False,False,True,,2022-07-30,,843,SELLER_CULT_NOI_2
+730,Gold's Gym Civil Lines,GYM850,INACTIVE,BLACK,Civil Lines,50,1,,,False,False,True,,2022-07-19,,850,SELLER_CULT_NOI_2
+731,Gold's Gym Jalgaon,GYM851,INACTIVE,BLACK,Ramdas Colony,45,1,,,False,False,True,,2022-07-19,,851,SELLER_CULT_BOM_2
+732,Gold's Gym Roorkee,GYM852,INACTIVE,BLACK,Civil Lines,58,1,,,False,False,True,,2022-07-18,,852,SELLER_CULT_CFS_UTTARAKHAND
+733,cure.fit Muzaffarpur BLACK,GYM855,INACTIVE,BLACK,Brahmapura,61,1,,,False,False,True,,2022-08-09,,855,SELLER_CULT_CFS_BIHAR
+734,cure.fit Tinsukia BLACK,GYM857,INACTIVE,BLACK,Bordoloi Nagar,62,1,,,False,False,True,,2022-08-10,,857,
+735,Gold's Gym Muzaffarpur,GYM858,INACTIVE,BLACK,Maripur,61,1,,,False,False,True,,2022-07-22,,858,SELLER_CULT_CFS_BIHAR
+736,Gold's Gym Rourkela,GYM859,INACTIVE,BLACK,Civil Township,59,1,,,False,False,True,,2022-07-25,,859,SELLER_CULT_CFS_ODISHA
+737,Gold's Gym Latur,GYM860,ACTIVE,BLACK,Saraswati Colony,56,1,,,False,False,True,,2022-07-26,,860,SELLER_CULT_BOM_2
+738,Gold's Gym Tinsukia,GYM861,ACTIVE,BLACK,Bordoloi Nagar,62,1,,,False,False,True,,2022-07-31,,861,SELLER_CULT_CFS_ASSAM
+739,Cult Goregaon West,CMUMGW,ACTIVE,BLACK,Goregaon West ,4,1,West Mum,1000,False,False,True,,2022-09-10,,862,SELLER_CULT_BOM_2
+740,Cult Borivali West,CMUMBW,ACTIVE,BLACK,Borivali,4,1,West Mum,1000,False,False,True,,2022-10-10,,863,SELLER_CULT_BOM_2
+741,Gold's Gym Aashiana,GYM865,INACTIVE,BLACK,Ashiyana,24,1,,,False,False,True,,2022-08-12,,865,
+742,Sehat World Green (Sector -23),GYM867,ACTIVE,BLACK,"Sector 23, Dwarka",2,1,,,False,False,True,,2022-08-19,,867,SELLER_CULT_CFS_DELHI
+743,Cult Gym Manikonda,GYM869,ACTIVE,BLACK,Manikonda,3,1,,1000,False,False,True,,2022-11-05,,869,SELLER_CULT_HYD_2
+744,Cult Gym Rajajinagar 12th Cross,GYM870,ACTIVE,BLACK,Rajajinagar,1,1,Bangalore Gym Cluster,1000,False,False,True,,2022-12-30,,870,SELLER_CULT_BLR_2
+745,Cult Manikonda,CGMNKD,ACTIVE,BLACK,Manikonda,3,1,Hyderabad West,1000,False,False,True,,2022-11-05,,871,SELLER_CULT_HYD_2
+746,"Cult Rajajinagar 12th Cross, Mahalaxmi Layout",CRAJNGR,ACTIVE,BLACK,Rajajinagar,1,1,North Blr,1000,False,False,True,,2022-12-30,,872,SELLER_CULT_BLR_2
+747,Supergym,GYM873,INACTIVE,BLACK,Kharghar,4,1,,,False,False,True,,2022-08-26,,873,SELLER_CULT_BOM_2
+748,Gold's Gym Jorhat,GYM876,ACTIVE,BLACK,Dohabora,54,1,,,False,False,True,,2022-08-04,,876,SELLER_CULT_CFS_ASSAM
+749,Gold's Gym Mall Road,GYM864,INACTIVE,BLACK,Dohabora,26,1,,,False,False,True,,2022-08-03,,864,SELLER_CULT_NOI_2
+750,Sankey Lake,CR010,ACTIVE,BLACK,Malleshwaram,1,1,,1000,False,False,True,,2022-08-13,,882,SELLER_CULT_BLR_2
+751,Mahadevapura-2 Lake,CR011,ACTIVE,BLACK,Mahadevapura,1,1,,1000,False,False,True,,2022-08-13,,883,SELLER_CULT_BLR_2
+752,BHEL,CR012,ACTIVE,BLACK,Nallagandla,3,1,,1000,False,False,True,,2022-08-13,,884,SELLER_CULT_HYD_2
+753,Golds's Gym Ulubari,GYM887,ACTIVE,BLACK,Ulubari,42,1,,,False,False,True,,2022-08-29,,887,SELLER_CULT_CFS_ASSAM
+754,Gold's Gym Gomti Nagar,GYM888,INACTIVE,BLACK,Gomti Nagar,24,1,,,False,False,True,,2022-08-29,,888,SELLER_CULT_NOI_2
+755,Cult Gym Dharampeth,GYM868,INACTIVE,BLACK,Dharampeth,27,1,Nagpur Central,1000,False,False,True,,2022-09-24,,868,SELLER_CULT_BOM_2
+759,Noida Stadium,CR013,ACTIVE,BLACK,"Sector 18, Noida",2,1,,1000,False,False,True,,2022-08-20,,892,SELLER_CULT_NOI_2
+760,Conquest Fitness (Kukatpally),GYM893,INACTIVE,BLACK,Kukatpally,3,1,,,False,False,True,,2022-08-30,,893,SELLER_CULT_HYD_2
+761,Shivaji Park,CR014,ACTIVE,BLACK,Punjabi Bagh,2,1,,1000,False,False,True,,2022-08-27,,894,SELLER_CULT_CFS_DELHI
+762,Tao Devi Lal Park ,CR015,ACTIVE,BLACK,"Golf Course Road, Gurgaon",2,1,,1000,False,False,True,,2022-08-27,,895,SELLER_CULT_CFS_GGN
+765,Hennuru Lake,CR016,ACTIVE,BLACK,Hennur,1,1,,1000,False,False,True,,2022-09-03,,898,SELLER_CULT_BLR_2
+766,Kaikondrahalli Lake,CR017,ACTIVE,BLACK,Sarjapur,1,1,,1000,False,False,True,,2022-09-03,,899,SELLER_CULT_BLR_2
+767,cure.fit Navi Mumbai & Thane_BLACK,GYM901,INACTIVE,BLACK,TestNav,64,1,,,False,False,True,,2022-08-31,,901,SELLER_CULT_BOM_2
+768,Stark Fitness Studio (Madhapur),GYM902,ACTIVE,BLACK,Madhapur,3,1,,,False,False,True,,2022-09-16,,902,SELLER_CULT_HYD_2
+769,Assault Fitness,GYM885,INACTIVE,BLACK,Tiwariganj,24,1,,,False,False,True,,2022-08-30,,885,SELLER_CULT_NOI_2
+770,Cult Gym Harlur,GYM908,ACTIVE,BLACK,Harlur,1,1,,,False,False,True,,2022-12-22,,908,SELLER_CULT_BLR_2
+771,KBR Park,CR018,ACTIVE,BLACK,Banjara Hills,3,1,,1000,False,False,True,,2022-09-10,,909,SELLER_CULT_HYD_2
+772,Panagal Park,CR019,ACTIVE,BLACK,T Nagar,5,1,,1000,False,False,True,,2022-09-10,,910,SELLER_CULT_TN_2
+773,B3 Wellness Studio (Horamavu),GYM914,ACTIVE,BLACK,Horamavu,1,1,,,False,False,True,,2022-09-27,,914,SELLER_CULT_BLR_2
+774,Play On Fitness (Sarjapur),GYM916,ACTIVE,BLACK,Sarjapur,1,1,,,False,False,True,,2022-09-15,,916,SELLER_CULT_BLR_2
+775,Royal Fitness (MCECHS Layout),GYM917,ACTIVE,BLACK,MCECHS Layout,1,1,,,False,False,True,,2022-09-26,,917,SELLER_CULT_BLR_2
+776,Cult Gym Chattarpur,GYM918,ACTIVE,BLACK,Chattarpur,2,1,,1000,False,False,True,,2022-09-27,,918,SELLER_CULT_CFS_DELHI
+777,Gold's Gym Vasai,GYM919,INACTIVE,BLACK,Thane,64,1,,,False,False,True,,2022-09-30,,919,SELLER_CULT_BOM_2
+778,Mani's Core Fitness GX,3P_MCF,INACTIVE,GOLD,Malleshwaram,1,1,North Blr,1000,False,False,True,,2022-09-22,,922,SELLER_CULT_BLR_2
+779,Deer Park,CR0021,ACTIVE,BLACK,Hauz Khas,2,1,,1000,False,False,True,,2022-09-24,,923,SELLER_CULT_CFS_DELHI
+780,Gold's Gym Basaveshwar Nagar GX,3P_GG_BN,INACTIVE,BLACK,Basaveshwar Nagar,1,1,West Blr,1000,False,False,True,,2022-09-24,,926,SELLER_CULT_BLR_2
+781,LMNT Fitness Club Mahadevpura GX,3P_LMNTFC,INACTIVE,BLACK,Mahadevpura,1,1,East Blr,1000,False,False,True,,2022-09-24,,927,SELLER_CULT_BLR_2
+782,Gold's Gym Kandivali West GX,3P_GGKNW,INACTIVE,BLACK,Kandivali West,4,1,West Mum,1000,False,False,True,,2022-09-24,,928,SELLER_CULT_BOM_2
+783,Cult TFD Koramangala 2,GYM930,INACTIVE,BLACK,Koramangala,1,1,,1296,False,True,True,,2022-09-30,,930,SELLER_CULT_BLR_2
+784,Cult Gym HSR 24th Main,GYM931,INACTIVE,BLACK,HSR Layout,1,1,Bangalore Gym Cluster,1000,False,False,True,,2022-09-30,,931,SELLER_CULT_BLR_2
+785,Kothnur Lake,CR022,ACTIVE,BLACK,JP Nagar,1,1,,1000,False,False,True,,2022-10-01,,932,SELLER_CULT_BLR_2
+786,Kasavanahalli Lake,CR023,ACTIVE,BLACK,Harlur,1,1,,1000,False,False,True,,2022-10-01,,934,SELLER_CULT_BLR_2
+787,Cult Gym Kota,GYM929,ACTIVE,BLACK,Vigyan Nagar,14,1,,,False,False,True,,2023-01-12,,929,SELLER_CULT_CFS_RAJASTHAN
+788,cure.fit Chandigarh BLACK,GYM597,INACTIVE,BLACK,"Sector 8, Chandigarh",10,1,,,False,False,True,,2021-12-30,,597,SELLER_CULT_CHANDIGARH
+789,Fitness Zone (Hafeezpet),GYM1008,ACTIVE,BLACK,Hafeezpet,3,1,,,False,False,True,,2022-10-27,,1008,SELLER_CULT_HYD_2
+790,Fitness Freak,GYM1012,INACTIVE,BLACK,SR Nagar,3,1,,,False,False,True,,2022-10-28,,1012,SELLER_CULT_HYD_2
+791,GymX Prime (Whitefield),GYM1013,ACTIVE,BLACK,Whitefield,1,1,,,False,False,True,,2022-10-27,,1013,SELLER_CULT_BLR_2
+792,Cult Gym Marathahalli,GYM1014,ACTIVE,BLACK,Marathahalli,1,1,Bangalore Gym Cluster,1000,False,False,True,,2022-11-26,,1014,SELLER_CULT_BLR_2
+793,Gold's Gym Sinhagad Road,GYM1015,INACTIVE,BLACK,Sinhagad Road,7,1,,,False,False,True,,2022-11-03,,1015,SELLER_CULT_BOM_2
+794,Cult Gym Gachibowli,GYM1019,ACTIVE,BLACK,Gachibowli,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2023-01-27,,1019,SELLER_CULT_HYD_2
+795,Gold's Gym Aundh,GYM1020,INACTIVE,BLACK,Aundh,7,1,,,False,False,True,,2022-11-15,,1020,SELLER_CULT_BOM_2
+796,Gold's Gym Lower Parel,GLPGX,ACTIVE,BLACK,Lower Parel,4,1,,1000,False,False,True,,2022-11-14,,1021,SELLER_CULT_BOM_2
+797,Cult Harlur 1st Main,CHGX,ACTIVE,BLACK,Harlur,1,1,South1 Blr,1000,False,False,True,,2022-12-02,,1023,SELLER_CULT_BLR_2
+798,Elite Fitness Club GX,EFCGX,INACTIVE,BLACK,RMV 2nd Stage,1,1,North Blr,1000,False,False,True,,2022-11-28,,1024,SELLER_CULT_BLR_2
+799,Cult Kalyan Nagar 5th Block,CKN5B,ACTIVE,BLACK,Kalyan Nagar,1,1,North Blr,1000,False,False,True,,2023-01-20,,1025,SELLER_CULT_BLR_2
+800,Cult Gym Kalyan Nagar 5th Block,GYM1026,ACTIVE,BLACK,Kalyan Nagar,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-01-20,,1026,SELLER_CULT_BLR_2
+801,Cult Gym Janakpuri,GYM1027,ACTIVE,BLACK,Janakpuri,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2023-02-08,,1027,SELLER_CULT_CFS_DELHI
+802,Cult Gym Prabhadevi,GYM1031,INACTIVE,BLACK,Prabhadevi,4,1,South Mum,1000,False,False,True,,2023-10-06,,1031,SELLER_CULT_BOM_2
+803,Cult Gym Panchkula Sector 9,GYM1032,ACTIVE,BLACK,Panchkula,10,1,Chandigarh Gym Cluster,1000,False,False,True,,2023-01-09,,1032,SELLER_CULT_CHANDIGARH
+804,Fitmax (Madhapur),GYM1033,ACTIVE,BLACK,Madhapur,3,1,,,False,False,True,,2022-12-29,,1033,SELLER_CULT_HYD_2
+805,Stark Fitness Studio (Bachupally),GYM1034,ACTIVE,BLACK,Bachupally,3,1,,,False,False,True,,2023-01-19,,1034,SELLER_CULT_HYD_2
+806,Stark Fitness Studio (Sainikpuri),GYM1036,ACTIVE,BLACK,Sainikpuri,3,1,,,False,False,True,,2022-12-19,,1036,SELLER_CULT_HYD_2
+807,Cult Gym Uttarahalli,GYM1038,ACTIVE,BLACK,Uttarahalli,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-02-15,,1038,SELLER_CULT_BLR_2
+808,Cult Gym C Scheme,GYM1039,INACTIVE,BLACK,C Scheme,6,1,Jaipur Gym Cluster,1000,False,False,True,,2023-02-27,,1039,SELLER_CULT_CFS_RAJASTHAN
+809,Muscle Junkie (ModelTown),GYM1040,ACTIVE,BLACK,Model Town,2,1,,,False,False,True,,2022-12-30,,1040,SELLER_CULT_CFS_DELHI
+810,Moments Fitness Hub 1.0,GYM1047,ACTIVE,BLACK,Electronic City,1,1,,1000,False,False,True,,2022-12-12,,1047,SELLER_CULT_BLR_2
+811,Cult Gym Miyapur X Roads,GYM1050,ACTIVE,BLACK,Miyapur,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2023-03-15,,1050,SELLER_CULT_HYD_2
+812,Supergym (Varthur),GYM1051,ACTIVE,BLACK,Varthur,1,1,,,False,False,True,,2023-02-15,,1051,SELLER_CULT_BLR_2
+813,Cult Uttarahalli,CGU,ACTIVE,BLACK,Uttarahalli,1,1,West Blr,1000,False,False,True,,2023-02-15,,1052,SELLER_CULT_BLR_2
+814,Cult Miyapur X Roads,CMXR,ACTIVE,BLACK,Miyapur,3,1,Hyderabad West,1000,False,False,True,,2023-03-15,,1053,SELLER_CULT_HYD_2
+815,"Black Vigor Elite (Sector 76, Noida)",GYM1054,ACTIVE,BLACK,"Sector 76, Noida",2,1,,,False,False,True,,2023-01-03,,1054,SELLER_CULT_NOI_2
+816,Cult Gym Fraser Road,GYM1055,ACTIVE,BLACK,Budh Vihar,44,1,Patna Gym Cluster,1000,False,False,True,,2023-03-09,,1055,SELLER_CULT_CFS_BIHAR
+817,Cult Gym Mahanagar,GYM1056,ACTIVE,BLACK,Mahanagar,24,1,Lucknow Gym Cluster,1000,False,False,True,,2023-05-01,,1056,SELLER_CULT_NOI_2
+818,Cult Mahanagar,CMHNGR,ACTIVE,BLACK,Mahanagar,24,1,Lucknow Central,1000,False,False,True,,2023-05-01,,1057,SELLER_CULT_NOI_2
+819,Cult Fraser Road,CFRD,ACTIVE,BLACK,Budh Vihar,44,1,Patna Gym Cluster,1000,False,False,True,,2023-03-09,,1060,SELLER_CULT_CFS_BIHAR
+820,"Cult Gym Universal Trade Tower, Sohna Rd",GYM1062,ACTIVE,BLACK,Sohna Road,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2023-05-16,,1062,SELLER_CULT_CFS_GGN
+821,"Cult Universal Trade Tower, Sohna Rd",CUTTSR,ACTIVE,BLACK,Sohna Road,2,1,,1000,False,False,True,,2023-05-16,,1063,SELLER_CULT_CFS_GGN
+822,Cult Gym OIC Lower Parel,GYM1064,ACTIVE,BLACK,Lower Parel,4,1,Mumbai gym cluster,1000,False,False,True,,2023-03-01,,1064,SELLER_CULT_BOM_2
+823,Cult OIC Lower Parel,COICLP,ACTIVE,BLACK,Lower Parel,4,1,South Mum,1000,False,False,True,,2023-03-01,,1065,SELLER_CULT_BOM_2
+824,Cult Gym Siripuram,GYM1030,ACTIVE,BLACK,Siripuram,21,1,Central Visakhapatnam,1000,False,False,True,,2023-01-07,,1030,SELLER_CULT_CFS_AP
+825,Cult Gym Eros Sector 49,GYM1068,ACTIVE,BLACK,"Sector 49, Gurgaon",2,1,Gurgaon Gym Cluster,1000,False,False,True,,2023-02-27,,1068,SELLER_CULT_CFS_GGN
+826,Cult Gym Himayatnagar Main,GYM1069,ACTIVE,BLACK,Himayatnagar,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2023-02-18,,1069,SELLER_CULT_HYD_2
+827,Cult Gym Madhapur,GYM1070,INACTIVE,BLACK,Madhapur,3,1,,,False,False,True,,2023-03-18,,1070,SELLER_CULT_HYD_2
+828,Cult Gym Indiranagar 6th Main,GYM1071,INACTIVE,BLACK,Indiranagar,1,1,,,False,False,True,,2023-02-27,,1071,SELLER_CULT_BLR_2
+829,Cult Gym AECS-Brookfield,GYM1072,ACTIVE,BLACK,AECS Layout,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-03-19,,1072,SELLER_CULT_BLR_2
+830,Cult Himayatnagar Main,CGHM,ACTIVE,BLACK,Himayatnagar,3,1,Hyderabad Central,1000,False,False,True,,2023-02-18,,1073,SELLER_CULT_HYD_2
+831,Cult Indiranagar 6th Main,CGI6M,ACTIVE,BLACK,Indiranagar,1,1,Central Blr,1000,False,False,True,,2023-02-26,,1074,SELLER_CULT_BLR_2
+838,Cult Kota,CGK,ACTIVE,BLACK,Vigyan Nagar,14,1,,100011,False,False,True,,2023-01-12,,1075,SELLER_CULT_CFS_RAJASTHAN
+839,Cult Gym Mahadevpura,GYM1076,ACTIVE,BLACK,Mahadevpura,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-03-25,,1076,SELLER_CULT_BLR_2
+840,Gym Point The Fitness Studio (Malakpet),GYM1079,ACTIVE,BLACK,Malakpet,3,1,,,False,False,True,,2023-01-31,,1079,SELLER_CULT_HYD_2
+841,Foundry Active (Kaggadasapura),GYM1083,INACTIVE,BLACK,Kaggadasapura,1,1,East Blr,1000,False,False,True,,2023-02-21,,1083,SELLER_CULT_BLR_2
+842,Prince Fitness,GYM1084,INACTIVE,BLACK,Hunasamaranahalli,1,1,,,False,False,True,,2023-01-28,,1084,SELLER_CULT_BLR_2
+843,Youmania,GYM1085,INACTIVE,BLACK,Goregaon,4,1,,,False,False,True,,2023-01-28,,1085,SELLER_CULT_BOM_2
+844,Aarna Fitness (Konanakunte),GYM1087,INACTIVE,BLACK,Konanakunte,1,1,,,False,False,True,,2023-02-15,,1087,SELLER_CULT_BLR_2
+845,Fitness Turf (Kompally),GYM1095,ACTIVE,BLACK,Kompally,3,1,,,False,False,True,,2023-02-28,,1095,SELLER_CULT_HYD_2
+846,Cult C Scheme,CGCS,INACTIVE,BLACK,C Scheme,6,1,Central Jaipur,1000,False,False,True,,2023-02-27,,1096,SELLER_CULT_CFS_RAJASTHAN
+847,Gold's Gym Jamshedpur,GYM1097,ACTIVE,BLACK,Bistupur,47,1,,,False,False,True,,2023-03-10,,1097,SELLER_CULT_CFS_JARKHAND
+848,Cult Gym Akshaynagar,GYM1098,ACTIVE,BLACK,Akshayanagar,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-04-08,,1098,SELLER_CULT_BLR_2
+849,Cult Gym Habsiguda,GYM1099,ACTIVE,BLACK,Habsiguda,3,1,,,False,False,True,,2023-04-15,,1099,SELLER_CULT_HYD_2
+850,Cult Gym Kondapur,GYM1100,ACTIVE,BLACK,Kondapur,3,1,,,False,False,True,,2023-04-15,,1100,SELLER_CULT_HYD_2
+851,Cult Gym Varthur,GYM1108,INACTIVE,BLACK,Varthur,1,1,,,False,False,True,,2023-05-30,,1108,SELLER_CULT_BLR_2
+852,Cult AECS-Brookfield,CGAB,ACTIVE,BLACK,AECS Layout,1,1,East Blr,1000,False,False,True,,2023-03-19,,1115,SELLER_CULT_BLR_2
+853,Cult Gym Budigere Cross,GYM1116,ACTIVE,BLACK,Katamnallur Gate,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-06-11,,1116,SELLER_CULT_BLR_2
+854,Cult Budigere Cross,CGBC,ACTIVE,BLACK,Katamnallur Gate,1,1,East Blr,1000,False,False,True,,2023-06-11,,1117,SELLER_CULT_BLR_2
+855,Cult Gym Sion,GYM1118,ACTIVE,BLACK,Sion,4,1,Mumbai gym cluster,100,False,False,True,,2023-05-20,,1118,SELLER_CULT_BOM_2
+856,Cult Sion,CGW,ACTIVE,BLACK,Sion,4,1,Central Mum,1000,False,False,True,,2023-05-20,,1119,SELLER_CULT_BOM_2
+857,Cult Gym Siliguri,GYM1120,ACTIVE,BLACK,Bankim Nagar,68,1,Siliguri,1000,False,False,True,,2023-05-10,,1120,SELLER_CULT_WB_2
+858,cure.fit Siliguri BLACK,GYM1122,INACTIVE,BLACK,Bankim Nagar,68,1,,,False,False,True,,2023-04-03,,1122,SELLER_CULT_WB_2
+859,Cult Varthur,CGV,ACTIVE,BLACK,Varthur,1,1,East Blr,1000,False,False,True,,2023-05-30,,1123,SELLER_CULT_BLR_2
+860,Cult Siliguri,CGS,ACTIVE,BLACK,Bankim Nagar,68,1,,1000,False,False,True,,2023-05-10,,1125,SELLER_CULT_WB_2
+861,Gold's Gym Banashankari,GYM1126,ACTIVE,BLACK,Banashankari,1,1,,,False,False,True,,2023-03-21,,1126,SELLER_CULT_BLR_2
+862,B3 Wellness Studio (JP Nagar),GYM1128,ACTIVE,BLACK,JP Nagar,1,1,,,False,False,True,,2023-03-31,,1128,SELLER_CULT_BLR_2
+863,Cult Gym Paschim Vihar - Rohtak Rd,GYM1130,ACTIVE,BLACK,Paschim Vihar ,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2023-07-22,,1130,SELLER_CULT_CFS_DELHI
+864,Cult Paschim Vihar - Rohtak Rd,CPVRR,ACTIVE,BLACK,Paschim Vihar ,2,1,,1000,False,False,True,,2023-07-22,,1131,SELLER_CULT_CFS_GGN
+865,Step Up Fitness (Vile Parle East),GYM1133,ACTIVE,BLACK,Vile Parle,4,1,,,False,False,True,,2023-04-18,,1133,SELLER_CULT_BOM_2
+866,Cult Field Sales Elite,GYM1134,INACTIVE,BLACK,Bellandur,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-03-31,,1134,SELLER_CULT_BLR_2
+867,Fit Gym Reloaded,GYM1136,ACTIVE,BLACK,Raja Garden,2,1,,,False,False,True,,2023-06-30,,1136,SELLER_CULT_CFS_DELHI
+868,IGNYT Gym (Paschim Vihar),GYM1137,ACTIVE,BLACK,Paschim Vihar ,2,1,,,False,False,True,,2023-08-14,,1137,SELLER_CULT_CFS_DELHI
+869,Cult Gym Nallagandla - Huda,GYM1138,ACTIVE,BLACK,Nallagandla,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2023-06-29,,1138,SELLER_CULT_HYD_2
+870,Cult Nallagandla - Huda,CGNH,ACTIVE,BLACK,Nallagandla,3,1,Hyderabad West,1000,False,False,True,,2023-06-30,,1139,SELLER_CULT_HYD_2
+871,Cult Gym Panathur,GYM1140,ACTIVE,BLACK,Panathur,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-07-20,,1140,SELLER_CULT_BLR_2
+872,Cult Panathur,CGP,ACTIVE,BLACK,Panathur,1,1,East Blr,1000,False,False,True,,2023-07-20,,1141,SELLER_CULT_BLR_2
+873,Cult Patia,CGPA,ACTIVE,BLACK,Patia,33,1,Bhubaneswar Central,1000,False,False,True,,2024-02-15,,1143,SELLER_CULT_CFS_ODISHA
+874,Cult Gym Bommanahalli,GYM1144,ACTIVE,BLACK,Bommanahalli,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-06-28,,1144,SELLER_CULT_BLR_2
+875,Cult Bommanahalli,CGBOMM,ACTIVE,BLACK,Bommanahalli,1,1,South1 Blr,1000,False,False,True,,2023-06-28,,1145,SELLER_CULT_BLR_2
+876,Reveal Fitness,GYM1146,INACTIVE,BLACK,Cuffe Parade,4,1,Mumbai gym cluster,100,False,False,True,,2023-05-30,,1146,SELLER_CULT_BOM_2
+877,Cult Gym Patia,GYM1142,INACTIVE,BLACK,Patia,33,1,,,False,False,True,,2024-02-15,,1142,SELLER_CULT_CFS_ODISHA
+878,Cult Gym Nagarbhavi,GYM1149,ACTIVE,BLACK,Nagarbhavi,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-07-08,,1149,SELLER_CULT_BLR_2
+879,Cult Nagarbhavi,NGH,ACTIVE,BLACK,Nagarbhavi,1,1,West Blr,1000,False,False,True,,2023-07-08,,1150,SELLER_CULT_BLR_2
+880,Cult Gym Vyapar Kendra,GYM1157,ACTIVE,BLACK,Sushant Lok - 1,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2023-07-17,,1157,SELLER_CULT_CFS_GGN
+881,Cult Vyapar Kendra,CGVP,ACTIVE,BLACK,Sushant Lok - 1,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2023-07-17,,1158,SELLER_CULT_CFS_GGN
+882,Cult Field Sales Elite Mum,GYM1164,INACTIVE,BLACK,Juhu,4,1,,,False,False,True,,2023-05-09,,1164,SELLER_CULT_BOM_2
+883,Iron Fist (Moosapet),GYM1166,INACTIVE,BLACK,Moosa Bowli,3,1,Hyderabad Gym Cluster,40,False,False,True,,2023-07-06,,1166,SELLER_CULT_HYD_2
+884,Millennium Fitness Club (Banjara Hills),GYM1167,ACTIVE,BLACK,Banjara Hills,3,1,,,False,False,True,,2023-07-31,,1167,SELLER_CULT_HYD_2
+885,Gold's Gym (Raj Nagar Extension),GYM1171,ACTIVE,BLACK,Raj Nagar Extension,2,1,,,False,False,True,,2023-05-30,,1171,SELLER_CULT_NOI_2
+886,Cult Gym Whitefield Main Rd,GYM1172,INACTIVE,BLACK,Whitefield,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-01-19,,1172,SELLER_CULT_BLR_2
+887,Cult Gym Kasavanahalli,GYM1176,INACTIVE,BLACK,Kasavanahalli,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-08-29,,1176,SELLER_CULT_BLR_2
+893,Cult Gym Thanisandra,GYM1178,INACTIVE,BLACK,Thanisandra,1,1,,,False,False,True,,2023-09-30,,1178,SELLER_CULT_BLR_2
+894,"Fitnest Prime, Prashant Vihar",GYM1179,ACTIVE,BLACK,Prashant Vihar,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2023-07-01,,1179,SELLER_CULT_CFS_DELHI
+895,Cult Gym Gurgaon Sec-56,GYM1180,INACTIVE,BLACK,"Sector 56, Gurgaon",2,1,Gurgaon Gym Cluster,1000,False,False,True,,2023-09-30,,1180,SELLER_CULT_CFS_GGN
+929,Cult Thanisandra,THSD,ACTIVE,BLACK,Thanisandra,1,1,North Blr,1000,False,False,True,,2023-09-27,,1185,SELLER_CULT_BLR_2
+930,Cult Kasavanahalli,KSVH,ACTIVE,BLACK,Kasavanahalli,1,1,East Blr,1000,False,False,True,,2023-08-30,,1186,SELLER_CULT_BLR_2
+931,Cult Gurgaon Sec-56,GC56,ACTIVE,BLACK,"Sector 56, Gurgaon",2,1,NCR Gurgaon Golf Course Road,1000,False,False,True,,2023-09-30,,1187,SELLER_CULT_CFS_GGN
+932,Vogue Health Club (JP Nagar),GYM1189,ACTIVE,BLACK,JP Nagar,1,1,Bangalore Gym Cluster,50,False,False,True,,2023-06-14,,1189,SELLER_CULT_BLR_2
+933,Cult Gym Neeladri Road ECity,GYM1191,ACTIVE,BLACK,Electronic City,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-12-27,,1191,SELLER_CULT_BLR_2
+934,Cult Neeladri Road ECity,NECP1,ACTIVE,BLACK,Electronic City,1,1,South2 Blr,1000,False,False,True,,2023-12-27,,1192,SELLER_CULT_BLR_2
+935,New Supergym Prime (Hoodi),GYM1194,ACTIVE,BLACK,Hoodi,1,1,,,False,False,True,,2023-07-31,,1194,SELLER_CULT_BLR_2
+936,Speed Fitness (Bandlaguda),GYM1195,ACTIVE,BLACK,Bandlaguda,3,1,,,False,False,True,,2023-08-31,,1195,SELLER_CULT_HYD_2
+937,Raptor Fitness (Gachibowli),GYM1196,ACTIVE,BLACK,Gachibowli,3,1,,,False,False,True,,2023-07-31,,1196,SELLER_CULT_HYD_2
+938,Gold's Gym NIBM,GYM1127,ACTIVE,BLACK,Kondhwa,7,1,,,False,False,True,,2023-03-20,,1127,SELLER_CULT_BOM_2
+939,Gold's Gym (PCMC),GYM1197,ACTIVE,BLACK,Pimpri Chinchwad,7,1,,,False,False,True,,2023-10-31,,1197,SELLER_CULT_BOM_2
+940,Cult Gym Attapur,GYM1201,ACTIVE,BLACK,Attapur,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2023-09-08,,1201,SELLER_CULT_HYD_2
+941,Cult Attapur,CATP,ACTIVE,BLACK,Attapur,3,1,Hyderabad South,1000,False,False,True,,2023-09-06,,1203,SELLER_CULT_HYD_2
+942,Cult Gym Company Bagh,GYM1202,ACTIVE,BLACK,Vishnupuri,26,1,Kanpur North,1000,False,False,True,,2023-10-16,,1202,SELLER_CULT_NOI_2
+943,Cult Company Bagh,CCB,ACTIVE,BLACK,Vishnupuri,26,1,Kanpur North,1000,False,False,True,,2023-10-16,,1206,SELLER_CULT_NOI_2
+944,Moments Fitness Hub 4.0,GYM1310,ACTIVE,BLACK,Harlur,1,1,,,False,False,True,,2023-08-30,,1310,SELLER_CULT_BLR_2
+945,"Fitnest Prime, Vasant Kunj",GYM1320,INACTIVE,BLACK,Vasant Kunj,2,1,,,False,False,True,,2023-09-30,,1320,SELLER_CULT_CFS_DELHI
+950,Dance Fitness Event - 22nd July,DFE,INACTIVE,BLACK,Bankim Nagar,68,1,Siliguri,1000,False,False,True,,2023-07-17,,1415,SELLER_CULT_SIL
+951,Shark Fitness (Defunct),GYM1422,INACTIVE,BLACK,Secunderabad,3,1,,,False,False,True,,2023-08-30,,1422,SELLER_CULT_HYD_2
+952,Shark Fitness (Defunct),GYM1423,INACTIVE,BLACK,Secunderabad,3,1,,,False,False,True,,2023-08-30,,1423,SELLER_CULT_HYD_2
+953,Shark Fitness (Secunderabad),GYM1424,ACTIVE,BLACK,Secunderabad,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2023-09-20,,1424,SELLER_CULT_HYD_2
+954,"Cult Gym Thane, Ghodbunder Road",GYM1430,INACTIVE,BLACK,Ghodbunder Road,64,1,Thane New,1000,False,False,True,,2023-10-25,,1430,SELLER_CULT_BOM_2
+955,Cult Gym Paschim Vihar - B Block,GYM1453,ACTIVE,BLACK,Paschim Vihar ,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2023-11-07,,1453,SELLER_CULT_CFS_DELHI
+956,Cult Paschim Vihar - B Block,CPVBB,ACTIVE,BLACK,Paschim Vihar ,2,1,,1000,False,False,True,,2023-11-07,,1454,SELLER_CULT_CFS_DELHI
+957,Cult Gym Mahalaxmi,GYM1460,INACTIVE,BLACK,Mahalaxmi,4,1,,,False,False,True,,2023-08-31,,1460,SELLER_CULT_BOM_2
+958,Drona The Fitness Gurukul (Chandra Layout),GYM1461,ACTIVE,BLACK,Chandra Layout,1,1,,,False,False,True,,2023-08-30,,1461,SELLER_CULT_BLR_2
+959,Cult Gym Shaikpet,GYM1470,INACTIVE,BLACK,Shaikpet,3,1,,,False,False,True,,2023-10-25,,1470,SELLER_CULT_HYD_2
+960,Cult Shaikpet,SKT,ACTIVE,BLACK,Shaikpet,3,1,,1000,False,False,True,,2023-10-25,,1471,SELLER_CULT_HYD_2
+961,Cult Gym Hennur,GYM1472,INACTIVE,BLACK,Hennur,1,1,,,False,False,True,,2023-10-18,,1472,SELLER_CULT_BLR_2
+962,Cult Gym BEML Layout,GYM1473,INACTIVE,BLACK,BEML Layout,1,1,Bangalore Gym Cluster,1000,False,False,True,,2023-10-17,,1473,SELLER_CULT_BLR_2
+963,HRX Gym Vanasthalipuram,GYM1474,INACTIVE,BLACK,Vanasthalipuram,3,1,,,False,False,True,,2023-09-29,,1474,SELLER_CULT_HYD_2
+964,Cult Hennur,CGHNR,ACTIVE,BLACK,Hennur,1,1,North Blr,1000,False,False,True,,2023-10-18,,1475,SELLER_CULT_BLR_2
+965,"Cult Thubarahalli, BEML Layout",CGBEML,ACTIVE,BLACK,BEML Layout,1,1,East Blr,1000,False,False,True,,2023-10-17,,1476,SELLER_CULT_BLR_2
+966,Transform Bootcamp,TBTC,INACTIVE,BLACK,Bannerghatta,1,1,North Blr,5000,False,False,True,,2023-07-31,,1487,SELLER_CULT_BLR_2
+967,Transform Plus,TPLUS,ACTIVE,BLACK,HSR Layout,1,1,,5000,False,False,True,,2023-07-31,,1488,SELLER_CULT_BLR_2
+968,Battle Fit Gym (Sarvodaya Enclave),GYM1496,ACTIVE,BLACK,Sarvodaya Enclave,2,1,,,False,False,True,,2023-10-20,,1496,SELLER_CULT_CFS_DELHI
+969,Cult Gym Kompally,GYM1497,ACTIVE,BLACK,Kompally,3,1,,,False,False,True,,2023-08-09,,1497,SELLER_CULT_HYD_2
+970,Cult Gym Model Town,GYM1498,ACTIVE,BLACK,Model Town,2,1,,,False,False,True,,2023-08-12,,1498,SELLER_CULT_CFS_DELHI
+971,Cult Gym Dilsukhnagar,GYM1499,ACTIVE,BLACK,Dilsukhnagar,3,1,,,False,False,True,,2023-09-01,,1499,SELLER_CULT_HYD_2
+972,Cult Gym Preet Vihar,GYM1500,INACTIVE,BLACK,Preet Vihar,2,1,,,False,False,True,,2023-09-03,,1500,SELLER_CULT_CFS_DELHI
+973,Cult Gym Hoodi Main,GYM1501,ACTIVE,BLACK,Hoodi,1,1,,500,False,False,True,,2023-09-15,,1501,SELLER_CULT_BLR_2
+974,"Cult Gym Whitefield, Shantiniketan",GYM1502,ACTIVE,BLACK,Whitefield,1,1,,,False,False,True,,2023-09-11,,1502,SELLER_CULT_BLR_2
+975,Cult Gym Koramangala 80ft Road,GYM1503,INACTIVE,BLACK,Others,1,1,Central Blr,1000,False,False,True,,2023-09-10,,1503,SELLER_CULT_BLR_2
+976,Cult Gym Gachibowli - Indira Nagar,GYM1515,INACTIVE,BLACK,Gachibowli,3,1,,1000,False,False,True,,2023-12-15,,1515,SELLER_CULT_HYD_2
+977,Foundry Active (Kaggadasapura) - GX,FAKGX,ACTIVE,BLACK,Kaggadasapura,1,1,East Blr,1000,False,False,True,,2023-08-10,,1546,SELLER_CULT_BLR_2
+978,Golden Leg,GL01,ACTIVE,BLACK,HSR Layout,1,1,,1000,False,False,True,,2023-08-15,,1547,SELLER_CULT_BLR_2
+979,"Cult Gym Rajouri Garden, Z Block",GYM1553,ACTIVE,BLACK,Rajouri Garden,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2023-12-01,,1553,SELLER_CULT_CFS_DELHI
+980,"Cult Rajouri Garden, Z Block",CGRGZB,ACTIVE,BLACK,Rajouri Garden,2,1,,1000,False,False,True,,2023-12-01,,1554,SELLER_CULT_CFS_DELHI
+981,3P Presales ELITE,GYM1572,ACTIVE,BLACK,HSR Layout,1,1,,,False,False,True,,2023-12-30,,1572,SELLER_3P_PRESALES_ELITE
+982,Volt Fitness Studio (Begumpet),GYM1586,ACTIVE,BLACK,Begumpet,3,1,,1000,False,False,True,,2024-01-13,,1586,SELLER_CULT_HYD_2
+983,TIENTO SPORTS,TS01,ACTIVE,BLACK,Brigade Road,1,1,,1000,False,False,True,,2023-08-20,,1595,SELLER_CULT_BLR_2
+984,"Cult Gym Rohini, Sector 11",GYM1631,INACTIVE,BLACK,Rohini,2,1,,,False,False,True,,2023-11-07,,1631,SELLER_CULT_CFS_DELHI
+985,"Cult Gym Tulip Chowk, Sector 69",GYM1632,INACTIVE,BLACK,"Sector 69, Gurgaon",2,1,,,False,False,True,,2023-12-26,,1632,SELLER_CULT_CFS_GGN
+986,Cult Gym Chandra Layout ,GYM1633,INACTIVE,BLACK,Chandra Layout,1,1,,,False,False,True,,2023-12-01,,1633,SELLER_CULT_BLR_2
+987,Cult Gym Thanisandra (Near Bhartiya City),GYM1634,INACTIVE,BLACK,Thanisandra,1,1,,,False,False,True,,2023-11-13,,1634,SELLER_CULT_BLR_2
+988,"Cult Gym Srinivasapura, RR Nagar",GYM1635,INACTIVE,BLACK,RR Nagar,1,1,,,False,False,True,,2024-02-19,,1635,SELLER_CULT_BLR_2
+989,"Cult Rohini, Sector 11",CGROH,ACTIVE,BLACK,Rohini,2,1,,1000,False,False,True,,2023-11-07,,1639,SELLER_CULT_CFS_DELHI
+990,"Cult Tulip Chowk, Sector 69",GGTULIP,ACTIVE,BLACK,"Sector 69, Gurgaon",2,1,,1000,False,False,True,,2023-12-25,,1640,SELLER_CULT_CFS_GGN
+991,Defunct,CCHDL,INACTIVE,BLACK,Chandra Layout,1,1,West Blr,1000,False,False,True,,2023-11-15,,1642,SELLER_CULT_BLR_2
+992,Cult Thanisandra (Near Bhartiya City),CTHBC,ACTIVE,BLACK,Sahakar Nagar,1,1,North Blr,1000,False,False,True,,2023-11-11,,1644,SELLER_CULT_BLR_2
+993,"Cult Srinivasapura, RR Nagar",CSRNP,ACTIVE,BLACK,RR Nagar,1,1,West Blr,1000,False,False,True,,2024-02-19,,1645,SELLER_CULT_BLR_2
+994,The Bull Ring Arena,TBRA01,ACTIVE,BLACK,Indiranagar,1,1,,1000,False,False,True,,2023-09-03,,1647,SELLER_CULT_BLR_2
+995,Cult South Extension,GYM1661,INACTIVE,BLACK,South Extension ,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2023-08-28,,1661,SELLER_CULT_CFS_DELHI
+998,Test cluster center,txx,INACTIVE,BLACK,Adugodi,1,1,North Blr,1000,False,False,True,,2024-08-30,,1666,SELLER_CULT_BLR_2
+999,Tackle Jayanagar,TJ001,ACTIVE,BLACK,Jayanagar,1,1,,1000,False,False,True,,2023-10-01,,1679,SELLER_CULT_BLR_2
+1000,Maracana Sports Arena,MSA001,ACTIVE,BLACK,Basavanagudi,1,1,,1000,False,False,True,,2023-10-01,,1680,SELLER_CULT_BLR_2
+1001,"Cult Fitnest Prime, Prashant Vihar",CFPPV,INACTIVE,BLACK,Prashant Vihar,2,1,NCR Delhi West,1000,False,False,True,,2023-08-30,,1684,SELLER_CULT_CFS_DELHI
+1002,Vibe Fitness Studio (Suchitra),GYM1692,ACTIVE,BLACK,Suchitra,3,1,,,False,False,True,,2023-11-10,,1692,SELLER_CULT_HYD_2
+1003,F99 Fit (Pragathi Nagar),GYM1698,ACTIVE,BLACK,Pragathi Nagar,3,1,,,False,False,True,,2023-12-15,,1698,SELLER_CULT_HYD_2
+1004,GameLoop Multi-Sport Turf,GMST01,ACTIVE,BLACK,Electronic City,1,1,,1000,False,False,True,,2023-09-30,,1709,SELLER_CULT_BLR_2
+1009,Cult Bahu Plaza Main,CBPM,ACTIVE,BLACK,Gandhi Nagar,17,1,Trikuta Nagar,1000,False,False,True,,2023-11-07,,1717,SELLER_CULT_CFS_JAMMU
+1010,Cult Gym Bahu Plaza Main,GYM1712,INACTIVE,BLACK,Gandhi Nagar,17,1,,,False,False,True,,2023-12-29,,1712,SELLER_CULT_CFS_JAMMU
+1011,Cult Gym Lokhandwala,GYM1812,INACTIVE,BLACK,Andheri West,4,1,,,False,False,True,,2024-02-27,,1812,SELLER_CULT_BOM_2
+1012,cure.fit Bhantinda BLACK,GYM1838,INACTIVE,BLACK,Vishal Nagar,71,1,,10,False,False,True,,2023-09-28,,1838,SELLER_CULT_CFS_PUNJAB
+1013,Cult Gym Mittal's City Mall Bathinda,GYM1840,INACTIVE,BLACK,Vishal Nagar,71,1,,,False,False,True,,2024-01-07,,1840,SELLER_CULT_CFS_PUNJAB
+1017,Cult Gym Banjara Hills,GYM1850,INACTIVE,BLACK,Banjara Hills,3,1,,,False,False,True,,2023-12-08,,1850,SELLER_CULT_HYD_2
+1018,Cult Gachibowli - Indira Nagar,CGIN,ACTIVE,BLACK,Gachibowli,3,1,Hyderabad West,1000,False,False,True,,2023-12-14,,1871,SELLER_CULT_HYD_2
+1019,Cult Gym BTM 2nd Stage,GYM1872,ACTIVE,BLACK,BTM 2nd Stage,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-01-26,,1872,SELLER_CULT_BLR_2
+1023,Cult Mittal's City Mall Bathinda,CMCM,ACTIVE,BLACK,Vishal Nagar,71,1,Central Bathinda,1000,False,False,True,,2024-01-07,,1877,SELLER_CULT_CFS_PUNJAB
+1024,Cult Elpro Mall PCMC,CEMP,INACTIVE,BLACK,Pimpri Chinchwad,7,1,Pune North-West,1000,False,False,True,,2024-04-15,,1932,SELLER_CULT_BOM_2
+1025,Cult Gym Hesarghatta Road,GYM1962,INACTIVE,BLACK,Others,1,1,,1000,False,False,True,,2024-03-01,,1962,SELLER_CULT_BLR_2
+1026,Cult Hesaraghatta Road,CHGTR,ACTIVE,BLACK,Others,1,1,North Blr,1000,False,False,True,,2024-03-01,,1967,SELLER_CULT_BLR_2
+1027,Cult Gym Hennur Gardens (earlier Kothanur),GYM1968,INACTIVE,BLACK,Kothanur,1,1,,1000,False,False,True,,2024-02-19,,1968,SELLER_CULT_BLR_2
+1028,Cult Gym Sarjapur - Dommasandra,GYM1969,INACTIVE,BLACK,Sompura,1,1,,1000,False,False,True,,2024-02-19,,1969,SELLER_CULT_BLR_2
+1029,Cult Sarjapur - Dommasandra,CSRJD,ACTIVE,BLACK,Sompura,1,1,South1 Blr,1000,False,False,True,,2024-02-19,,1970,SELLER_CULT_BLR_2
+1030,"Cult Gym HRBR Layout, Banaswadi",GYM1971,INACTIVE,BLACK,HRBR Layout,1,1,,1000,False,False,True,,2024-03-02,,1971,SELLER_CULT_BLR_2
+1031,"Cult HRBR Layout, Banaswadi",CHRBRL,ACTIVE,BLACK,HRBR Layout,1,1,North East Blr,1000,False,False,True,,2024-03-02,,1972,SELLER_CULT_BLR_2
+1032,Coliseo Atletico,CA01,ACTIVE,BLACK,Electronic City,1,1,,20,False,False,True,,2023-11-19,,1984,SELLER_CULT_BLR_2
+1033,cure.fit Gulbarga BLACK,GYM1983,INACTIVE,BLACK,Shambhognlli,72,1,,,False,False,True,,2023-12-21,,1983,SELLER_CULT_GULBARGA
+1034,Meraki Fitness Studio (Sec - 122),GYM1989,INACTIVE,BLACK,"Sector 122, Noida",2,1,Gurgaon Gym Cluster,1000,False,False,True,,2024-06-07,,1989,SELLER_CULT_FF_NOI
+1035,Cult Gym Lower Parel,GYM1991,INACTIVE,BLACK,Lower Parel,4,1,,,False,False,True,,2024-01-30,,1991,SELLER_CULT_BOM_2
+1036,Cult Lower Parel,CLWRP,ACTIVE,BLACK,Lower Parel,4,1,South Mum,1000,False,False,True,,2024-01-30,,1992,SELLER_CULT_BOM_2
+1037,Cult Gym Chembur,GYM1996,INACTIVE,BLACK,Chembur,4,1,,,False,False,True,,2024-01-24,,1996,SELLER_CULT_BOM_2
+1038,Cult Hennur Gardens (earlier Kothanur),KOTHN,ACTIVE,BLACK,Hennur,1,1,North Blr,1000,False,False,True,,2024-02-19,,1997,SELLER_CULT_BLR_2
+1039,Cult Gym Puppalaguda,GYM1999,INACTIVE,BLACK,Puppalaguda,3,1,,,False,False,True,,2024-02-16,,1999,SELLER_CULT_HYD_2
+1040,Cult Gym RR Nagar Ideal Homes Layout,GYM2005,INACTIVE,BLACK,RR Nagar,1,1,,1000,False,False,True,,2024-04-20,,2005,SELLER_CULT_BLR_2
+1041,Cult Gym Banashankari 3rd Stage,GYM2006,INACTIVE,BLACK,Banashankari,1,1,,,False,False,True,,2024-02-15,,2006,SELLER_CULT_BLR_2
+1042,Cult Banashankari 3rd Stage,CGBSK,ACTIVE,BLACK,Banashankari,1,1,West Blr,1000,False,False,True,,2024-02-15,,2007,SELLER_CULT_BLR_2
+1043,Cult Puppalaguda,PPG,ACTIVE,BLACK,Puppalaguda,3,1,Hyderabad West,1000,False,False,True,,2024-02-16,,2008,SELLER_CULT_HYD_2
+1044,Cult Gym Vijayanagar,GYM2018,INACTIVE,BLACK,Vijayanagar,1,1,,1000,False,False,True,,2024-03-29,,2018,SELLER_CULT_BLR_2
+1045,"Cult Gym Wave One, Sec-18",GYM2019,INACTIVE,BLACK,"Sector 18, Noida",2,1,,,False,False,True,,2024-04-25,,2019,SELLER_CULT_NOI_2
+1046,Cult Vijayanagar,CVJN,ACTIVE,BLACK,Vijayanagar,1,1,West Blr,1000,False,False,True,,2024-03-29,,2020,SELLER_CULT_BLR_2
+1047,"Cult Wave One, Sec-18",CWONOI,ACTIVE,BLACK,"Sector 18, Noida",2,1,NCR East Delhi/Noida,1000,False,False,True,,2024-04-25,,2021,SELLER_CULT_CFS_DELHI
+1048,GymX Fitness Redefined (HBR Layout),GYM2023,ACTIVE,BLACK,HBR Layout,1,1,BLR - South1,1000,False,False,True,,2024-01-10,,2023,SELLER_CULT_BLR_2
+1049,Trident Fitness Studio (Vidyaranyapura),GYM2094,ACTIVE,BLACK,Vidyaranyapura,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-06-03,,2094,SELLER_CULT_BLR_2
+1050,Cult Gym Station Road,GYM2100,INACTIVE,BLACK,Shambhognlli,72,1,,1000,False,False,True,,2024-05-29,,2100,SELLER_CULT_BLR_2
+1051,Cult Gym Dayanand Vihar,GYM2108,INACTIVE,BLACK,Dayanand Vihar,2,1,,,False,False,True,,2024-03-28,,2108,SELLER_CULT_CFS_DELHI
+1056,Cult Dayanand Vihar,CGDYV,ACTIVE,BLACK,Dayanand Vihar,2,1,NCR East Delhi/Noida,1000,False,False,True,,2024-03-28,,2109,SELLER_CULT_CFS_DELHI
+1057,Cult Gomti Nagar - Gx ,CCLKO11,INACTIVE,BLACK,Gomti Nagar,24,1,Lucknow Central,1000,False,False,True,,2023-12-18,,2122,SELLER_CULT_NOI_2
+1058,Cult Gym Tilak Nagar,GYM2137,INACTIVE,BLACK,Tilak Nagar,2,1,NCR Delhi West,1000,False,False,True,,2024-04-14,,2137,SELLER_CULT_CFS_DELHI
+1059,Cult Tilak Nagar,CGTINA,ACTIVE,BLACK,Tilak Nagar,2,1,NCR Delhi West,1000,False,False,True,,2024-04-15,,2138,SELLER_CULT_CFS_DELHI
+1060,Black Vigor ,GYM83,ACTIVE,BLACK,Gaur City,2,1,,,False,False,True,,2021-08-14,,83,SELLER_CULT_NOI_2
+1061,Cult Gym Ghatkopar,GYM2151,INACTIVE,BLACK,Ghatkopar,4,1,,,False,False,True,,2024-03-30,,2151,SELLER_CULT_BOM_2
+1062,Cult Ghatkopar,CGGHTK,ACTIVE,BLACK,Ghatkopar,4,1,Central Mum,1000,False,False,True,,2024-03-30,,2152,SELLER_CULT_BOM_2
+1063,cure.fit GX Bangalore,CGXB,INACTIVE,BLACK,HSR Layout,1,1,North Blr,1000,False,False,True,,2023-12-31,,2153,SELLER_CULT_BLR_2
+1064,cure.fit GX Hyderabad,CGXH,INACTIVE,BLACK,Attapur,3,1,Hyderabad West,100,False,False,True,,2023-12-26,,2154,SELLER_CULT_HYD_2
+1071,cure.fit GX Delhi,CGXD1,INACTIVE,BLACK,Anand Vihar,2,1,NCR Delhi West,100,False,False,True,,2023-12-31,,2155,SELLER_CULT_CFS_DELHI
+1072,cure.fit GX Pune,CGXP,INACTIVE,BLACK,Hinjewadi,7,1,Pune East,100,False,False,True,,2023-12-31,,2156,SELLER_CULT_BOM_2
+1073,cure.fit GX Mumbai,CGXM,INACTIVE,BLACK,Andheri East,4,1,South Mum,100,False,False,True,,2023-12-31,,2157,SELLER_CULT_BOM_2
+1074,cure.fit GX Kolkata,CGXK,INACTIVE,BLACK,Park Street,12,1,North Kolkata,100,False,False,True,,2023-12-31,,2158,SELLER_CULT_WB_2
+1075,cure.fit GX Ahmedabad,CGXA,INACTIVE,BLACK,Bopal,9,1,Ahmedabad,100,False,False,True,,2023-12-31,,2159,SELLER_CULT_GJ_2
+1076,cure.fit GX Chennai,CGXC,INACTIVE,BLACK,Velachery,5,1,Chennai Central,100,False,False,True,,2023-12-31,,2160,SELLER_CULT_TN_2
+1077,cure.fit GX Chandigarh,CGXCH,INACTIVE,BLACK,"Sector 16, Panchkula",10,1,Chandigarh,100,False,False,True,,2023-12-31,,2161,SELLER_CULT_GGN_2
+1078,cure.fit GX Lucknow,CGXL,INACTIVE,BLACK,Gomti Nagar,24,1,Lucknow Central,100,False,False,True,,2023-12-31,,2162,SELLER_CULT_NOI_2
+1079,cure.fit GX Jaipur,CGXJ,INACTIVE,BLACK,Malviya Nagar,6,1,Central Jaipur,100,False,False,True,,2023-12-31,,2163,SELLER_CULT_BLR
+1080,cure.fit GX Coimbatore,CGXCO,INACTIVE,BLACK,Ganapathy,22,1,Coimbatore Central,100,False,False,True,,2023-12-31,,2164,SELLER_CULT_TN_2
+1081,cure.fit GX Mysore,CGXMY,INACTIVE,BLACK,Gokulam,11,1,Central Mysore,100,False,False,True,,2023-12-31,,2165,SELLER_CULT_BLR_2
+1082,cure.fit GX Indore,CGXI,INACTIVE,BLACK,Vijay Nagar,18,1,Indore East,100,False,False,True,,2023-12-31,,2166,SELLER_CULT_BLR
+1083,cure.fit GX Jabalpur,CGXJP,INACTIVE,BLACK,Napier Town,35,1,Central Jabalpur,100,False,False,True,,2023-12-31,,2167,SELLER_CULT_BLR
+1084,cure.fit GX Kochi,CGXKC,INACTIVE,BLACK,MG Road,13,1,Kochi Central,100,False,False,True,,2023-12-31,,2168,SELLER_CULT_BLR
+1085,cure.fit GX Kota,CGXKT,INACTIVE,BLACK,Vigyan Nagar,14,1,Kota-Gym,100,False,False,True,,2023-12-31,,2169,SELLER_CULT_BLR
+1086,cure.fit GX Surat,CGXS,INACTIVE,BLACK,Piplod,15,1,New Surat,190,False,False,True,,2023-12-31,,2170,SELLER_CULT_GJ_2
+1087,cure.fit GX Ludhiana,CGXLD,INACTIVE,BLACK,Sarabha Nagar,16,1,Ludhiana Central,100,False,False,True,,2023-12-31,,2171,SELLER_CULT_BLR
+1088,cure.fit GX Jammu,CGXJM,INACTIVE,BLACK,Trikuta Nagar ,17,1,Trikuta Nagar,100,False,False,True,,2023-12-31,,2172,SELLER_CULT_BLR
+1089,cure.fit GX Amritsar,CGXAM,INACTIVE,BLACK,Ranjit Avenue,19,1,North Amritsar,100,False,False,True,,2023-12-31,,2173,SELLER_CULT_GGN_2
+1090,cure.fit GX Vadodara,CGXVD,INACTIVE,BLACK,Manjalpur,20,1,Central Vadodara,100,False,False,True,,2023-12-31,,2174,SELLER_CULT_GJ_2
+1091,cure.fit GX Visakhapatnam,CGXVP,INACTIVE,BLACK,Waltair Uplands,21,1,Central Visakhapatnam,100,False,False,True,,2023-12-31,,2175,SELLER_CULT_BLR
+1092,cure.fit GX Mangalore,CGXML,INACTIVE,BLACK,MG Road,23,1,Mangalore central,100,False,False,True,,2023-12-31,,2176,SELLER_CULT_BLR_2
+1093,cure.fit GX Agra,CGXAG,INACTIVE,BLACK,Dayal Bagh,25,1,Central Agra,100,False,False,True,,2023-12-31,,2177,SELLER_CULT_NOI_2
+1094,cure.fit GX Kanpur,CGXKP,INACTIVE,BLACK,Vishnupuri,26,1,Kanpur North,100,False,False,True,,2023-12-31,,2178,SELLER_CULT_NOI_2
+1095,cure.fit GX Nagpur,CGXNP,INACTIVE,BLACK,Dharampeth,27,1,Nagpur Central,100,False,False,True,,2023-12-31,,2179,SELLER_CULT_BOM_2
+1096,cure.fit GX Bhopal,CGXBP,INACTIVE,BLACK,Bairagarh,28,1,Central Bhopal,100,False,False,True,,2023-12-31,,2180,SELLER_CULT_BLR
+1097,cure.fit GX Ranchi,CGXRC,INACTIVE,BLACK,Lalpur,31,1,Central Ranchi,100,False,False,True,,2023-12-31,,2181,SELLER_CULT_BLR
+1098,cure.fit GX Bhubaneswar,CGXBB,INACTIVE,BLACK,Patia,33,1,Bhubaneswar Central,100,False,False,True,,2023-12-31,,2182,SELLER_CULT_CFS_ODISHA
+1099,cure.fit GX Dehradun,CGXDD,INACTIVE,BLACK,Race Course,34,1,Dehradun Central,100,False,False,True,,2023-12-31,,2183,SELLER_CULT_BLR
+1100,cure.fit GX Vijayawada,CGXVW,INACTIVE,BLACK,Gollapudi,36,1,Central Vijayawada,100,False,False,True,,2023-12-31,,2184,SELLER_CULT_BLR
+1101,cure.fit GX Shillong,CGXSL,INACTIVE,BLACK,Laitumkhrah,41,1,Shillong Gym Cluster,1000,False,False,True,,2023-12-31,,2185,SELLER_CULT_BLR
+1102,cure.fit GX Guwahati,CGXGW,INACTIVE,BLACK,Ananda Nagar,42,1,Guwahati Gym Cluster,100,False,False,True,,2023-12-31,,2186,SELLER_CULT_BLR
+1103,cure.fit GX Rajahmundry,CGXRM,INACTIVE,BLACK,Morampudi,43,1,Bhubaneswar Central,100,False,False,True,,2023-12-31,,2187,SELLER_CULT_CFS_AP
+1104,cure.fit GX Nashik,CGXNS,INACTIVE,BLACK,Canada Corner,38,1,Central Nashik,100,False,False,True,,2023-12-31,,2188,SELLER_CULT_BOM_2
+1105,cure.fit GX Belgaum,CGXBLG,INACTIVE,BLACK,Tilakwadi,53,1,Central Belgaum,100,False,False,True,,2023-12-31,,2189,SELLER_CULT_BLR_2
+1106,cure.fit GX Bilaspur,CGXBL,INACTIVE,BLACK,Sakri,39,1,Bilaspur,100,False,False,True,,2023-12-31,,2190,SELLER_CULT_CFS_CHHATTISGARH
+1107,cure.fit GX Allahabad,CGXAL,INACTIVE,BLACK,Bamrauli,50,1,Central Allahabad,100,False,False,True,,2023-12-31,,2191,SELLER_CULT_NOI_2
+1108,cure.fit GX Bareilly,CGXBRL,INACTIVE,BLACK,Ekta Nagar,51,1,Central Bareilly,100,False,False,True,,2023-12-31,,2192,SELLER_CULT_NOI_2
+1109,cure.fit GX Imphal,CGXIP,INACTIVE,BLACK,Kwakeithel Road,52,1,Central Imphal,100,False,False,True,,2023-12-31,,2193,SELLER_CULT_BLR
+1110,cure.fit GX Jalgaon,CGXJLG,INACTIVE,BLACK,Amalner,45,1,Central Jalgaon,100,False,False,True,,2023-12-31,,2194,SELLER_CULT_JALGAON
+1111,cure.fit GX Jamshedpur,CGXJSP,INACTIVE,BLACK,Adityapur,47,1,Central Jamshedpur,100,False,False,True,,2023-12-31,,2195,SELLER_CULT_CFS_JARKHAND
+1112,cure.fit GX Jorhat,CGXJHT,INACTIVE,BLACK,Dohabora,54,1,Central Jorhat,1,False,False,True,,2023-12-31,,2196,SELLER_CULT_JORHAT
+1113,cure.fit GX Tumkur,CGXTMK,INACTIVE,BLACK,TUDA Layout,60,1,Central Tumkur,100,False,False,True,,2023-12-31,,2197,SELLER_CULT_BLR_2
+1117,cure.fit GX Khanna,CGXKN,INACTIVE,BLACK,Model Town,55,1,Central Khanna,100,False,False,True,,2023-12-31,,2201,SELLER_CULT_BLR
+1118,cure.fit GX Sangli,CGXSGL,INACTIVE,BLACK,Miraj,40,1,Sangli,100,False,False,True,,2023-12-31,,2202,SELLER_CULT_BOM_2
+1119,cure.fit GX Rourkela,CGXRKL,INACTIVE,BLACK,Bisra,59,1,Central Rourkela,100,False,False,True,,2023-12-31,,2203,SELLER_CULT_ROURKELA
+1120,cure.fit GX Roorkee,CGXRRK,INACTIVE,BLACK,Haridwar road,58,1,Central Rourkela,100,False,False,True,,2023-12-31,,2204,SELLER_CULT_CFS_UTTARAKHAND
+1121,cure.fit GX Latur,CGXLTR,INACTIVE,BLACK,Sikandarpur,56,1,Central Latur,100,False,False,True,,2023-12-31,,2205,SELLER_CULT_LATUR
+1122,cure.fit GX Moradabad,CGXMRD,INACTIVE,BLACK,Kant Road,57,1,Central Moradabad,100,False,False,True,,2023-12-31,,2206,SELLER_CULT_NOI_2
+1123,cure.fit GX Patna,CGXPT,INACTIVE,BLACK,Budh Vihar,44,1,Patna Gym Cluster,100,False,False,True,,2023-12-31,,2207,SELLER_CULT_CFS_BIHAR
+1124,cure.fit GX Muzaffarpur,CGXMZFP,INACTIVE,BLACK,Brahmapura,61,1,Central Muzaffarpur,100,False,False,True,,2023-12-31,,2208,SELLER_CULT_MUZAFFARPUR
+1125,cure.fit GX Tinsukia,CGXTSK,INACTIVE,BLACK,Bordoloi Nagar,62,1,Central Tinsukia,100,False,False,True,,2023-12-31,,2209,SELLER_CULT_TINSUKIA
+1127,cure.fit GX Navi_Mum_And_Thane,CGXNMT,INACTIVE,BLACK,Kharghar,64,1,Navi Mumbai,100,False,False,True,,2023-12-31,,2211,SELLER_CULT_BOM_2
+1128,cure.fit GX Siliguri,CGXSG,INACTIVE,BLACK,Bankim Nagar,68,1,Siliguri,100,False,False,True,,2023-12-31,,2212,SELLER_CULT_SIL
+1129,cure.fit GX Bathinda,CGXBTD,INACTIVE,BLACK,Vishal Nagar,71,1,Central Bathinda,100,False,False,True,,2023-12-31,,2213,SELLER_CULT_CFS_PUNJAB
+1130,cure.fit GX Gulbarga,CGXGBG,INACTIVE,BLACK,Shambhognlli,72,1,Central Gulbarga,100,False,False,True,,2023-12-31,,2214,SELLER_CULT_GULBARGA
+1131,Cult Kondapur (Raghavendra Colony),CKDPRC,ACTIVE,BLACK,Kondapur,3,1,Hyderabad West,1000,False,False,True,,2024-03-03,,2228,SELLER_CULT_HYD_2
+1132,Cult Gym Nirlon Knowledge Park (Employees Only),GYM2232,INACTIVE,BLACK,Goregaon,4,1,,1000,False,False,True,,2024-03-06,,2232,SELLER_CULT_BOM_2
+1133,Cult Gym Kanakpura ,GYM2233,ACTIVE,BLACK,Kanakpura Road,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-06-14,,2233,SELLER_CULT_BLR
+1134,Cult Gym Kaggadasapura,GYM2234,INACTIVE,BLACK,Kaggadasapura,1,1,,1000,False,False,True,,2024-05-15,,2234,SELLER_CULT_BLR_2
+1135,Cult Kaggadasapura,CVRN,ACTIVE,BLACK,Kaggadasapura,1,1,East Blr,1000,False,False,True,,2024-05-15,,2235,SELLER_CULT_BLR_2
+1136,Cult Fraser Road - Gx ,CFRD1,INACTIVE,BLACK,Budh Vihar,44,1,Patna Gym Cluster,1000,False,False,True,,2024-01-30,,2236,SELLER_CULT_BLR
+1137,Cult Mahanagar - Gx,CMHNGR1,INACTIVE,BLACK,Mahanagar,24,1,Lucknow Central,1000,False,False,True,,2024-01-30,,2237,SELLER_CULT_NOI_2
+1138,Multifit Aundh,GYM2241,ACTIVE,BLACK,Aundh,7,1,,1000,False,False,True,,2024-02-14,,2241,SELLER_CULT_BOM_2
+1139,Cult Station Road,CSTRD,ACTIVE,BLACK,Shambhognlli,72,1,Central Gulbarga,1000,False,False,True,,2024-05-29,,2254,SELLER_CULT_BLR_2
+1140,GK Wellness Studio,GYM2274,ACTIVE,BLACK,Arekere,1,1,,,False,False,True,,2024-02-28,,2274,SELLER_CULT_BLR_2
+1141,Cult Gym HSR 5th Main,GYM2311,INACTIVE,BLACK,HSR Sector 6,1,1,,,False,False,True,,2024-03-25,,2311,SELLER_CULT_BLR_2
+1142,Cult Nirlon Knowledge Park (Employees Only),CNKPE,ACTIVE,BLACK,Goregaon East,4,1,West Mum,1000,False,False,True,,2024-03-06,,2319,SELLER_CULT_BOM_2
+1143,CureFit HQ Office (South),CF01,INACTIVE,BLACK,HSR Layout,1,1,South1 Blr,10000,False,False,True,,2024-01-17,,2321,SELLER_CULT_BLR_2
+1144,Cult Chembur,CGCHEMB,ACTIVE,BLACK,Chembur,4,1,Central Mum,1000,False,False,True,,2024-01-24,,2322,SELLER_CULT_BOM_2
+1145,HRX Gym Kothapet (Elite Dummy),GYM2326,INACTIVE,BLACK,Kothapet,3,1,,,False,False,True,,2024-01-20,,2326,SELLER_CULT_HYD_2
+1146,Cult Gym New BEL Road,GYM2328,INACTIVE,BLACK,New Bel Road,1,1,,,False,False,True,,2024-04-15,,2328,SELLER_CULT_BLR_2
+1147,Cult New BEL Road,CGNEBR,ACTIVE,BLACK,New Bel Road,1,1,North Blr,1000,False,False,True,,2024-04-15,,2329,SELLER_CULT_BLR_2
+1148,"Cult Gym Spectrum, Sector 75",GYM2330,ACTIVE,BLACK,"Sector 76, Noida",2,1,Gurgaon Gym Cluster,1000,False,False,True,,2024-05-22,,2330,SELLER_CULT_CFS_DELHI
+1151,"Cult Spectrum, Sector 75 ",CGSPSS,ACTIVE,BLACK,"Sector 76, Noida",2,1,NCR East Delhi/Noida,1000,False,False,True,,2024-05-22,,2331,SELLER_CULT_CFS_DELHI
+1152,HRX Gym Elite Dummy JP Nagar,GYM2342,INACTIVE,BLACK,JP Nagar,1,1,,,False,False,True,,2024-01-24,,2342,SELLER_CULT_BLR_2
+1153,HRX Gym Elite Dummy AS Rao Nagar,GYM2343,INACTIVE,BLACK,AS Rao Nagar,3,1,,,False,False,True,,2024-01-24,,2343,SELLER_CULT_HYD_2
+1154,HRX Gym Elite Dummy RR Nagar,GYM2344,INACTIVE,BLACK,RR Nagar,1,1,,,False,False,True,,2024-01-24,,2344,SELLER_CULT_BLR_2
+1155,Gold's Gym (Noida 131),GYM2357,ACTIVE,BLACK,"Sector 51, Noida",2,1,,,False,False,True,,2024-05-31,,2357,SELLER_GOLD_GYM_NOIDA_131_2
+1157,"Gold's Gym (Greater Kailash, Jammu)",GYM2371,ACTIVE,BLACK,Greater Kailash,17,1,,,False,False,True,,2024-07-31,,2371,SELLER_CULT_CFS_DELHI
+1164,CureFit HQ Office (North),CFN01,INACTIVE,BLACK,Anand Vihar,2,1,NCR Delhi West,1000,False,False,True,,2024-02-11,,2373,SELLER_CULT_CFS_DELHI
+1165,Cult Gym Elite Dummy Hoodi,GYM2397,INACTIVE,BLACK,Hoodi,1,1,,,False,False,True,,2024-09-29,,2397,SELLER_CULT_BLR_2
+1166,Cult Gym Elite Dummy Kundalahalli,GYM2398,INACTIVE,BLACK,Kundalahalli,1,1,,,False,False,True,,2024-09-29,,2398,SELLER_CULT_BLR_2
+1167,Outdoor Siliguri,001,ACTIVE,BLACK,Bankim Nagar,68,1,,100,False,False,True,,2024-02-27,,2401,SELLER_CULT_SIL
+1168,I Lift Fitness (Green Park Extension),GYM2409,INACTIVE,BLACK,Green Park,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2024-09-13,,2409,SELLER_CULT_CFS_GGN
+1169,Cult Gym Sector 45 Gurgaon,GYM2412,ACTIVE,BLACK,"Sector 45, Gurgaon",2,1,Gurgaon Gym Cluster,100,False,False,True,,2024-07-15,,2412,SELLER_CULT_CFS_GGN
+1171,Cult Sector 45 Gurgaon,CGSFFG,ACTIVE,BLACK,"Sector 44, Gurgaon",2,1,NCR Delhi South,1000,False,False,True,,2024-07-15,,2413,SELLER_CULT_CFS_GGN
+1172,Cult Gym RT Nagar Road,GYM2414,INACTIVE,BLACK,RT Nagar,1,1,,1000,False,False,True,,2024-06-07,,2414,SELLER_CULT_BLR_2
+1173,Cult RT Nagar Road,CRTNR,ACTIVE,BLACK,RT Nagar,1,1,North Blr,1000,False,False,True,,2024-06-07,,2415,SELLER_CULT_BLR_2
+1174,"Cult Gym JP Nagar, 3rd Phase",GYM2418,INACTIVE,BLACK,JP Nagar,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-06-02,,2418,SELLER_CULT_BLR_2
+1175,"Cult JP Nagar, 3rd Phase",CL3JP,ACTIVE,BLACK,JP Nagar,1,1,South2 Blr,1000,False,False,True,,2024-06-02,,2423,SELLER_CULT_BLR_2
+1176,"Cult Gym Hazipur, Sector 104, Noida",GYM2424,INACTIVE,BLACK,"Sector 104, Noida",2,1,,1000,False,False,True,,2024-06-25,,2424,SELLER_CULT_NOI_2
+1177,"Cult Gym RBI Layout, JP Nagar 7th Phase",GYM2426,ACTIVE,BLACK,JP Nagar 7th Phase,1,1,Bangalore Gym Cluster,900,False,False,True,,2024-06-15,,2426,SELLER_CULT_BLR_2
+1178,Cult RBI Layout JP Nagar 7th Phase (defunct),CGRBIL,INACTIVE,BLACK,JP Nagar 7th Phase,1,1,South2 Blr,1000,False,False,True,,2024-05-30,,2427,SELLER_CULT_BLR_2
+1179,Cult Gym Banjara Hills Road No. 2,GYM2428,INACTIVE,BLACK,Banjara Hills,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2024-05-30,,2428,SELLER_CULT_HYD_2
+1180,Cult Banjara Hills Road No. 2,CGBHRT,ACTIVE,BLACK,Banjara Hills,3,1,Hyderabad Central,1000,False,False,True,,2024-05-30,,2429,SELLER_CULT_HYD_2
+1181,Cult Gym Moti Nagar,GYM2432,INACTIVE,BLACK,Moti Nagar,2,1,,,False,False,True,,2024-06-07,,2432,SELLER_CULT_CFS_GGN
+1182,Cult Moti Nagar,CMTNG,ACTIVE,BLACK,Moti Nagar,2,1,NCR Delhi West,1000,False,False,True,,2024-06-07,,2437,SELLER_CULT_CFS_GGN
+1183,Cult Gym Nepean Sea Road,GYM2439,INACTIVE,BLACK,Napean Sea Road,4,1,,,False,False,True,,2024-06-07,,2439,SELLER_CULT_BOM_2
+1184,Cultsport HSR,GYM2445,INACTIVE,BLACK,HSR Layout,1,1,,,False,False,True,,2024-03-12,,2445,SELLER_CFS_KARNATAKA
+1185,Cultsport Indiranagar,GYM2446,INACTIVE,BLACK,Indiranagar,1,1,,,False,False,True,,2024-03-12,,2446,SELLER_CFS_KARNATAKA
+1186,Cultsport VR Mall,GYM2447,INACTIVE,BLACK,Whitefield,1,1,,,False,False,True,,2024-03-12,,2447,SELLER_CFS_KARNATAKA
+1187,Cloud Fitness,GYM2451,INACTIVE,BLACK,Jubilee Hills,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2024-04-29,,2451,SELLER_CULT_HYD_2
+1188,Moments Fitness Hub 3.0 (Begur),GYM2455,ACTIVE,BLACK,Begur,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-07-22,,2455,SELLER_CFS_KARNATAKA
+1189,CULTSPORT HSR2,GYM2456,INACTIVE,BLACK,HSR Layout,1,1,,,False,False,True,,2024-03-21,,2456,SELLER_CFS_KARNATAKA
+1190,Cult Gym Yelachenahalli,GYM2465,INACTIVE,BLACK,Yelachenahalli,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-07-01,,2465,SELLER_CULT_BLR_2
+1191," Cult Gym Niti Khand 1, Indirapuram",GYM2466,INACTIVE,BLACK,Indirapuram,2,1,,,False,False,True,,2024-08-14,,2466,
+1192,Clan Fitness Club ,GYM2467,ACTIVE,BLACK,Baner,7,1,Pune Gym cluster,1000,False,False,True,,2024-04-29,,2467,SELLER_CULT_BOM_2
+1193,Impackt Fitness (Gowlidoddi),GYM2472,ACTIVE,BLACK,gowlidoddi,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2024-06-07,,2472,SELLER_CULT_HYD_2
+1194,Cult Gym Kokapet ,GYM2473,INACTIVE,BLACK,Kokapet,3,1,,,False,False,True,,2024-06-21,,2473,SELLER_CULT_HYD_2
+1212,Cult Kokapet (Hybrid),CKKOHB,ACTIVE,BLACK,Kokapet,3,1,Hyderabad West,1000,False,False,True,,2024-06-21,,2475,SELLER_CULT_HYD_2
+1220,"Cult Kumaraswamy Layout, Yelachenahalli",CLYLC,ACTIVE,BLACK,Kumarswamy Layout,1,1,South2 Blr,1000,False,False,True,,2024-07-01,,2483,SELLER_CULT_BLR
+1223,EMOM Fitness,GYM2497,ACTIVE,BLACK,Jakkur,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-06-20,,2497,SELLER_CFS_KARNATAKA
+1224,"Cult Kanakapura Road, Raghuvanahalli",CKNP,ACTIVE,BLACK,Kanakpura Road,1,1,South1 Blr,1000,False,False,True,,2024-06-26,,2498,SELLER_CFS_KARNATAKA
+1225,"Cult Hazipur, Sector 104, Noida",CHNS,ACTIVE,BLACK,Sector 104 Noida,2,1,NCR East Delhi/Noida,1000,False,False,True,,2024-07-07,,2499,SELLER_CULT_CFS_GGN
+1226,Five The Fitness Hive (Kukatpally),GYM2509,ACTIVE,BLACK,Kukatpally,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2024-07-11,,2509,SELLER_CULT_HYD_2
+1227,Cult Gym Lajpat Nagar,GYM2511,INACTIVE,BLACK,Lajpat Nagar,2,1,,,False,False,True,,2024-05-04,,2511,SELLER_CULT_CFS_GGN
+1228,Cult Gym Defence Colony,GYM2512,INACTIVE,BLACK,South Extension ,2,1,,,False,False,True,,2024-07-31,,2512,SELLER_CULT_CFS_GGN
+1229,Cult Defence Colony,CDEFCO,ACTIVE,BLACK,South Extension ,2,1,NCR Delhi South,1000,False,False,True,,2024-07-31,,2513,SELLER_CULT_CFS_GGN
+1230,Get.Fit,GYM2517,ACTIVE,BLACK,Viman Nagar,7,1,Pune Gym cluster,1000,False,False,True,,2024-05-30,,2517,SELLER_CULT_BOM_2
+1231,Cult Gym Erragadda,GYM2518,INACTIVE,BLACK,Moosapet,3,1,,,False,False,True,,2024-07-10,,2518,SELLER_CULT_HYD_2
+1232,cult Store Indiranagar,CSINDI,ACTIVE,BLACK,Indiranagar,1,1,,1000,False,False,True,,2024-04-23,,2519,SELLER_CFS_KARNATAKA
+1233,Cult Gym Kothapet,GYM2520,INACTIVE,BLACK,Kothapet,3,1,,,False,False,True,,2024-08-07,,2520,SELLER_CULT_HYD_2
+1234,Cult Kothapet,CKOTHA,ACTIVE,BLACK,Kothapet,3,1,Hyderabad East,1000,False,False,True,,2024-08-07,,2521,SELLER_CULT_HYD
+1235,Gold's Gym (DLF Phase 2),GYM2522,INACTIVE,BLACK,DLF Phase 2,2,1,,,False,False,True,,2024-08-14,,2522,SELLER_CULT_CFS_GGN
+1236,Muscle Madness (Banashankari),GYM2523,INACTIVE,BLACK,Banashankari,1,1,,,False,False,True,,2024-05-30,,2523,SELLER_CFS_KARNATAKA
+1237,Cult Tumkur,CTMKR,ACTIVE,BLACK,TUDA Layout,60,1,Central Tumkur,1000,False,False,True,,2024-05-19,,2525,SELLER_CFS_KARNATAKA
+1238,cult Store HSR 19th Main,CSHSR9,ACTIVE,BLACK,HSR Layout,1,1,,1000,False,False,True,,2024-05-01,,2536,SELLER_CFS_KARNATAKA
+1239,cult Store Marathahalli,CSMRTL,ACTIVE,BLACK,Marathahalli,1,1,,1000,False,False,True,,2024-05-01,,2537,SELLER_CFS_KARNATAKA
+1240,Cult SLK Devanahalli,CLSLK,INACTIVE,BLACK,Devanahalli,1,1,North Blr,1000,False,False,True,,2024-08-15,,2554,SELLER_CFS_KARNATAKA
+1241,Cult Gym Sadashivnagar,GYM2555,INACTIVE,BLACK,Sadashivnagar,1,1,,,False,False,True,,2024-09-04,,2555,
+1242,Cult Sadashivnagar,CLSDN,ACTIVE,BLACK,Sadashivnagar,1,1,North Blr,1000,False,False,True,,2024-09-04,,2556,SELLER_CFS_KARNATAKA
+1243,Cult Harlur Swimming,AZUB,ACTIVE,BLACK,Harlur,1,1,South1 Blr,50,False,False,True,,2024-05-06,,2565,SELLER_CFS_KARNATAKA
+1244,Zest Fitness 27th Main,GYM2568,ACTIVE,BLACK,HSR Layout,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-05-30,,2568,SELLER_CFS_KARNATAKA
+1245,"HCG, Suchitra",CHCG01,ACTIVE,BLACK,Suchitra,3,1,,1000,False,False,True,,2024-05-08,,2576,SELLER_CULT_HYD
+1251,Fitso Sector 55 Unicosmos,FSUN,ACTIVE,BLACK,"Sector 55, Gurgaon",2,1,Gurgaon Gym Cluster,40,False,False,True,,2024-05-16,,2592,SELLER_CULT_CFS_GGN
+1252,Velocity Fitness Studio,GYM2593,INACTIVE,BLACK,Srinagar Colony,3,1,,,False,False,True,,2024-07-30,,2593,SELLER_CULT_HYD_2
+1253,HRX Gym BN Reddy Nagar,GYM2595,INACTIVE,BLACK,BN Reddy Nagar,3,1,,,False,False,True,,2024-07-27,,2595,SELLER_CULT_HYD_2
+1254,Gold's Gym (Yelanahalli),GYM2596,INACTIVE,BLACK,Yelanahalli,1,1,,,False,False,True,,2024-08-30,,2596,
+1255,Cult Gym Sector 90,GYM2597,INACTIVE,BLACK,"Sector 90, Gurgaon",2,1,,,False,False,True,,2024-09-29,,2597,
+1256,Cult Sector 90,CLSDU,ACTIVE,BLACK,"Sector 90, Gurgaon",2,1,Gurgaon Gym Cluster,1000,False,False,True,,2024-09-03,,2598,SELLER_CULT_CFS_GGN
+1257,(deprecated),GYM2599,INACTIVE,BLACK,Indiranagar,1,1,,1000,False,False,True,,2024-06-29,,2599,SELLER_CFS_KARNATAKA
+1258,Cult  Gulmohar Colony,CLSDT,ACTIVE,BLACK,salaiya,28,1,Central Bhopal,1000,False,False,True,,2024-09-25,,2602,SELLER_CULT_CFS_MP
+1259,"Cult Gym BTM 4th Stage, Vijaya Bank Layout",GYM2608,INACTIVE,BLACK,BTM 4th Stage,1,1,,,False,False,True,,2024-08-31,,2608,
+1260,Cult BTM 4th Stage Vijaya Bank Layout,CBT4,ACTIVE,BLACK,BTM 4th Stage,1,1,SouthBlr,1000,False,False,True,,2024-08-31,,2609,SELLER_CFS_KARNATAKA
+1262,Cult Gym Wakad (Hybrid),GYM2612,INACTIVE,BLACK,Wakad,7,1,Pune Gym cluster,1000,False,False,True,,2024-08-29,,2612,SELLER_CULT_BOM_2
+1263,Cult Wakad ,CUWKAD,ACTIVE,BLACK,Wakad,7,1,Pune Gym cluster,1000,False,False,True,,2024-08-29,,2613,SELLER_CULT_BOM
+1264,"Cult Gym Avalahalli, Doddaballapur Road",GYM2614,INACTIVE,BLACK,Doddaballapur,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-09-20,,2614,SELLER_CULT_BLR
+1268,Cult Gym Bandra (Hybrid),GYM2633,INACTIVE,BLACK,Bandra West,4,1,Mumbai gym cluster,1000,False,False,True,,2024-08-25,,2633,SELLER_CULT_FF_MUM
+1269,Cult Bandra,GYMHYB,ACTIVE,BLACK,Bandra West,4,1,Mumbai gym cluster,1000,False,False,True,,2024-08-25,,2634,SELLER_CULT_FF_MUM
+1270,Cult Gym AMEX B2B,GYM2635,INACTIVE,BLACK,"Sector 69, Gurgaon",2,1,,,False,False,True,,2024-06-05,,2635,SELLER_CULT_CFS_GGN
+1274,Cult AMEX B2B,CMAEXB,INACTIVE,BLACK,"Ambedkar Road, Ghaziabad",2,1,Gurgaon Gym Cluster,1000,False,False,True,,2024-06-06,,2639,SELLER_CULT_CFS_GGN
+1275,Cult Gym Silversprings Marathalli,GYM2641,INACTIVE,BLACK,Marathahalli,1,1,,,False,False,True,,2024-09-07,,2641,SELLER_CFS_KARNATAKA
+1276,"Cult Silver Springs Layout, Marathahalli",CGYSLV,ACTIVE,BLACK,Marathahalli,1,1,,1000,False,False,True,,2024-09-07,,2643,SELLER_CFS_KARNATAKA
+1277,"Cult Gym Rajajinagar, Dr Raj Kumar Rd",GYM2649,ACTIVE,BLACK,Rajajinagar,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-09-24,,2649,SELLER_CULT_BLR
+1278,"Cult Rajajinagar, Dr Rajkumar Rd",CLDRR,ACTIVE,BLACK,Rajajinagar,1,1,North Blr,1000,False,False,True,,2024-09-25,,2651,SELLER_CULT_BLR
+1279,MPower Gym,GYM2657,INACTIVE,BLACK,Undri,7,1,,,False,False,True,,2024-07-14,,2657,SELLER_CULT_BOM_2
+1280,Cult Gym Botanical Garden Rd,GYM2660,INACTIVE,BLACK,Botanical Garden Rd,3,1,,,False,False,True,,2024-08-06,,2660,
+1281,Jaypee Greens,CJG01,ACTIVE,BLACK,Noida,2,1,,100,False,False,True,,2024-06-15,,2661,SELLER_CULT_NOI
+1282,Elevate Fitness Studio,GYM2663,INACTIVE,BLACK,Chanda Nagar,3,1,,,False,False,True,,2024-07-30,,2663,SELLER_CULT_HYD_2
+1283,AMRAP Fitness (Sahakarnagar),GYM2671,INACTIVE,BLACK,Sahakar Nagar,1,1,,,False,False,True,,2024-08-14,,2671,SELLER_CFS_KARNATAKA
+1284,Crunch Fitness (Hoodi),GYM2672,INACTIVE,BLACK,Hoodi,1,1,,,False,False,True,,2024-07-30,,2672,
+1285,Gymx fitness Redefined 2.0 (Electronic City),GYM2687,INACTIVE,BLACK,Electronic City,1,1,,,False,False,True,,2024-07-30,,2687,SELLER_CFS_KARNATAKA
+1286,"Gymx, Fitness Redefined 2.0 (Kasavanahalli)",GYM2688,INACTIVE,BLACK,Kasavanahalli,1,1,,,False,False,True,,2024-07-14,,2688,SELLER_CFS_KARNATAKA
+1287,Fitainment Gym,GYM2689,INACTIVE,BLACK,Vashi,64,1,Navi Mumbai,100,False,False,True,,2024-08-15,,2689,SELLER_CULT_BOM_2
+1288,Zero3-The Fit Factory (CV Raman Nagar),GYM2700,INACTIVE,BLACK,CV Raman Nagar,1,1,,,False,False,True,,2024-08-14,,2700,SELLER_CFS_KARNATAKA
+1289,Cult  Gym Tribe Indiranagar,GYM2710,INACTIVE,BLACK,Indiranagar,1,1,,,False,False,True,,2024-07-06,,2710,SELLER_CFS_KARNATAKA
+1290,Test Center Integrated Attendance1,GYM2712,ACTIVE,BLACK,Koramangala,1,1,Bangalore Gym Cluster,1,False,False,True,,2024-07-08,,2712,SELLER_CFS_KARNATAKA
+1291,Test Center Integrated Attendance - GX,TCIAGX,ACTIVE,BLACK,Koramangala,1,1,North Blr,100,False,False,True,,2024-07-09,,2713,SELLER_CFS_KARNATAKA
+1292,Cult Gym Basaveshwar Nagar 4th block,GYM2730,INACTIVE,BLACK,Basaveshwara Nagar,1,1,,,False,False,True,,2024-09-21,,2730,
+1293,Nexus Club,GYM2731,ACTIVE,BLACK,Secunderabad,3,1,Hyderabad Gym Cluster,100,False,False,True,,2024-11-04,,2731,SELLER_CULT_HYD_2
+1294,"Cult Gym Jayanagar, 4th Block",GYM2733,ACTIVE,BLACK,Jayanagar,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-11-11,,2733,SELLER_CULT_BLR
+1295,"Cult Jayanagar, 4th Block",CLJNR,ACTIVE,BLACK,Jayanagar,1,1,South2 Blr,1000,False,False,True,,2024-11-11,,2734,SELLER_CULT_BLR
+1296,Aim Fit (NRI Layout),GYM2738,ACTIVE,BLACK,KR Puram,1,1,Bangalore Gym Cluster,100,False,False,True,,2024-09-30,,2738,SELLER_CFS_KARNATAKA
+1297,Hypertrophy Fitness,GYM2740,INACTIVE,BLACK,Bachupally,3,1,,,False,False,True,,2024-08-30,,2740,SELLER_CULT_HYD_2
+1298,"Cult Basaveshwar Nagar, 4th Block",CLBSN,ACTIVE,BLACK,Basaveshwar Nagar,1,1,West Blr,1000,False,False,True,,2024-09-21,,2751,SELLER_CFS_KARNATAKA
+1299,Cult Gym Hebbal (Kempapura),GYM2752,ACTIVE,BLACK,Hebbal,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-10-05,,2752,SELLER_CULT_BLR
+1300,Cult Hebbal (Kempapura),CLGKH,ACTIVE,BLACK,Hebbal,1,1,North Blr,1000,False,False,True,,2024-10-05,,2753,SELLER_CULT_BLR
+1301,"Cult Gym Banashankari 2nd Stage, Siddanna Layout",GYM2754,INACTIVE,BLACK,Banashankari,1,1,,1000,False,False,True,,2024-10-16,,2754,SELLER_CFS_KARNATAKA
+1302,"Cult Banashankari 2nd Stage, Siddanna Layout",CBNSGX,ACTIVE,BLACK,Banashankari,1,1,West Blr,1000,False,False,True,,2024-10-21,,2755,SELLER_CULT_BLR
+1304,"Cult Avalahalli, Doddaballapur Road",CLDBL,ACTIVE,BLACK,Doddaballapur,1,1,North Blr,1000,False,False,True,,2024-09-20,,2774,SELLER_CFS_KARNATAKA
+1305,Performance LMNT ,GYM2777,ACTIVE,BLACK,Mahadevapura,1,1,Bangalore Gym Cluster,100,False,False,True,,2024-11-05,,2777,SELLER_CFS_KARNATAKA
+1306,Cult Gym Sector 26 Chandigarh,GYM2803,INACTIVE,BLACK,"Sector 26, Chandigarh",10,1,,1000,False,False,True,,2024-11-26,,2803,SELLER_CULT_CH
+1307,Cult Begur & Moments Fitness Hub 3.0,CLBGR,ACTIVE,BLACK,Begur,1,1,South1 Blr,1000,False,False,True,,2024-08-30,,2804,SELLER_CULT_BLR
+1308,Perfect Fitness (Bilekhalli),GYM2806,INACTIVE,BLACK,Bilekahalli,1,1,,,False,False,True,,2024-09-29,,2806,
+1309,Forth Fitness (TC Palya),GYM2807,ACTIVE,BLACK,TC Palya,1,1,Bangalore Gym Cluster,100,False,False,True,,2024-11-05,,2807,SELLER_CFS_KARNATAKA
+1310,F7 Fitness by Prasad Konda (Risala Bazar),GYM2808,INACTIVE,BLACK,Risala Bazar,3,1,,,False,False,True,,2024-09-29,,2808,
+1316,Cult Store - Tirumalagiri,CSHTG1,ACTIVE,BLACK,Trimulgherry,3,1,Hyderabad North,1000,False,False,True,,2024-08-10,,2809,SELLER_CULT_HYD
+1317,Nani's School of Fitness (Ullal),GYM2822,INACTIVE,BLACK,Ullal,1,1,,,False,False,True,,2024-10-09,,2822,
+1318,Fitness Culture (DLF Phase 3),GYM2823,ACTIVE,BLACK,DLF Phase 3,2,1,Gurgaon Gym Cluster,100,False,False,True,,2024-10-25,,2823,SELLER_CULT_CFS_GGN
+1319,Cult_Neo_Gym_Sector_10A,GYM2824,INACTIVE,BLACK,"Sector 10, Gurgaon",2,1,,,False,False,True,,2024-11-26,,2824,SELLER_CULT_CFS_GGN
+1320,Cult Neo Gym Nagarbhavi,GYM2829,INACTIVE,BLACK,Nagarbhavi,1,1,,,False,False,True,,2024-10-31,,2829,SELLER_CFS_KARNATAKA
+1321,Cult Sector 26 Chandigarh,CLTCHD,ACTIVE,BLACK,"Sector 26, Chandigarh",10,1,Chandigarh,1000,False,False,True,,2024-11-22,,2832,SELLER_CULT_CHANDIGARH
+1322,Cult Gym Koramangala 4th Block ,GYM2835,ACTIVE,BLACK,Koramangala,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-11-01,,2835,SELLER_CFS_KARNATAKA
+1323,YC'S Powerhouse Gym,GYM2836,ACTIVE,BLACK,Hinjewadi,7,1,Pune Gym cluster,1000,False,False,True,,2024-09-30,,2836,SELLER_CULT_BOM_2
+1324, Cult Gym Amrapali Leisure Valley,GYM2837,INACTIVE,BLACK,Greater Noida,2,1,,1000,False,False,True,,2024-11-27,,2837,SELLER_CULT_GGN
+1325,Cult Amrapali Leisure Valley,CLTAGV,ACTIVE,BLACK,Greater Noida,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2024-11-27,,2838,SELLER_CULT_CFS_GGN
+1326,Cult Gym Gulmohar Colony,GYM2574,INACTIVE,BLACK,salaiya,28,1,,,False,False,True,,2024-09-25,,2574,
+1327,Cult Gym Sahakar Nagar,GYM2849,ACTIVE,BLACK,Sahakar Nagar,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-11-21,,2849,SELLER_CFS_KARNATAKA
+1328,Impackt Fitness 2.0 (Khajaguda),GYM2853,ACTIVE,BLACK,Khajaguda,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2024-10-15,,2853,SELLER_CULT_HYD_2
+1329,Elon Fitness,GYM670,INACTIVE,BLACK,Wadala West,4,1,,100,False,False,True,,2022-02-12,,670,SELLER_CULT_BOM
+1330,Sky Fit ,GYM2863,INACTIVE,BLACK,"Sector 74, Noida",2,1,,,False,False,True,,2024-10-04,,2863,SELLER_CULT_CFS_GGN
+1331, Cult Gym Ramesh Nagar,GYM2868,INACTIVE,BLACK,Rajouri Garden,2,1,,,False,False,True,,2024-11-30,,2868,SELLER_CULT_CFS_GGN
+1335,Cult Neo Gym Santosh Nagar,GYM2875,INACTIVE,BLACK,Karmanghat,3,1,,,False,False,True,,2024-11-30,,2875,SELLER_CULT_HYD_2
+1336,"Cult Gym 65th Avenue, Gurgaon",GYM2896,INACTIVE,BLACK,Sector 65,2,1,,1000,False,False,True,,2024-11-28,,2896,SELLER_CULT_GGN
+1337,"Cult 65th Avenue, Gurgaon",CL65G,ACTIVE,BLACK,Sector 65,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2025-01-15,,2898,SELLER_CULT_CFS_GGN
+1338,  Cult Neo Gym Hosa Road,GYM2904,INACTIVE,BLACK,Electronic City,1,1,,1000,False,False,True,,2024-11-11,,2904,SELLER_CUREFOOD_BLR
+1349,Cult Ramesh Nagar,CRAMEN,INACTIVE,BLACK,Rajouri Garden,2,1,NCR Delhi West,1000,False,False,True,,2024-11-30,,2907,SELLER_CULT_GGN
+1350,Cult Gym Sector 83,GYM2915,INACTIVE,BLACK,"Sector 83, Gurgaon",2,1,,,False,False,True,,2024-11-25,,2915,SELLER_CULT_CFS_GGN
+1368,Cult Sector 83,CSECGYM,ACTIVE,BLACK,"Sector 83, Gurgaon",2,1,Gurgaon Gym Cluster,1000,False,False,True,,2024-11-25,,2925,SELLER_CULT_GGN
+1369,V Fitness center,GYM2936,INACTIVE,BLACK,Miyapur,3,1,,,False,False,True,,2024-11-29,,2936,SELLER_CULT_HYD_2
+1370,Yashmaxx 2.0,GYM2937,INACTIVE,BLACK,Yelahanka,1,1,,,False,False,True,,2024-11-29,,43,SELLER_CFS_KARNATAKA
+1371,Cult Gym Vasantkunj,GYM2939,INACTIVE,BLACK,Vasant Kunj,2,1,,,False,False,True,,2025-01-14,,2939,
+1372,"Cult Gym Hinjewadi, Phase 1",GYM2940,INACTIVE,BLACK,Hinjewadi,7,1,Pune Gym cluster,1000,False,False,True,,2026-02-10,,2940,SELLER_CULT_BOM
+1373,"Cult Hinjewadi, Phase 1",CLHNJ,ACTIVE,BLACK,Hinjewadi,7,1,Pune North-West,1000,False,False,True,,2026-03-07,,2941,SELLER_CULT_BOM
+1382,Cult Gym Ameerpet,GYM2942,INACTIVE,BLACK,Ameerpet,3,1,,,False,False,True,,2024-12-30,,2942,SELLER_CULT_HYD_2
+1383,Cult Ameerpet,CHYAPT,ACTIVE,BLACK,Ameerpet,3,1,,1000,False,False,True,,2024-12-30,,2943,SELLER_CULT_HYD_2
+1384,HRX TC Palya (not in use),HRXTCP,INACTIVE,GOLD,Banaswadi,1,1,North Blr,1000,False,False,True,,2024-08-30,,2951,SELLER_CFS_KARNATAKA
+1385,HRX Begur (not in use),HRXBEG,INACTIVE,BLACK,AECS Layout,1,1,North Blr,1000,False,False,True,,2024-09-10,,2999,SELLER_CFS_KARNATAKA
+1386,Smart Fit,GYM3001,INACTIVE,BLACK,Uttarahalli,1,1,,,False,False,True,,2024-11-29,,3001,SELLER_CFS_KARNATAKA
+1387,TNP Fitness 24,GYM3002,INACTIVE,BLACK,Ghaziabad,2,1,,,False,False,True,,2024-12-14,,3002,SELLER_CULT_CFS_GGN
+1388,Cult Gym Bandlaguda Suncity,GYM3004,ACTIVE,BLACK,Bandlaguda,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2025-01-25,,3004,SELLER_CULT_HYD
+1389,Cult Gym Shollinganallur,GYM3005,INACTIVE,BLACK,Sholinganallur,5,1,,,False,False,True,,2024-12-31,,3005,SELLER_CULT_TN_2
+1390,Cult Shollinganallur,CSHOLL,ACTIVE,BLACK,Sholinganallur,5,1,South Chennai,1000,False,False,True,,2024-12-31,,3006,SELLER_CULT_TN_2
+1391,Cult Gym Yemlur,GYM3015,ACTIVE,BLACK,Yemlur,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-12-17,,3015,SELLER_CULT_BLR
+1392,Cult Yemlur,CLYMLR,ACTIVE,BLACK,Yemlur,1,1,East Blr,1000,False,False,True,,2024-12-17,,3016,SELLER_CULT_BLR
+1393,cult neo gym Mahavir Enclave,GYM3017,INACTIVE,BLACK,Mahavir Enclave,2,1,,,False,False,True,,2025-01-06,,3017,SELLER_CULT_CFS_GGN
+1394,cult neo gym Ambedkar Road,GYM3018,INACTIVE,BLACK,Ambedkar Road,2,1,,,False,False,True,,2025-01-06,,3018,SELLER_CULT_CFS_GGN
+1395,cult neo gym KR Puram,GYM3021,INACTIVE,BLACK,KR Puram,1,1,,,False,False,True,,2024-12-30,,3021,
+1396,cult neo gym Uppal,GYM3022,INACTIVE,BLACK,Uppal,3,1,,,False,False,True,,2025-01-04,,3022,SELLER_CULT_HYD_2
+1397,GymPoint Fitness Studio,GYM3023,ACTIVE,BLACK,Karmanghat,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2024-11-29,,3023,SELLER_CULT_HYD_2
+1398,Cult Bandlaguda Suncity,CLBDL,ACTIVE,BLACK,Bandlaguda,3,1,Hyderabad West,1000,False,False,True,,2025-01-25,,3024,SELLER_CULT_HYD
+1399,"Cult Gym Ardee City, Sector 52",GYM3025,INACTIVE,BLACK,"Sector 52, Gurgaon",2,1,,,False,False,True,,2025-02-14,,3025,SELLER_CULT_CFS_GGN
+1400,"Cult Ardee City, Sector 52",CACSFT,ACTIVE,BLACK,"Sector 52, Gurgaon",2,1,NCR Gurgaon Central,1000,False,False,True,,2025-02-15,,3026,SELLER_CULT_CFS_GGN
+1401,  cult neo gym Vidyaranyapura,GYM3027,INACTIVE,BLACK,Vidyaranyapura,1,1,,,False,False,True,,2025-01-04,,3027,SELLER_CFS_KARNATAKA
+1402,Cult neo gym Agarwal Vasai West,GYM3028,INACTIVE,BLACK,Vasai,4,1,,,False,False,True,,2025-01-27,,3028,SELLER_CULT_BOM_2
+1403,ReVamp Fitness Studio,GYM3030,INACTIVE,BLACK,Janakpuri,2,1,,,False,False,True,,2024-11-29,,3030,SELLER_CULT_CFS_GGN
+1404,Velocity Fitness Zone (Kavadiguda),GYM3031,ACTIVE,BLACK,Kavadiguda,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2024-12-20,,3031,SELLER_CULT_HYD_2
+1405,Fast Fit,GYM3032,INACTIVE,BLACK,"Sector 56, Gurgaon",2,1,,,False,False,True,,2024-11-29,,3032,SELLER_CULT_CFS_GGN
+1406,cult neo gym Chandapura,GYM3033,INACTIVE,BLACK,chansandra,1,1,,,False,False,True,,2025-01-30,,3033,
+1407,cult neo gym Sector 62 Gurugram,GYM3034,INACTIVE,BLACK,Sector 62,2,1,,,False,False,True,,2025-01-30,,3034,
+1408,Cult Gym Murugeshpalya,GYM3035,INACTIVE,BLACK,Murgeshpalya,1,1,,,False,False,True,,2025-01-30,,3035,
+1409,Cult Murugeshpalya,CLTMG,ACTIVE,BLACK,Murgeshpalya,1,1,East Blr,1000,False,False,True,,2025-01-31,,3036,SELLER_CULT_BLR
+1410,Brad Fitness 3.0,GYM3037,ACTIVE,BLACK,Bommanahalli,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-12-30,,3037,SELLER_CFS_KARNATAKA
+1411,F99 Fit(Nizampet),GYM3038,INACTIVE,BLACK,Nizampet,3,1,,,False,False,True,,2024-12-19,,3038,SELLER_CULT_HYD_2
+1412,Decode Fitness,GYM3039,INACTIVE,BLACK,Thane West,64,1,,,False,False,True,,2024-12-15,,3039,SELLER_CULT_BOM_2
+1413,Cult Erragadda,CGERGD,ACTIVE,BLACK,Moosapet,3,1,,1000,False,False,True,,2024-11-11,,3040,SELLER_CULT_HYD_2
+1414,AGS Gym,GYM3044,INACTIVE,BLACK,Sector 30,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2024-12-31,,3044,SELLER_CULT_CFS_GGN
+1415,Cult gym Thane Hiranandani estate,GYM3047,INACTIVE,BLACK,Thane West,64,1,,1000,False,False,True,,2025-01-31,,3047,SELLER_CULT_BOM
+1416,Cult Gym Abids,GYM3048,INACTIVE,BLACK,Abids,3,1,Hyderabad Central,1000,False,False,True,,2025-02-28,,3048,SELLER_CULT_HYD_2
+1417,cult neo gym Alwal,GYM3049,INACTIVE,BLACK,Alwal,3,1,,,False,False,True,,2025-01-09,,3049,SELLER_CULT_HYD_2
+1418,Cult (Inactive),CULTHA,INACTIVE,BLACK,Mumbai Central,4,1,Mumbai gym cluster,1000,False,False,True,,2025-02-05,,3050,SELLER_CULT_BOM
+1419,Cult Abids ,CLTABD,ACTIVE,BLACK,Abids,3,1,,1000,False,False,True,,2025-02-28,,3051,SELLER_CULT_HYD_2
+1420,GymX Prime (Marathahalli),GYM3052,ACTIVE,BLACK,Marathahalli,1,1,Bangalore Gym Cluster,1000,False,False,True,,2024-12-30,,3052,SELLER_CFS_KARNATAKA
+1421,Cult Thane Hiranandani Estate,CULTTH,ACTIVE,BLACK,Thane West,64,1,,1000,False,False,True,,2025-01-31,,3053,SELLER_CULT_BOM
+1422,"Cult Gym Sector 142, Noida",GYM3066,INACTIVE,BLACK,"Sector 142, Noida",2,1,,1000,False,False,True,,2025-02-14,,3066,SELLER_CULT_FF_NOI
+1423,Cult Gym Kannamangala Seegehalli,GYM3068,INACTIVE,BLACK,Seegehalli,1,1,,1000,False,False,True,,2025-03-05,,3068,SELLER_CULT_BLR
+1424,Cult Kannamangala Seegehalli,CLTSEEG,ACTIVE,BLACK,Seegehalli,1,1,East Blr,1000,False,False,True,,2025-03-16,,3069,SELLER_CULT_BLR
+1427,"Cult Sector 142, Noida",CLTNO,ACTIVE,BLACK,"Sector 142, Noida",2,1,NCR East Delhi/Noida,1000,False,False,True,,2025-02-14,,3072,SELLER_CULT_FF_NOI
+1428,"Cult Gym Mahalaxmi nagar, Bibwewadi",GYM3073,INACTIVE,BLACK,Bibewadi,7,1,,1000,False,False,True,,2025-02-11,,3073,SELLER_CULT_BOM_2
+1429,"Cult Mahalaxmi Nagar, Bibwewadi",GYMKAT,ACTIVE,BLACK,Bibewadi,7,1,,1000,False,False,True,,2025-02-12,,3074,SELLER_CULT_BOM_2
+1430,Gymx Prime Belathur,GYM3077,ACTIVE,BLACK,Belathur,1,1,Bangalore Gym Cluster,1000,False,False,True,,2025-01-30,,3077,SELLER_CFS_KARNATAKA
+1431,Wellness Home of Fitness,GYM3079,INACTIVE,BLACK,Tathawade,7,1,,,False,False,True,,2025-01-14,,3079,SELLER_CULT_BOM_2
+1432,Cult Whitefield Main Rd,CLTHOP,ACTIVE,BLACK,Whitefield,1,1,East Blr,1000,False,False,True,,2024-12-13,,3081,SELLER_CULT_BLR
+1433,Legend Fitness,GYM3086,INACTIVE,BLACK,Jail Road,2,1,,,False,False,True,,2025-01-14,,3086,SELLER_CULT_CFS_GGN
+1434,Gold's Gym (Gachibowli),GYM3088,INACTIVE,BLACK,Gachibowli,3,1,,,False,False,True,,2025-03-30,,3088,
+1435,The Legend Fitness,GYM3097,INACTIVE,BLACK,Hari Nagar,2,1,,,False,False,True,,2025-01-14,,3097,SELLER_CULT_CFS_GGN
+1436,cult neo gym Uppal,GYM3098,INACTIVE,BLACK,Boduppal,3,1,,,False,False,True,,2025-02-24,,3098,SELLER_CULT_HYD_2
+1437,A7 Fitness Club (Punawale),GYM3107,INACTIVE,BLACK,Punawale,7,1,Pune Gym cluster,1000,False,False,True,,2025-01-15,,3107,SELLER_CULT_BOM_2
+1438,Gympossible,GYM3108,INACTIVE,BLACK,Himayatnagar,3,1,,,False,False,True,,2025-01-30,,3108,
+1439,Cult Gym T nagar,GYM3112,INACTIVE,BLACK,T Nagar,5,1,,1000,False,False,True,,2025-03-09,,3112,SELLER_CULT_TN_2
+1440,Cult Gym Ramapuram,GYM3113,INACTIVE,BLACK,Ramapuram,5,1,,,False,False,True,,2025-03-06,,3113,SELLER_CULT_TN_2
+1441,Cult T Nagar,CLTNGR,ACTIVE,BLACK,T Nagar,5,1,,1000,False,False,True,,2025-03-09,,3114,SELLER_CULT_TN_2
+1442,Cult Ramapuram,CLTRRM,ACTIVE,BLACK,Ramapuram,5,1,,1000,False,False,True,,2025-03-07,,3115,SELLER_CULT_TN_2
+1443,"Cult Gym Gangadham,Bibwewadi",GYM3116,INACTIVE,BLACK,Bibewadi,7,1,,1000,False,False,True,,2025-02-09,,3116,SELLER_CULT_BOM_2
+1444,"Cult Gangadham, Bibwewadi",CLTBBW,ACTIVE,BLACK,Bibewadi,7,1,Pune Gym cluster,1000,False,False,True,,2025-02-10,,3117,SELLER_CULT_BOM_2
+1445,Gold's Gym (Vaishali),GYM3118,INACTIVE,BLACK,"Vaishali, Ghaziabad",2,1,,,False,False,True,,2025-03-30,,3118,
+1446,Impackt Fitness 3.0 (Attapur),GYM3132,INACTIVE,BLACK,Attapur,3,1,,,False,False,True,,2025-02-14,,3132,SELLER_CULT_HYD_2
+1447,cult neo gym Andrahalli,GYM3138,INACTIVE,BLACK,Andrahalli,1,1,,,False,False,True,,2025-02-24,,3138,SELLER_CFS_KARNATAKA
+1448,cult neo gym Amberpet,GYM3141,INACTIVE,BLACK,Amberpet,3,1,,,False,False,True,,2025-02-27,,3141,SELLER_CULT_HYD_2
+1449,Majesstine Gym & Grassroot Boxing,GYM3142,INACTIVE,BLACK,HSR Layout,1,1,,,False,False,True,,2025-01-30,,3142,
+1450,Karmaa Fitness,GYM3143,INACTIVE,BLACK,"Sector 52, Gurgaon",2,1,,,False,False,True,,2025-01-30,,3143,SELLER_CULT_CFS_GGN
+1451,Deactivated GP,GYM3146,INACTIVE,BLACK,"Greenfield Colony, Faridabad",2,1,,1000,False,False,True,,2025-03-06,,3146,SELLER_CULT_CFS_GGN
+1452,Neptune Fitness Studio,GYM3147,INACTIVE,BLACK,Himayatnagar,3,1,,,False,False,True,,2025-02-19,,3147,SELLER_CULT_HYD_2
+1453,Cult Gym Green Park,GYM3148,INACTIVE,BLACK,Hauz Khas,2,1,,,False,False,True,,2025-02-28,,3148,SELLER_CULT_CFS_GGN
+1454,Cult Green Park,CLTGHK,ACTIVE,BLACK,Hauz Khas,2,1,,1000,False,False,True,,2025-02-28,,3150,SELLER_CULT_CFS_GGN
+1455,Powered Athletes,GYM3149,INACTIVE,BLACK,Pimple Saudagar,7,1,,,False,False,True,,2025-01-30,,3149,SELLER_CULT_BOM_2
+1456,Cult Gym NIBM,GYM3168,INACTIVE,BLACK,NIBM,7,1,,1000,False,False,True,,2025-03-06,,3168,SELLER_CULT_BOM_2
+1457,cult neo gym Virar West,GYM3169,INACTIVE,BLACK,Virar,4,1,,,False,False,True,,2025-03-12,,3169,SELLER_CULT_BOM_2
+1458,Brahma Fitness,GYM2267,ACTIVE,BLACK,FC Road,7,1,Pune Gym cluster,1000,False,False,True,,2024-02-28,,2267,SELLER_CULT_BOM_2
+1459,Cult NIBM,CGYNIB,ACTIVE,BLACK,NIBM,7,1,,1000,False,False,True,,2025-03-31,,3170,SELLER_CULT_BOM_2
+1460,Cult Gym Baner,GYM3171,INACTIVE,BLACK,Baner,7,1,,,False,False,True,,2025-05-31,,3171,SELLER_CULT_BOM_2
+1461,Cult Baner,CGBANE,ACTIVE,BLACK,Baner,7,1,Pune Gym cluster,1000,False,False,True,,2025-09-30,,3174,SELLER_CULT_BOM_2
+1462,"Cult Gym City Center 150, Noida",GYM3175,INACTIVE,BLACK,"Sector 150, Noida",2,1,,,False,False,True,,2025-04-14,,3175,
+1463,"Cult City Center 150, Noida",CCC150,ACTIVE,BLACK,"Sector 150, Noida",2,1,NCR East Delhi/Noida,1000,False,False,True,,2025-04-26,,3176,SELLER_CULT_NOI
+1464,Cult Gym New Rajinder Nagar,GYM3177,INACTIVE,BLACK,New Rajinder nagar,2,1,,,False,False,True,,2025-04-25,,3177,
+1465,"Cult Gym Financial District, PnP Towers",GYM3183,INACTIVE,BLACK,Financial District,3,1,,1000,False,False,True,,2025-03-14,,3183,SELLER_CULT_HYD
+1466,"Cult Financial District, PnP Towers",CLFD,ACTIVE,BLACK,Financial District,3,1,Hyderabad West,1000,False,False,True,,2025-03-22,,3184,SELLER_CULT_HYD
+1467,"Cult Gym Sanjay Nagar, Ghaziabad",GYM3185,INACTIVE,BLACK,Sanjay Nagar,2,1,,,False,False,True,,2025-04-29,,3185,
+1468,"Cult Sanjay Nagar, Ghaziabad",CLSN,ACTIVE,BLACK,Sanjay Nagar,2,1,NCR Ghaziabad,1000,False,False,True,,2025-04-13,,3186,SELLER_CULT_GGN
+1469,I Lift Fitness (East Of Kailash),GYM1093,ACTIVE,BLACK,East of Kailash,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2023-02-27,,1093,SELLER_CULT_GGN
+1479,"Cult Neo Gym, NIT Faridabad",GYM3201,INACTIVE,BLACK,Faridabad,2,1,,,False,False,True,,2025-03-29,,3201,
+1487,Cult New Rajinder Nagar,CLRJN,ACTIVE,BLACK,New Rajinder nagar,2,1,NCR Delhi Central,1000,False,False,True,,2025-04-25,,3213,SELLER_CULT_GGN
+1488,Cult Gym Pro Test hsr,GYM3216,INACTIVE,BLACK,HSR Sector 6,1,1,Bangalore Gym Cluster,1,False,False,True,,2025-01-19,,3216,SELLER_CFS_KARNATAKA
+1489,Cult Pro Test hsr,PRO_TEST_GX,INACTIVE,GOLD,HSR Sector 6,1,1,South1 Blr,1000,False,False,True,,2025-01-20,,3217,SELLER_CUREFOOD_BLR
+1490,D Fitness Planet (Yelahanka),GYM3222,ACTIVE,BLACK,Yelahanka,1,1,Bangalore Gym Cluster,-1000,False,False,True,,2025-02-28,,3222,SELLER_CFS_KARNATAKA
+1491,LUX HSR test,LUX_TEST,ACTIVE,LUX,HSR Sector 6,1,1,South1 Blr,1000,False,False,True,,2025-01-28,,3223,SELLER_CFS_KARNATAKA
+1492,Cult Gym Escala Kharadi,GYM3227,INACTIVE,BLACK,Kharadi,7,1,,,False,False,True,,2025-12-31,,3227,SELLER_CULT_BOM_2
+1493,Cult Kharadi,CGYKHD,ACTIVE,BLACK,Kharadi,7,1,Pune Gym cluster,1000,False,False,True,,2025-12-31,,3228,SELLER_CULT_BOM_2
+1494,Cult gym Mulund West - Hybrid,GYM3234,ACTIVE,BLACK,Mulund,4,1,Mumbai gym cluster,1000,False,False,True,,2025-03-31,,3234,SELLER_CULT_BOM
+1495,"Cult Gym Begumpet, Prakash Nagar",GYM3235,INACTIVE,BLACK,Begumpet,3,1,,,False,False,True,,2025-05-10,,3235,
+1496,"Cult Begumpet, Prakash Nagar",CLTBP,ACTIVE,BLACK,Begumpet,3,1,Hyderabad Central,1000,False,False,True,,2025-05-18,,3237,SELLER_CULT_HYD
+1497,cult neo gym Mathikere,GYM3239,INACTIVE,BLACK,Mathikere,1,1,,,False,False,True,,2025-03-30,,3239,
+1498,Cult Mulund West - Hybrid,CLTMLD,ACTIVE,BLACK,Mulund,4,1,North East Mum,1000,False,False,True,,2025-04-30,,3240,SELLER_CULT_BOM
+1499,"cult Gym Basavanagudi, DV Gundappa Rd.",GYM3242,INACTIVE,BLACK,Basavanagudi,1,1,,,False,False,True,,2025-04-24,,3242,
+1504,Cult Basavanagudi DV Gundappa Rd,CLTDVG,ACTIVE,BLACK,Basavanagudi,1,1,South2 Blr,1000,False,False,True,,2025-07-30,,3247,SELLER_CULT_BLR
+1505,LUX GX HSR test,LXTST,INACTIVE,LUX,HSR Sector 6,1,1,South1 Blr,1000,False,False,True,,2025-02-10,,3251,SELLER_CFS_KARNATAKA
+1506,LUX GYM HSR TEST,GYM3252,INACTIVE,BLACK,HSR Sector 6,1,1,Bangalore Gym Cluster,200,False,False,True,,2025-02-09,,3252,SELLER_CFS_KARNATAKA
+1507,Velocity Fitness Zone 2.0 (Malkajgiri),GYM3253,ACTIVE,BLACK,Malkajgiri,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2025-04-10,,3253,SELLER_CULT_HYD_2
+1508,Pilates Circle - HSR (PT),GYM3254,INACTIVE,BLACK,HSR Layout,1,1,,1,False,False,True,,2025-03-29,,3254,SELLER_CFS_KARNATAKA
+1509,Pilates Circle HSR,CLTPCH,ACTIVE,LUX,HSR Layout,1,1,South1 Blr,1000,False,False,True,,2025-04-05,,3256,SELLER_CFS_KARNATAKA
+1510,cult Gym Nagadevanahalli,GYM3258,INACTIVE,BLACK,Nagadevanahalli,1,1,,,False,False,True,,2025-04-29,,3258,
+1512,cult Nagadevanahalli,CLTNAG,ACTIVE,BLACK,Nagadevanahalli,1,1,West Blr,1000,False,False,True,,2025-05-14,,3260,SELLER_CULT_BLR
+1513,Cult Neo Uttam Nagar,GYM3263,INACTIVE,BLACK,Uttam Nagar,2,1,,,False,False,True,,2025-04-09,,3263,SELLER_CULT_CFS_GGN
+1514,"Cult Gym SG Palya, Tavarekere Main Road",GYM3268,INACTIVE,BLACK,Koramangala,1,1,Bangalore Gym Cluster,1000,False,False,True,,2025-04-28,,3268,SELLER_CULT_BLR
+1515,"Cult SG Palya, Tavarekere Main Road",CLTSGP,ACTIVE,BLACK,SG Palya,1,1,Central Blr,1000,False,False,True,,2025-04-28,,3269,SELLER_CULT_BLR
+1516,KTPO Whitefield,KTPO,ACTIVE,BLACK,Whitefield,1,1,East Blr,1000,False,False,True,,2025-03-05,,3279,SELLER_CFS_KARNATAKA
+1517,Fitt Lounge (Noida),GYM3281,ACTIVE,BLACK,Greater Noida,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2025-04-20,,3281,SELLER_CULT_CFS_GGN
+1518,Aim Fitness Studio (Kumarswamy Layout),GYM3282,INACTIVE,BLACK,Kumarswamy Layout,1,1,,,False,False,True,,2025-05-30,,3282,SELLER_CFS_KARNATAKA
+1519,Maximus Your Fitness Zone,GYM3283,INACTIVE,BLACK,Pimpri Chinchwad,7,1,Pune Gym cluster,1000,False,False,True,,2025-04-20,,3283,SELLER_CULT_BOM_2
+1520,"cult neo gym Konappana Agrahara, E-city Phase 1",GYM3288,INACTIVE,BLACK,Electronic City Phase I,1,1,,,False,False,True,,2025-05-05,,3288,
+1521,Cult Neo Gym Dasarahalli,GYM3290,INACTIVE,BLACK,Dasarahalli,1,1,,,False,False,True,,2025-05-08,,3290,
+1522,Cult Seegehalli Phase-2,CLTSEEGP,INACTIVE,BLACK,Seegehalli,1,1,East Blr,1000,False,False,True,,2025-04-11,,3315,SELLER_CULT_BLR
+1523,cult neo Nagarbhavi,CNNAGB,INACTIVE,GOLD,Nagarbhavi,1,1,West Blr,1000,False,False,True,,2024-11-04,,3329,SELLER_CFS_KARNATAKA
+1524,cult neo Hosa Road,CLNHRD,INACTIVE,GOLD,Electronic City,1,1,South2 Blr,1000,False,False,True,,2024-12-07,,3330,SELLER_CFS_KARNATAKA
+1525,cult neo Uppal,CLTUPL,INACTIVE,GOLD,Uppal,3,1,Hyderabad East,1000,False,False,True,,2025-01-15,,3331,SELLER_CULT_HYD_2
+1530,cult neo Vidyaranyapura,CLTNGV,INACTIVE,GOLD,Vidyaranyapura,1,1,North Blr,1000,False,False,True,,2025-02-17,,3332,SELLER_CFS_KARNATAKA
+1536,cult neo Mahavir Enclave,CNGMHE,INACTIVE,GOLD,Mahavir Enclave,2,1,NCR Delhi West,1000,False,False,True,,2025-01-07,,3333,SELLER_CULT_CFS_GGN
+1537,"Cult Neo Gym Ullal, Annapurneshwari layout",GYM3335,INACTIVE,BLACK,Ullal,1,1,,,False,False,True,,2025-05-27,,3335,
+1538,Cult Neo Gym Nagaram,GYM3336,INACTIVE,BLACK,Nizampet,3,1,,,False,False,True,,2025-05-24,,3336,
+1539,Cult Gym Neo JP Nagar 8th Phase,GYM3338,INACTIVE,BLACK,JP Nagar,1,1,,,False,False,True,,2025-06-29,,3338,
+1540,Volt Fitness Studio (Alkapur),GYM3344,ACTIVE,BLACK,Manikonda,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2025-05-30,,3344,SELLER_CULT_HYD_2
+1541,Verofit (Bhandup),GYM3345,ACTIVE,BLACK,Bhandup,4,1,Mumbai gym cluster,1000,False,False,True,,2025-07-14,,3345,SELLER_CULT_BOM_2
+1542,Test Center - Invoice,GYM3352,INACTIVE,BLACK,HSR Layout,1,1,,,False,False,True,,2025-04-20,,3352,SELLER_CFS_KARNATAKA
+1543,Test Lux Inv,GYM3353,INACTIVE,BLACK,HSR Sector 6,1,1,,,False,False,True,,2025-04-20,,3353,SELLER_CFS_KARNATAKA
+1544,Test Lux Inv,GYM3354,INACTIVE,BLACK,HSR Sector 6,1,1,,,False,False,True,,2025-04-20,,3354,SELLER_CFS_KARNATAKA
+1545,Cult Chattarpur,CLTCE,ACTIVE,BLACK,Chattarpur,2,1,NCR Delhi South,1000,False,False,True,,2025-05-10,,3355,SELLER_CULT_FF_DEL
+1546,Test Inv,GYM3358,INACTIVE,BLACK,Banaswadi,1,1,,,False,False,True,,2025-04-22,,3358,SELLER_CFS_KARNATAKA
+1547,"Cult Gym LB Nagar, Vanasthalipuram",GYM3359,INACTIVE,BLACK,LB Nagar,3,1,,,False,False,True,,2025-07-17,,3359,
+1548,1 Repp Gyym,GYM3360,INACTIVE,BLACK,Pimple Saudagar,7,1,,1000,False,False,True,,2025-05-30,,3360,SELLER_CULT_BOM_2
+1549,"Cult LB Nagar, Vanasthalipuram",CLBNGR,ACTIVE,BLACK,LB Nagar,3,1,Hyderabad East,1000,False,False,True,,2025-07-17,,3362,SELLER_CULT_HYD
+1551,Mutate Prime Gym,GYM3364,INACTIVE,BLACK,Punjabi Bagh,2,1,,,False,False,True,,2025-06-29,,3364,SELLER_CULT_CFS_GGN
+1552,Cult Gym Suchitra Road,GYM3370,ACTIVE,BLACK,Suchitra,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2025-07-29,,3370,SELLER_CULT_HYD
+1553,"Gold's Gym (Sector 153, Noida)",GYM3371,INACTIVE,BLACK,"Sector 150, Noida",2,1,,,False,False,True,,2025-09-29,,3371,
+1554,Cult Suchitra Road,CLTSRH,ACTIVE,BLACK,Suchitra,3,1,Hyderabad North,1000,False,False,True,,2025-07-30,,3372,SELLER_CULT_HYD
+1555,Cult Gym Indirapuram,GYM3377,INACTIVE,BLACK,Indirapuram,2,1,,,False,False,True,,2025-09-14,,3377,
+1556,Cult Gym Nizampet - Hybrid,GYM3385,INACTIVE,BLACK,Nizampet,3,1,,,False,False,True,,2025-07-30,,3385,
+1557,"Cult Gym Lakshmipuram, Mysore",GYM3386,INACTIVE,BLACK,Temple Road,11,1,,1000,False,False,True,,2025-07-30,,3386,SELLER_CULT_BLR
+1558,Cult Nizampet - Hybrid,CLTNH,ACTIVE,BLACK,Nizampet,3,1,Hyderabad North,1000,False,False,True,,2025-08-03,,3397,SELLER_CULT_HYD
+1559,Impackt Fitness 4.0 (Kondapur),GYM3400,ACTIVE,BLACK,Kondapur,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2025-07-31,,3400,SELLER_CULT_HYD_2
+1560,"Cult Lakshmipuram, Mysore",CLTML,ACTIVE,BLACK,Lakshmipuram,11,1,Mysore Gym Cluster,1000,False,False,True,,2025-09-15,,3401,SELLER_CULT_BLR
+1561,cult neo gym Dwarka Sector 7,GYM3407,INACTIVE,BLACK,Dwarka Sector 7,2,1,,,False,False,True,,2025-08-11,,3407,SELLER_CULT_CFS_GGN
+1562,Cult Neo Gym Adarsh Nagar,GYM3412,INACTIVE,BLACK,Adarsh Nagar,2,1,,,False,False,True,,2025-08-18,,3412,SELLER_CULT_CFS_GGN
+1570,Cult Indirapuram - Hybrid,CLTIP,ACTIVE,BLACK,Indirapuram,2,1,NCR Ghaziabad,1000,False,False,True,,2025-09-23,,3413,SELLER_CULT_GGN
+1571,cult neo gym Kavalbysandra,GYM3414,INACTIVE,BLACK,Kavalbysandra,1,1,,,False,False,True,,2025-08-18,,3414,SELLER_CFS_KARNATAKA
+1572,Cult Gym Sinhagad Road Pune ,GYM3420,INACTIVE,BLACK,Sinhagad Road,7,1,,,False,False,True,,2025-08-30,,3420,SELLER_CULT_BOM_2
+1573,Cult Sinhagad Road ,CLTSPR,ACTIVE,BLACK,Sinhagad Road,7,1,Pune West,1000,False,False,True,,2025-08-31,,3421,SELLER_CULT_BOM_2
+1574,cult neo gym M S Palya,GYM3422,INACTIVE,BLACK,Singapura,1,1,,,False,False,True,,2025-08-26,,3422,
+1575,Cult Gym Kothrud,GYM3423,INACTIVE,BLACK,Kothrud,7,1,,,False,False,True,,2025-08-30,,3423,SELLER_CULT_BOM_2
+1576,Cult Kothrud ,CLTKP,ACTIVE,BLACK,Kothrud,7,1,Pune Gym cluster,1000,False,False,True,,2025-08-31,,3424,SELLER_CULT_BOM_2
+1577,Oxofit Premium Fitness,GYM3428,INACTIVE,BLACK,Magarpatta City,7,1,,,False,False,True,,2025-07-30,,3428,SELLER_CULT_BOM_2
+1578,Elevate Training Grounds,GYM3432,INACTIVE,BLACK,Neeladri Nagar,1,1,,,False,False,True,,2025-09-14,,3432,SELLER_CFS_KARNATAKA
+1579,Cult neo gym Banashankari 6th Stage,GYM3450,INACTIVE,BLACK,Banashankari,1,1,,,False,False,True,,2025-08-28,,3450,
+1580,Cult Gym Kalyani Nagar,GYM3462,ACTIVE,BLACK,Kalyani Nagar,7,1,Pune Gym cluster,1000,False,False,True,,2025-07-07,,3462,SELLER_CULT_BOM_2
+1581,Cult Gym Velachery Chennai - Hybrid,GYM3464,ACTIVE,BLACK,Velachery,5,1,Chennai Gym Cluster,1000,False,False,True,,2025-08-24,,3464,SELLER_CULT_TN_2
+1582,cult gym Kandivali West,GYM3465,INACTIVE,BLACK,Kandivali West,4,1,,,False,False,True,,2025-09-12,,3465,SELLER_CULT_BOM_2
+1583,Fitness Zone 2.0,GYM3466,INACTIVE,BLACK,Gajularamaram,3,1,,,False,False,True,,2025-07-30,,3466,SELLER_CULT_HYD_2
+1584,Cult Kalyani Nagar,CLTKLN,ACTIVE,BLACK,Kalyani Nagar,7,1,,200,False,False,True,,2025-07-07,,3467,SELLER_CULT_BOM_2
+1585,"cult neo gym Kirloskar Layout, Sidedahalli",GYM3469,INACTIVE,BLACK,Hesaraghatta,1,1,,,False,False,True,,2025-09-24,,3469,
+1586,Cult Lokhandwala,CLTLKW,ACTIVE,BLACK,Andheri West,4,1,West Mum,1000,False,False,True,,2025-09-04,,3470,SELLER_CULT_BOM_2
+1587,Cult Gym Pro Test Madhapur,GYM3472,INACTIVE,BLACK,Madhapur,3,1,,,False,False,True,,2025-07-31,,3472,SELLER_CULT_HYD_2
+1588,Cult Gym Pro Test Ashok Vihar,GYM3473,INACTIVE,BLACK,Ashok Vihar,2,1,,,False,False,True,,2025-07-31,,3473,
+1589,Cult Gym Pro Test Borivali West,GYM3474,INACTIVE,BLACK,Borivali,4,1,,,False,False,True,,2025-07-31,,3474,SELLER_CULT_BOM_2
+1590,Test007,GYM3475,INACTIVE,BLACK,Magarpatta City,7,1,,11,False,False,True,,2025-09-18,,3475,SELLER_CULT_BOM_2
+1591,Test008,CLTMGR,INACTIVE,BLACK,Magarpatta City,7,1,Pune East,1000,False,False,True,,2025-09-19,,3476,SELLER_CULT_BOM_2
+1592,Cult AECS Layout Test,CAECS,ACTIVE,BLACK,AECS Layout,1,1,East Blr,10,False,False,True,,2025-07-28,,3477,SELLER_CFS_KARNATAKA
+1593,Cult Gym Magarpatta,GYM3479,INACTIVE,BLACK,Magarpatta City,7,1,,,False,False,True,,2025-09-29,,3479,SELLER_CULT_BOM_2
+1594,Cult Jubilee Hills Test,CHTCT,INACTIVE,BLACK,Jubilee Hills,3,1,Hyderabad Central,10,False,False,True,,2025-07-16,,3480,SELLER_CULT_HYD_2
+1595,Cult Magarpatta ,CLTMPP,ACTIVE,BLACK,Magarpatta City,7,1,,1000,False,False,True,,2025-09-30,,3481,SELLER_CULT_BOM_2
+1600,Cult Juhu Test,CJUHU,INACTIVE,BLACK,Juhu,4,1,West Mum,10,False,False,True,,2025-07-14,,3482,SELLER_CULT_BOM_2
+1601,Cult Gym Test Bellandur,GYM3483,INACTIVE,BLACK,Bellandur,1,1,,,False,False,True,,2025-07-13,,3483,
+1602,Cult Gym Test Banjara Hills,GYM3484,INACTIVE,BLACK,Banjara Hills,3,1,,,False,False,True,,2025-07-13,,3484,SELLER_CULT_HYD_2
+1603,Cult Gym Test Powai,GYM3485,INACTIVE,BLACK,Powai,4,1,,,False,False,True,,2025-07-13,,3485,SELLER_CULT_BOM_2
+1604,Cult Gym Test Vasant Kunj,GYM3486,INACTIVE,BLACK,Vasant Kunj,2,1,,,False,False,True,,2025-07-13,,3486,SELLER_CULT_CFS_GGN
+1605,Cult Gym Pro Test Indiranagar,GYM3487,INACTIVE,BLACK,Indiranagar,1,1,,,False,False,True,,2025-07-13,,3487,SELLER_CFS_KARNATAKA
+1606,Cult Bellandur Test Hybrid,CBDTH,INACTIVE,BLACK,Bellandur,1,1,South1 Blr,10,False,False,True,,2025-07-17,,3488,SELLER_CFS_KARNATAKA
+1607,Cult Test Banjara Hills Hybrid,CTBHH,INACTIVE,BLACK,Banjara Hills,3,1,Hyderabad Central,10,False,False,True,,2025-07-14,,3489,SELLER_CULT_HYD_2
+1608,Cult Test Powai Hybrid,CTPOH,INACTIVE,BLACK,Powai,4,1,Central Mum,10,False,False,True,,2025-07-14,,3490,SELLER_CULT_BOM_2
+1609,Cult Test Vasant Kunj Hybrid,CTVKH,ACTIVE,BLACK,Vasant Kunj,2,1,NCR Delhi South West,10,False,False,True,,2025-07-14,,3491,SELLER_CULT_CFS_GGN
+1610,Fitness First Whitefield,GYM3492,INACTIVE,BLACK,Whitefield,1,1,,,False,False,True,,2025-06-30,,3492,
+1611,Cult Dwarka Test,CDWKT,INACTIVE,BLACK,Dwarka,2,1,NCR Delhi West,10,False,False,True,,2025-07-14,,3493,SELLER_CULT_CFS_GGN
+1612,Cult Gym Somajiguda - Hybrid,GYM3494,INACTIVE,BLACK,Somajiguda,3,1,,1000,False,False,True,,2025-09-29,,3494,SELLER_CULT_HYD
+1613,Cult Somajiguda - Hybrid ,CLTSH,ACTIVE,BLACK,Somajiguda,3,1,Hyderabad North,1000,False,False,True,,2025-09-30,,3495,SELLER_CULT_HYD
+1614,Pilates Circle - Koramangala,CLTPCK,ACTIVE,LUX,Koramangala,1,1,,1000,False,False,True,,2025-10-06,,3498,SELLER_CFS_KARNATAKA
+1615,cult neo gym Byadarahalli,GYM3500,INACTIVE,BLACK,Byadarahalli,1,1,,,False,False,True,,2025-09-29,,3500,
+1616,Fitness First - Whitefield.,GYM3502,INACTIVE,BLACK,Whitefield,1,1,,,False,False,True,,2023-11-14,,3502,SELLER_CULT_BLR
+1617,Reset - Koramangala..,GYM3503,INACTIVE,BLACK,Koramangala,1,1,,,False,False,True,,2023-10-08,,3503,SELLER_CFS_KARNATAKA
+1618,Fitness First - Andheri West (CMM),GYM3504,INACTIVE,BLACK,Andheri West,4,1,,,False,False,True,,2022-07-28,,3504,SELLER_CULT_BOM_2
+1619,cult neo gym Mukut Bazar,GYM3505,INACTIVE,BLACK,Ashiyana,24,1,,,False,False,True,,2025-09-18,,3505,SELLER_CULT_NOI_2
+1620,Cult_Gym_Elite_Dummy_HRX_Begur,GYM3506,INACTIVE,BLACK,Begur,1,1,,,False,False,True,,2025-06-30,,3506,SELLER_CFS_KARNATAKA
+1621,Cult_Gym_Neo_Dummy_Nagarbhaavi,GYM3507,INACTIVE,BLACK,Nagarbhavi,1,1,,,False,False,True,,2025-06-30,,3507,SELLER_CFS_KARNATAKA
+1622,Cult_Gym_Neo_Dummy_Nagarbhaavi,GYM3508,INACTIVE,BLACK,Nagarbhavi,1,1,,,False,False,True,,2025-07-11,,3508,SELLER_CFS_KARNATAKA
+1623,V R New Fitness,GYM3510,ACTIVE,BLACK,Hoodi,1,1,Bangalore Gym Cluster,1000,False,False,True,,2025-10-25,,3510,SELLER_CFS_KARNATAKA
+1624,Black Vigor Noida Extension,GYM3511,ACTIVE,BLACK,Noida Extn.,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2025-08-30,,3511,SELLER_CULT_CFS_GGN
+1625,cult Gym Ayyappa Nagar,GYM3512,INACTIVE,BLACK,Ayyappa Nagar,1,1,,,False,False,True,,2025-09-07,,3512,
+1626,"cult Ayyappa Nagar, KR Puram",CLTAYYA,ACTIVE,BLACK,Ayyappa Nagar,1,1,East Blr,1000,False,False,True,,2025-10-10,,3513,SELLER_CULT_BLR
+1627,Athlix Fitness,GYM3514,INACTIVE,BLACK,Moshi,7,1,,,False,False,True,,2025-08-30,,3514,SELLER_CULT_BOM_2
+1628,Fitness First - Ambience Mall,GYM3517,INACTIVE,BLACK,DLF Phase 3,2,1,,,False,False,True,,2025-05-14,,3517,SELLER_CULT_GGN
+1629,Reset Bandra,GYM3518,INACTIVE,BLACK,Bandra West,4,1,,,False,False,True,,2017-11-04,,3518,SELLER_CULT_BOM_2
+1630,Fitness First - Select City Walk,GYM3520,INACTIVE,BLACK,Saket,2,1,,,False,False,True,,2010-05-24,,3520,SELLER_CULT_CFS_GGN
+1631,Fitness First Indiranagar,GYM3524,INACTIVE,BLACK,Indiranagar,1,1,,,False,False,True,,2017-06-14,,3524,SELLER_CFS_KARNATAKA
+1632,Fitness First South Point Mall ,GYM3525,INACTIVE,BLACK,DLF Phase 5,2,1,,,False,False,True,,2013-04-30,,3525,SELLER_CULT_CFS_GGN
+1633,Fitness First Dwarka ,GYM3526,INACTIVE,BLACK,Dwarka Sector 12,2,1,,,False,False,True,,2025-02-13,,3526,SELLER_CULT_GGN
+1634,Fitness First - Great India Place,GYM3527,INACTIVE,BLACK,"Sector 39, Noida",2,1,,,False,False,True,,2025-06-13,,3527,SELLER_CULT_GGN
+1635,"Fitness First - Sec 65, Gurgaon",GYM3528,INACTIVE,BLACK,Sector 65,2,1,,,False,False,True,,2024-12-14,,3528,SELLER_CULT_GGN
+1636,Fitness First - Hamilton House,GYM3532,INACTIVE,BLACK,Central Delhi,2,1,,,False,False,True,,2025-04-30,,3532,SELLER_CULT_GGN
+1637,Cult Intellion Park (Employees Only),CINEM,ACTIVE,BLACK,Intellion Tech Park,2,1,Gurgaon Gym Cluster,1000,False,False,True,,2025-09-15,,3541,SELLER_CULT_GGN
+1638,Cult Gym Moosapet,GYM3542,INACTIVE,BLACK,Moosapet,3,1,,,False,False,True,,2025-11-29,,3542,
+1639,Cult Moosapet,CLTMOO,ACTIVE,BLACK,Moosapet,3,1,Hyderabad West,1000,False,False,True,,2025-12-21,,3544,SELLER_CULT_HYD
+1640,Cult gym Beeramguda - Hybrid,GYM3552,INACTIVE,BLACK,Beeramguda,3,1,,,False,False,True,,2025-12-30,,3552,
+1641,Cult Gym RC Puram - Hybrid,GYM3559,INACTIVE,BLACK,RC Puram,3,1,,1000,False,False,True,,2025-12-03,,3559,SELLER_CULT_HYD
+1642,Cult Gym Intellion Park (Employees Only),GYM3478,INACTIVE,BLACK,Intellion Tech Park,2,1,,,False,False,True,,2025-09-16,,3478,
+1643,Pilates Circle - Indiranagar (PT),GYM3565,INACTIVE,BLACK,Indiranagar,1,1,,1000,False,False,True,,2025-12-09,,3565,SELLER_CULT_BLR
+1644,Pilates Circle Indiranagar,CLTPLI,ACTIVE,LUX,Indiranagar,1,1,,100,False,False,True,,2025-12-09,,3566,SELLER_CFS_KARNATAKA
+1645,Cult Gym Neo - Dairy Farm,GYM3567,INACTIVE,BLACK,Secunderabad,3,1,,,False,False,True,,2025-12-19,,3567,
+1646,cult neo gym Kudlu,GYM3568,INACTIVE,BLACK,Kudlu Gate,1,1,,,False,False,True,,2025-12-29,,3568,
+1647,Cult RC Puram - Hybrid,CLRCP,ACTIVE,BLACK,Ramchandrapuram,3,1,Hyderabad South,1000,False,False,True,,2025-12-06,,3569,SELLER_CULT_HYD
+1648,Cult Gym Narsingi,GYM3579,INACTIVE,BLACK,LB Nagar,3,1,,,False,False,True,,2025-12-14,,3579,
+1651,Cult Narsingi,CLNSG,ACTIVE,BLACK,Narsingi,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2026-01-08,,3580,SELLER_CULT_HYD
+1652,Cult Gym Frazer Town,GYM3581,INACTIVE,BLACK,Frazer Town,1,1,,,False,False,True,,2025-12-05,,3581,
+1653,"Cult Frazer Town, Mosque Road",CLFZT,ACTIVE,BLACK,Frazer Town,1,1,Bangalore Gym Cluster,1000,False,False,True,,2025-12-15,,3582,SELLER_CULT_BLR
+1654,Cult Beeramguda,CLTBG,ACTIVE,BLACK,Beeramguda,3,1,Hyderabad West,1000,False,False,True,,2025-11-30,,3586,SELLER_CULT_HYD
+1655,Cult Neo Gym Najafgarh,GYM3591,INACTIVE,BLACK,Najafgarh,2,1,,,False,False,True,,2025-12-29,,3591,SELLER_CULT_CFS_GGN
+1656,Cult Gym Bommanahalli (Dummy),GYM3601,INACTIVE,BLACK,Bommanahalli,1,1,,,False,False,True,,2025-11-29,,3601,SELLER_CFS_KARNATAKA
+1657,Cult Gym Nepean Sea Road (Dummy),GYM3602,INACTIVE,BLACK,Malabar Hills ,4,1,,,False,False,True,,2025-10-16,,3602,SELLER_CULT_BOM_2
+1658,Pilates Circle Koramangala (PT),GYM3497,INACTIVE,BLACK,Koramangala,1,1,,2,False,False,True,,2025-10-05,,3497,SELLER_CULT_BLR
+1659,Cult Gym Ananth Nagar,GYM3605,INACTIVE,BLACK,Anant Nagar,1,1,,,False,False,True,,2025-12-04,,3605,
+1660,"Cult Ananth Nagar, Electronic City Phase 2",CLTAN,ACTIVE,BLACK,Anant Nagar,1,1,South2 Blr,1000,False,False,True,,2026-01-24,,3606,SELLER_CUREFOOD_BLR
+1661,BFC Fitness ,GYM3609,INACTIVE,BLACK,Wanowrie,7,1,,,False,False,True,,2026-01-14,,3609,SELLER_CULT_BOM_2
+1662,cult neo gym Babusapalya,GYM3612,INACTIVE,BLACK,HRBR Layout,1,1,,,False,False,True,,2025-12-23,,3612,
+1663,Cult Gym Khajaguda ,GYM3613,INACTIVE,BLACK,Khajaguda,3,1,,,False,False,True,,2026-01-25,,3613,SELLER_CULT_HYD_2
+1664,Cult Khajaguda,CLTKHA,ACTIVE,BLACK,Khajaguda,3,1,Hyderabad South,1000,False,False,True,,2026-01-06,,3614,SELLER_CULT_HYD_2
+1665,Cult Gym Pragathi Nagar (DYS),GYM3631,INACTIVE,BLACK,Pragathi Nagar,3,1,,1000,False,False,True,,2026-01-24,,3631,SELLER_CULT_HYD
+1666,Cult Gym Pragathi Nagar,GYM3632,INACTIVE,BLACK,Pragathi Nagar,3,1,Hyderabad Gym Cluster,1000,False,False,True,,2026-01-31,,3632,SELLER_CULT_HYD
+1667,"Cult Gym Ananthnagar, Electronic City Phase 2 (DYSFUNCTIONAL)",GYM3635,INACTIVE,BLACK,Ananth Nagar,1,1,,1000,False,False,True,,2026-01-29,,3635,SELLER_CULT_BLR
+1668,Cult Neo Gym- Attibele,GYM3672,INACTIVE,BLACK,Sarjapur,1,1,,,False,False,True,,2026-04-25,,3672,
+1669,Cult Wadhwa Group B2B,GYM3673,INACTIVE,BLACK,Bandra,4,1,,,False,False,True,,2023-10-31,,3673,SELLER_CULT_BOM_2
+1670,Cult Navi Tech B2B,GYM3675,INACTIVE,BLACK,Bellandur,1,1,,,False,False,True,,2024-03-31,,3675,SELLER_CFS_KARNATAKA
+1671,Cult Tata Power B2B,GYM3676,INACTIVE,BLACK,Electronic City,1,1,,,False,False,True,,2025-04-30,,3676,SELLER_CFS_KARNATAKA
+1672,Cult Gym Patel Nagar,GYM3679,INACTIVE,BLACK,Patel Nagar,2,1,,,False,False,True,,2026-03-14,,3679,
+1673,Cult Patel Nagar ,CLTPN,ACTIVE,BLACK,Patel Nagar,2,1,NCR Delhi West,1000,False,False,True,,2026-03-14,,3690,SELLER_CULT_GGN
+1674,Pilates Circle Bellandur- DISFUNCTIONAL,GYM3692,INACTIVE,BLACK,Bellandur,1,1,,0,False,False,True,,2026-01-30,,3692,SELLER_CFS_KARNATAKA
+1675,Cult gym Pimple Nilakh,GYM3696,INACTIVE,BLACK,Pimple Nilakh,7,1,,,False,False,True,,2026-01-30,,3696,SELLER_CULT_BOM_2
+1676,Cult Pimple Nilakh,CLTGPN,ACTIVE,BLACK,Pimple Nilakh,7,1,Pune Gym cluster,1000,False,False,True,,2026-01-31,,3697,SELLER_CULT_BOM_2
+1677,"Cult Gym Camelot layout, Botanical Garden",GYM3698,INACTIVE,BLACK,Botanical Garden Rd,3,1,,,False,False,True,,2026-04-29,,3698,SELLER_CULT_HYD_2
+1678,"Cult Camelot layout, Botanical Garden",CLTBGE,ACTIVE,BLACK,Botanical Garden Rd,3,1,Hyderabad West,1000,False,False,True,,2026-02-24,,3699,SELLER_CULT_HYD_2
+1679,Pilates Circle Bellandur (PT),GYM3701,INACTIVE,BLACK,Bellandur,1,1,,1,False,False,True,,2026-01-29,,3701,SELLER_CFS_KARNATAKA
+1680,Pilates Circle - Bellandur,PLTCBEL,ACTIVE,LUX,Bellandur,1,1,South1 Blr,1000,False,False,True,,2026-02-07,,3702,SELLER_CULT_BLR
+1681,Pilates Circle - Banjara Hills (PT) Inactive,CLTPBH,INACTIVE,LUX,Banjara Hills,3,1,Hyderabad Central,1000,False,False,True,,2026-03-14,,3704,SELLER_CULT_HYD
+1682,Cult Gym Sector 57,GYM3715,INACTIVE,BLACK,"Sector 56, Gurgaon",2,1,,,False,False,True,,2026-07-30,,3715,
+1683,Cult Gym Vasant Kunj,GYM3739,INACTIVE,BLACK,Vasant Kunj,2,1,,,False,False,True,,2026-05-29,,3739,SELLER_CULT_CFS_GGN
+1697,Cult Vasant Kunj,CLTVK,ACTIVE,BLACK,Vasant Kunj,2,1,NCR Delhi South West,1000,False,False,True,,2026-04-30,,3768,SELLER_CULT_CFS_GGN
+1700,cult Gym Bannerghatta Rd,GYM3774,INACTIVE,BLACK,Bannerghatta,1,1,,,False,False,True,,2026-03-08,,3774,
+1701,Cult Bannerghatta Main Road (New),CLTBANRD,ACTIVE,BLACK,Bannerghatta Road,1,1,Bangalore Gym Cluster,1000,False,False,True,,2026-04-21,,3775,SELLER_CULT_BLR
+1702,cult neo gym Madanayakanahalli,GYM3776,INACTIVE,BLACK,Madanayakanahalli,1,1,,,False,False,True,,2026-03-09,,3776,
+1703,Pilates Circle Brigade Road (PT),GYM3777,INACTIVE,BLACK,Brigade Road,1,1,,1,False,False,True,,2026-04-29,,3777,SELLER_CFS_KARNATAKA
+1704,Pilates Circle Brigade Road,CLTPBR,ACTIVE,LUX,Brigade Road,1,1,Central Blr,1000,False,False,True,,2026-03-12,,3778,SELLER_CULT_BLR
+1705,Cult Gym Champapet,GYM3780,INACTIVE,BLACK,Lingampally,3,1,,,False,False,True,,2026-07-29,,3780,
+1709,Cult Sector 57,CLTG57,ACTIVE,BLACK,"Sector 57, Gurgaon",2,1,Gurgaon Gym Cluster,1000,False,False,True,,2026-03-09,,3788,SELLER_CULT_GGN
+1710,Cult Gym Mayur Vihar,GYM3799,INACTIVE,BLACK,Mayur Vihar,2,1,,,False,False,True,,2026-04-28,,3799,SELLER_CULT_CFS_GGN
+1711,Cult Mayur Vihar,CLTMAYU,ACTIVE,BLACK,Mayur Vihar,2,1,NCR East Delhi/Noida,1000,False,False,True,,2026-05-05,,3803,SELLER_CULT_CFS_GGN
+1712,Cult Gym Dwarka sector 23,GYM3805,INACTIVE,BLACK,"Sector 23, Dwarka",2,1,,1000,False,False,True,,2026-04-13,,3805,SELLER_CULT_DEL
+1713,Cult Gym Embassy B2B,GYM3807,INACTIVE,BLACK,Hebbal,1,1,,,False,False,True,,2026-01-14,,3807,SELLER_CFS_KARNATAKA
+1726,Cult Pragathi Nagar,CLP,ACTIVE,BLACK,Pragathi Nagar,3,1,,1000,False,False,True,,2026-01-25,,3837,SELLER_CULT_HYD
+1727,Cult Neo Gym Kogilu,GYM3840,INACTIVE,BLACK,Nelamangala,1,1,,,False,False,True,,2026-04-29,,3840,SELLER_CFS_KARNATAKA
+1728,Cult Champapet,CLTEC,ACTIVE,BLACK,Champapet,3,1,Hyderabad East,1000,False,False,True,,2026-03-31,,3847,SELLER_CULT_HYD
+1729,"Cult Gym Kasturba Nagar, Mysore Road",GYM3865,INACTIVE,BLACK,Koramangala,1,1,,,True,False,True,,2026-08-12,,3865,
+1730,Cult Neo Gym Bellandur,GYM3866,INACTIVE,BLACK,Bellandur,1,1,,,True,False,True,,2026-08-31,,3866,SELLER_CFS_KARNATAKA
+1731,Cult Neo Gym Madanayakanahalli,GYM3746,INACTIVE,BLACK,Babusapalya,1,1,,,False,False,True,,2026-04-29,,3746,
+1732,Cult Entain Software B2B,CLESB,INACTIVE,BLACK,Kondapur,3,1,Hyderabad West,1000,False,False,True,,2026-02-01,,3871,SELLER_CULT_HYD_2
+1733,Cult_Gym_Chandra_Layout_Maruthi_Nagar,GYM3872,INACTIVE,BLACK,Chandra Layout,1,1,,,True,False,True,,2026-09-29,,3872,SELLER_CFS_KARNATAKA
+1786,Cult Dwarka sector  23 ,CLTWD,ACTIVE,BLACK,"Sector 23, Dwarka",2,1,,1000,False,False,True,,2026-04-13,,3878,SELLER_CULT_DEL
+1787,Cult Gym Sainikpuri,GYM3891,INACTIVE,BLACK,Sainikpuri,3,1,,,True,False,True,,2026-09-29,,3891,SELLER_CULT_HYD_2
+1794,Cult Sainikipuri,CLTSP,ACTIVE,BLACK,Sainikpuri,3,1,Hyderabad Central,1000,False,False,True,,2026-05-14,,3898,SELLER_CULT_HYD_2
+1795,"Cult Gym, Choodasandra",GYM3907,INACTIVE,BLACK,JP Nagar,1,1,,,True,False,True,,2026-09-29,,3907,SELLER_CFS_KARNATAKA
+1796,Cult Choodasandra,CLTCD,ACTIVE,BLACK,Choodasandra,1,1,South2 Blr,1000,False,False,True,,2026-05-31,,3908,SELLER_CFS_KARNATAKA
+1797,"Cult Kasturba Nagar, Mysore Road",CLTKN,ACTIVE,BLACK,Kasturba Nagar,1,1,Central Blr,1000,False,False,True,,2026-06-10,,3916,SELLER_CULT_BLR
+1798,Cult Gym Laggere,GYM3920,ACTIVE,BLACK,Laggere,1,1,Bangalore Gym Cluster,300,False,False,True,,2026-06-30,,3920,SELLER_CFS_KARNATAKA
+1799,Pilates Circle  Banjara Hills (DYSFUNCTIONAL),CLTP,INACTIVE,BLACK,Banjara Hills,3,1,Hyderabad Central,1000,False,False,True,,2026-03-14,,3922,SELLER_CULT_HYD_2
+1800,Cult Gym Indiranagar,GYM3923,INACTIVE,BLACK,Indiranagar,24,1,,,False,False,True,,2026-07-29,,3923,
+1801,"Cult Indiranagar, Umrao tower",CLTIND,ACTIVE,BLACK,Indiranagar,24,1,Lucknow Central,1000,False,False,True,,2026-06-02,,3924,SELLER_CULT_DEL
+1802,Cult Laggere,CLTLGE,ACTIVE,BLACK,Laggere,1,1,North Blr,1000,False,False,True,,2026-06-30,,3925,SELLER_CFS_KARNATAKA
+1803,Pilates Circle Banjara Hills,CLTPB,ACTIVE,LUX,Banjara Hills,3,1,Hyderabad Central,1000,False,False,True,,2026-03-14,,3927,SELLER_CULT_HYD_2
+1804,"Cult Gym Prestige Tech Park, Kadubesanhalli",GYM3937,INACTIVE,BLACK,Prestige Tech Park,1,1,,,False,False,True,,2026-06-29,,3937,
+1805,cult neo gym ramnagar,GYM3971,INACTIVE,BLACK,Gachibowli,3,1,,,True,False,True,,2026-09-09,,3971,
+1806,Cult Gym Tranaka ,GYM3973,INACTIVE,BLACK,Secunderabad,3,1,,,True,False,True,,2026-09-29,,3973,
+1807,Cult Gym Tarnaka,GYM3974,INACTIVE,BLACK,Secunderabad,3,1,,,True,False,True,,2026-09-29,,3974,
+1808,Cult Gym CG Road - Ahmedabad,GYM3979,INACTIVE,BLACK,Ambavadi ,9,1,,,True,False,True,,2026-09-01,,3979,
+1809,Cult Gym Malviya Nagar,GYM3980,INACTIVE,BLACK,Malviya Nagar,2,1,,1000,True,False,True,,2026-12-30,,3980,SELLER_CULT_DEL
+1810,Cult Thane Anand Nagar,GYM3986,INACTIVE,BLACK,Thane West,64,1,,1000,False,False,True,,2026-06-15,,3986,SELLER_CULT_BOM
+1811,Cult Hybrid Thane Anand Nagar,CLTTH,ACTIVE,BLACK,Thane West,64,1,Thane New,1000,False,False,True,,2026-07-05,,3987,SELLER_CULT_FF_MUM
+1812,Cult_Gym_Safilguda,GYM3988,INACTIVE,BLACK,Safilguda,3,1,,,True,False,True,,2026-11-24,,3988,
+1813,"Cult Gym CTO Colony, Kothapet",GYM3990,INACTIVE,BLACK,Kothapet,3,1,,,True,False,True,,2026-11-29,,3990,
+1814,Cult CG Road,CLTAM,ACTIVE,BLACK,Navrangpura,9,1,Ahmedabad,1000,False,False,True,,2026-07-28,,3992,SELLER_CUREFOOD_GUJ
+1815,"Cult CTO Colony, Kothapet",CLTCTO,ACTIVE,BLACK,Kothapet,3,1,Hyderabad East,1000,True,False,True,,2026-08-20,,3993,SELLER_CULT_HYD
+1816,Cult Gym Ambattur,GYM3994,INACTIVE,BLACK,Ambattur,5,1,,1000,False,False,True,,2026-07-30,,3994,SELLER_CULT_TN_2
+1834,Pilates Circle KC Santacruz ,CLTPS,ACTIVE,LUX,Santacruz West,4,1,West Mum,1000,False,False,True,,2026-05-28,,4021,SELLER_CULT_BOM_2
+1835,Cult Ambattur,CLTAC,ACTIVE,BLACK,Ambattur,5,1,Chennai Central,1000,False,False,True,,2026-07-28,,4022,SELLER_CULT_TN_2
+1836,Cult Safilguda,CLTES,ACTIVE,BLACK,Safilguda,3,1,Hyderabad North,1000,False,False,True,,2026-07-09,,4024,SELLER_CULT_HYD
+1869,Cult Gym VIP Road,GYM4075,INACTIVE,BLACK,Vesu,15,1,,,False,False,True,,2026-06-24,,4075,SELLER_CULT_GJ_2
+1874,Cult Zepto B2B,GYM5790,INACTIVE,BLACK,Sarjapur,1,1,South1 Blr,50,False,False,True,,2026-04-01,,4080,SELLER_CFS_KARNATAKA
+1883,Cult Habsiguda(Hybrid),Cult_Gym_COCO_HABSIGUDA,ACTIVE,BLACK,Habsiguda,3,1,Hyderabad Central,1000,False,False,True,,2026-04-29,,4089,SELLER_CULT_HYD_2
+1884,Cult Amity Mohali B2B,GYM5791,INACTIVE,BLACK,Ranjit Avenue,19,1,North Amritsar,50,False,False,True,,2026-04-01,,4090,SELLER_CULT_CFS_PUNJAB
+1885,Cult Harrow Bangalore B2B,GYM5792,ACTIVE,BLACK,Doddaballapur,1,1,,50,False,False,True,,2026-04-01,,4091,SELLER_CFS_KARNATAKA
+1886,Cult VIP Road,CLTVI,INACTIVE,BLACK,Vesu,15,1,New Surat,1000,False,False,True,,2026-07-10,,4093,SELLER_CULT_GJ_2
+1887,Cult Neo Gym Mysore Kuvempunaga,GYM4103,INACTIVE,BLACK,Vijaynagar,11,1,,,True,False,True,,2026-09-29,,4103,
+1888,Cult Gym Vastrapur - Ahmedabad,GYM4104,INACTIVE,BLACK,Vastrapur ,9,1,,,True,False,True,,2026-08-31,,4104,SELLER_CULT_GJ_2
+1889,Cult Vastrapur,CLTVAS,ACTIVE,BLACK,Vastrapur ,9,1,Ahmedabad,1000,True,False,True,,2026-08-19,,4105,SELLER_CULT_GJ_2
+1890,Cult Gym Prahlad Nagar - Ahmedabad,GYM4106,INACTIVE,BLACK,Prahlad Nagar,9,1,,,True,False,True,,2026-09-30,,4106,SELLER_CULT_GJ_2
+1891,Cult Prahlad Nagar,CLTPNA,ACTIVE,BLACK,Prahlad Nagar,9,1,Ahmedabad,1000,True,False,True,,2026-08-19,,4107,SELLER_CULT_GJ_2
+1892,Cult Neo Vikas Nagar - Lucknow,GYM4108,INACTIVE,BLACK,Ashiyana,24,1,,,True,False,True,,2026-11-30,,4108,
+1893,Cult Gym Valasaravakkam,GYM4113,INACTIVE,BLACK,Valasaravakkam,5,1,,1000,True,False,True,,2026-09-29,,4113,SELLER_CULT_TN_2
+1894,Cult Valasaravakkam,CLTVC,ACTIVE,GOLD,Valasaravakkam,5,1,Chennai Gym Cluster,1000,True,False,True,,2026-08-08,,4115,SELLER_CULT_TN_2
+1895,Cult Gym Raja Park - Jaipur,GYM4116,INACTIVE,BLACK,Raja Park,6,1,,,True,False,True,,2026-10-31,,4116,SELLER_CULT_CFS_RAJASTHAN
+1896,Cult Raja Park,CLTRP,ACTIVE,BLACK,Raja Park,6,1,Central Jaipur,1000,True,False,True,,2026-08-05,,4117,SELLER_CULT_CFS_RAJASTHAN
+1897,Cult Gym Vaishali Nagar Jaipur,GYM4118,ACTIVE,BLACK,Vaishali Nagar,6,1,Jaipur Gym Cluster,1000,True,False,True,,2026-08-25,,4118,SELLER_CULT_CFS_RAJASTHAN
+1905,Cult Vaishali Nagar,CLTVN,ACTIVE,BLACK,Vaishali Nagar,6,1,,1000,True,False,True,,2026-08-25,,4119,SELLER_CULT_CFS_RAJASTHAN
+1906,Cult Gym Adajan Surat,GYM4120,INACTIVE,BLACK,Adajan,15,1,,,True,False,True,,2026-10-31,,4120,SELLER_CULT_GJ_2
+1907,Gold's Gym MIT Kothrud,GYM4121,INACTIVE,BLACK,Kothrud,7,1,,,False,False,True,,2026-06-19,,4121,SELLER_CULT_BOM_2
+1908,Cult Gym Adajan_Surat,GYM4124,INACTIVE,BLACK,Adajan,15,1,,,True,False,True,,2026-11-26,,4124,SELLER_CULT_GJ_2
+1909,Cult Adajan,CLTVAV,ACTIVE,BLACK,Adajan,15,1,New Surat,1000,True,False,True,,2026-08-10,,4125,SELLER_CULT_GJ_2
+1910,Cult Malviya Nagar NCR,CLTMLV,ACTIVE,BLACK,Malviya Nagar,2,1,NCR Delhi South,1000,True,False,True,,2026-08-14,,4127,SELLER_CULT_GGN
+1911,Cult Neo Gym Kodathi,GYM4128,INACTIVE,BLACK,kodathi,1,1,,,True,False,True,,2026-10-30,,4128,SELLER_CFS_KARNATAKA
+1912,Cult neo gym Vishwas Nagar,GYM4144,INACTIVE,BLACK,Vishwas Nagar Shahdra,2,1,,,True,False,True,,2026-10-30,,4144,
+1913,"Cult Gym Sector 28, Faridabad",GYM4146,INACTIVE,BLACK,Faridabad,2,1,,,True,False,True,,2026-08-31,,4146,SELLER_CULT_CFS_GGN
+1914,Cult Gym VIP Road,GYM4154,INACTIVE,BLACK,Vesu,15,1,,,False,False,True,,2026-07-09,,4154,SELLER_CULT_GJ_2
+1915,Cult VIP Road Vesu,CLTVR,ACTIVE,BLACK,Vesu,15,1,New Surat,1000,False,False,True,,2026-07-10,,4155,SELLER_CULT_GJ_2
+1916,Cult Neo Gym Mahavir Enclave Part 3,GYM4158,INACTIVE,BLACK,Mahavir Enclave,2,1,,,False,False,True,,2026-07-29,,4158,
+1917,Cult Sector 28 Faridabad,CLTGFB,ACTIVE,BLACK,Faridabad,2,1,Faridabad,1000,True,False,True,,2026-08-10,,4217,SELLER_CULT_CFS_GGN
+1918,Cult neo gym Dilshad Garden,GYM4284,INACTIVE,BLACK,Dilshad Garden,2,1,,,True,False,True,,2026-08-19,,4284,
+1919,Cult Tarnaka ,CLTTR,ACTIVE,BLACK,Secunderabad,3,1,,1000,True,False,True,,2026-08-30,,4302,SELLER_CULT_HYD
+1920,Cult Neo gym Keshav Nagar,GYM4340,INACTIVE,BLACK,Keshav Nagar,7,1,,,True,False,True,,2026-09-04,,4340,SELLER_CULT_BOM_2
+1921,Cult gym Keshav Nagar,GYM4344,INACTIVE,BLACK,Keshav Nagar,7,1,,,True,False,True,,2026-09-04,,4344,SELLER_CULT_BOM_2
+1922,Cult Keshav Nagar,CLTGKN,ACTIVE,BLACK,Keshav Nagar,7,1,,1000,True,False,True,,2026-09-05,,4345,SELLER_CULT_BOM_2
+1923,cure.fit Bangalore Apartment,GYM4347,INACTIVE,BLACK,HSR Layout,1,1,,,False,False,True,,2026-07-04,,4347,SELLER_CFS_KARNATAKA
+1924,ONEPASS_GX_TEST_CENTER,GYM4332,ACTIVE,ONEPASS,HSR Layout,1,1,,,False,False,True,,2026-06-30,,4332,
+1925,Cult Neo Gym Kasavanahalli,GYM4353,INACTIVE,BLACK,Kasavanahalli,1,1,,,True,False,True,,2026-12-29,,4353,
+1926,Cult Madhapur - Hybrid,CLTMP,ACTIVE,BLACK,Madhapur,3,1,Hyderabad West,1000,False,False,True,,2026-07-10,,4356,SELLER_CULT_HYD_2
+1927,Cult Neo Gym Dwarka Puran,GYM4358,INACTIVE,BLACK,Dwarka,2,1,,,True,False,True,,2026-11-14,,4358,SELLER_CULT_CFS_GGN
+1928,Cult Gym Hastinapuram,GYM4394,INACTIVE,BLACK,LB Nagar,3,1,,,True,False,True,,2026-12-15,,4394,
+1929,cult neo gym Hastinapuram,GYM4395,INACTIVE,BLACK,Jubilee Hills,3,1,,,True,False,True,,2026-09-29,,4395,
+1930,Cult Gym Medipally,GYM4396,INACTIVE,BLACK,Nagole,3,1,,,True,False,True,,2026-12-15,,4396,
+1931,Cult Nizampet X Roads,CLTNPR,ACTIVE,BLACK,Nizampet x Roads,3,1,Hyderabad West,1000,True,False,True,,2026-10-05,,4398,SELLER_CULT_HYD_2
+1932,Cult Gym Nizampet X Roads,GYM4397,INACTIVE,BLACK,Nizampet x Roads,3,1,,,True,False,True,,2026-11-17,,4397,SELLER_CULT_HYD_2
+1933,Onepass-test-center(only-gx),12345,ACTIVE,ONEPASS,HSR Layout,1,1,South1 Blr,100,False,False,True,,2026-07-16,,4400,SELLER_CFS_KARNATAKA
+1934,Cult Gym Sector 15,GYM4406,INACTIVE,BLACK,"Sector 15, Gurgaon",2,1,,,True,False,True,,2026-11-14,,4406,
+1935,Cult Neo Gym Kushaiguda,GYM4409,INACTIVE,BLACK,Alwal,3,1,,,True,False,True,,2026-10-19,,4409,SELLER_CULT_HYD_2
+1936,Cult gym M2K Sector 51,GYM4411,INACTIVE,BLACK,"Sector 51, Gurgaon",2,1,,,True,False,True,,2026-09-29,,4411,SELLER_CULT_CFS_GGN
+1937,Cult Gym Kalyan,GYM4419,INACTIVE,BLACK,Kalyan,4,1,,,True,False,True,,2026-10-09,,4419,SELLER_CULT_BOM_2
+1938,Cult Koramangala Swimming - Social Grid,CLTSK,ACTIVE,BLACK,Koramangala,1,1,,1000,True,False,True,,2026-09-07,,4422,SELLER_CFS_KARNATAKA
+1939,Cult Koramangala Swimming - Social Grid,GYM4423,INACTIVE,BLACK,Koramangala,1,1,,,True,False,True,,2026-09-06,,4423,SELLER_CFS_KARNATAKA
+1940,Cult Gym Kalyan,GYM4449,INACTIVE,BLACK,Kalyan,4,1,,,True,False,True,,2026-10-09,,4449,SELLER_CULT_BOM_2

@@ -1,0 +1,16 @@
+# secrets / session
+session.json
+
+# local data (contains member PII)
+*.db
+sales_*.csv
+sales_report_*.csv
+perf_long_*.csv
+perf_pivot_*.csv
+analysis_*.csv
+dashboard_*.html
+
+# python
+__pycache__/
+*.pyc
+.venv/
