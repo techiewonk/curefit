@@ -170,6 +170,7 @@ UNFOLD = {
             ]},
             {"title": "Results", "separator": True, "items": [
                 {"title": "Analytics", "icon": "bar_chart", "link": reverse_lazy("console:analytics")},
+                {"title": "Revenue by gym", "icon": "leaderboard", "link": reverse_lazy("console:revenue")},
                 {"title": "Compare sessions", "icon": "compare_arrows", "link": reverse_lazy("console:compare")},
                 {"title": "Sessions", "icon": "history", "link": _ADMIN("scraper_session")},
                 {"title": "Section results", "icon": "fact_check", "link": _ADMIN("scraper_sectionresult")},
@@ -185,6 +186,7 @@ UNFOLD = {
                 {"title": "Update from Kronos", "icon": "sync", "link": reverse_lazy("console:centers")},
                 {"title": "Centers", "icon": "store", "link": _ADMIN("centers_center")},
                 {"title": "Center lists", "icon": "list_alt", "link": _ADMIN("centers_centerlist")},
+                {"title": "Center groups", "icon": "workspaces", "link": _ADMIN("centers_centergroup")},
                 {"title": "Known empty", "icon": "block", "link": _ADMIN("centers_knownempty")},
                 {"title": "Sync history", "icon": "update", "link": _ADMIN("centers_centersynclog")},
             ]},

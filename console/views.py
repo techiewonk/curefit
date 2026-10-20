@@ -14,7 +14,7 @@ from unfold.views import UnfoldSiteViewMixin
 
 from centers import sync
 from centers.models import Center, CenterList, CenterSyncLog
-from scraper import analysis, auth, jobs, selectors
+from scraper import analysis, auth, jobs, revenue, selectors
 from scraper.models import Job, Session
 
 from .forms import CompareForm, OtpForm, RunForm, SessionPickForm
@@ -195,6 +195,40 @@ class AnalyticsView(ConsolePage, TemplateView):
                                  x["renewal_pct"], x["total_revenue"], x["new_pct"], x["repeat_pct"],
                                  x["active_pct"]] for x in c]})
         return ctx
+
+
+def _revenue_data(request):
+    try:
+        months = min(max(int(request.GET.get("months", 12)), 3), 36)
+    except ValueError:
+        months = 12
+    return revenue.matrix(request.GET.get("group", ""), months), months
+
+
+class RevenueView(ConsolePage, TemplateView):
+    """Gyms x months: revenue, average, ranking, growth and target, filtered by group."""
+
+    template_name = "console/revenue.html"
+    title = "Revenue by gym"
+
+    def get_context_data(self, **kwargs):
+        data, months = _revenue_data(self.request)
+        palette = ["#7c3aed", "#22c55e", "#f97316", "#3b82f6", "#ef4444", "#14b8a6"]
+        chart = json.dumps({"labels": [revenue.label(m) for m in data["months"]], "datasets": [
+            {"label": g, "data": [round(series[m]) if series[m] else None for m in data["months"]],
+             "borderColor": palette[i % len(palette)]} for i, (g, series) in enumerate(data["group_totals"].items())]})
+        rows = [{**r, "cells": [r["values"].get(m) for m in data["months"]]} for r in data["rows"]]
+        return super().get_context_data(
+            data=data, rows=rows, months_back=months, group=self.request.GET.get("group", ""),
+            labels=[revenue.label(m) for m in data["months"]], chart=chart if len(data["months"]) > 1 else None,
+            latest_label=revenue.label(data["latest_month"]) if data["latest_month"] else "", **kwargs)
+
+
+class RevenueCsv(Partial, View):
+    def get(self, request):
+        data, _ = _revenue_data(request)
+        headers, rows = revenue.table(data)
+        return _download(request, "revenue_by_gym", headers, rows)
 
 
 class CompareView(ConsolePage, FormView):

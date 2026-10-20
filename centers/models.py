@@ -22,6 +22,7 @@ class Center(models.Model):
     shutdown_date = models.DateField(null=True, blank=True)
     center_service_id = models.IntegerField(null=True, blank=True)
     seller_id = models.CharField(max_length=64, blank=True)
+    monthly_target = models.FloatField(null=True, blank=True, help_text="Revenue target per month, in rupees.")
     raw = models.JSONField(default=dict, blank=True, help_text="Full Kronos record")
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -34,6 +35,22 @@ class Center(models.Model):
     @property
     def is_active(self):
         return self.state == "ACTIVE"
+
+
+class CenterGroup(models.Model):
+    """A named set of centers for reports (GYMS, Gym Hybrid, ...). Unlike a center list it is not
+    about what to scrape: it groups the results. A center can be in several groups."""
+
+    name = models.CharField(max_length=60, unique=True)
+    centers = models.ManyToManyField(Center, blank=True, related_name="groups")
+    position = models.PositiveSmallIntegerField(default=0, help_text="Order on the report pages (small first).")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["position", "name"]
+
+    def __str__(self):
+        return self.name
 
 
 class CenterList(models.Model):

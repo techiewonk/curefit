@@ -5,13 +5,16 @@ from unfold.decorators import action, display
 
 from config.admin_base import ExportModelAdmin
 
-from .models import Center, CenterList, CenterSyncLog, KnownEmpty
+from .models import Center, CenterGroup, CenterList, CenterSyncLog, KnownEmpty
 
 
 @admin.register(Center)
 class CenterAdmin(ExportModelAdmin):
-    list_display = ("center_id", "name", "code", "state_badge", "center_type", "cluster", "in_lists")
-    list_filter = [("state", AllValuesCheckboxFilter), ("cluster", AllValuesCheckboxFilter),
+    list_display = ("center_id", "name", "code", "state_badge", "in_groups", "monthly_target", "center_type",
+                    "cluster", "in_lists")
+    list_editable = ("monthly_target",)
+    list_filter = [("state", AllValuesCheckboxFilter), ("groups__name", AllValuesCheckboxFilter),
+                   ("monthly_target", RangeNumericFilter), ("cluster", AllValuesCheckboxFilter),
                    ("center_type", AllValuesCheckboxFilter), ("capacity", RangeNumericFilter),
                    ("launch_date", RangeDateFilter), ("shutdown_date", RangeDateFilter),
                    ("upcoming", BooleanRadioFilter), ("is_published", BooleanRadioFilter),
@@ -19,6 +22,30 @@ class CenterAdmin(ExportModelAdmin):
     search_fields = ("name", "code", "center_id", "locality", "cluster")
     list_per_page = 100
     actions = ["add_to_actual", "add_to_test", "remove_from_actual", "remove_from_test"]
+
+    @display(description="Groups")
+    def in_groups(self, obj):
+        return ", ".join(g.name for g in obj.groups.all())
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("groups")
+
+    def get_actions(self, request):
+        """One 'add to' and one 'remove from' action for every group that exists."""
+        actions = super().get_actions(request)
+        for group in CenterGroup.objects.all():
+            for verb, adding in (("Add to", True), ("Remove from", False)):
+                name = f"{'add' if adding else 'remove'}_group_{group.pk}"
+                actions[name] = (self._group_action(group.pk, adding), name, f"{verb} group: {group.name}")
+        return actions
+
+    @staticmethod
+    def _group_action(group_id, adding):
+        def run(modeladmin, request, queryset):
+            group = CenterGroup.objects.get(pk=group_id)
+            (group.centers.add if adding else group.centers.remove)(*queryset)
+            messages.success(request, f"{queryset.count()} center(s) {'added to' if adding else 'removed from'} {group.name}.")
+        return run
 
     @display(description="State", label={"ACTIVE": "success", "INACTIVE": "danger"})
     def state_badge(self, obj):
@@ -93,3 +120,17 @@ class KnownEmptyAdmin(ExportModelAdmin):
                    ("since", RangeDateTimeFilter), ("last_checked", RangeDateTimeFilter)]
     search_fields = ("center__name", "report", "note")
     autocomplete_fields = ("center",)
+
+
+@admin.register(CenterGroup)
+class CenterGroupAdmin(ExportModelAdmin):
+    """Make, rename or delete a group, and add or remove its gyms (type in the box to find a center)."""
+
+    list_display = ("name", "position", "center_count", "updated_at")
+    list_editable = ("position",)
+    search_fields = ("name",)
+    autocomplete_fields = ("centers",)
+
+    @display(description="Centers")
+    def center_count(self, obj):
+        return obj.centers.count()

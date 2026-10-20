@@ -71,6 +71,26 @@ Every admin list has range filters (numbers, dates, date-times), text filters, v
 dropdowns; press *Filter* to apply. **Export** on any list downloads exactly the filtered rows as CSV or XLSX.
 Analytics and Compare have their own *Download CSV / XLSX* links.
 
+### Revenue by gym (management view)
+
+*Results → Revenue by gym* shows gyms × months from the Franchise Performance **Total Revenue** (run it with
+*Split by: month*): the monthly figures, average, rank for the latest full month, overall rank, change vs the
+previous month, monthly target and % achieved, with group totals at the top. The current month is shown but kept
+out of averages and ranks. Download CSV/XLSX in the same layout. When several sessions cover a month, the newest
+one is used, so re-running a month corrects it instead of adding to it.
+
+**Groups** (GYMS, Gym Hybrid, ...) are yours to edit under *Centers → Center groups*: create, rename or delete a
+group, and add or remove gyms (type to search). On the *Centers* list, select centers and use the
+*Add to group: X* / *Remove from group: X* actions. A gym can be in several groups. Set each gym's
+**monthly target** in the same list. To start from a management sheet:
+
+    python manage.py import_groups 20oct.xls            # preview
+    python manage.py import_groups 20oct.xls --apply    # add the gyms to GYMS / Gym Hybrid
+
+**Customers (leads):** *Data → Customers (leads)* has one row per Kronos user id (phone numbers are the
+fallback and may be several per person), with the newest pack, end date and a lead label: active, expiring soon,
+expired recently, lapsed. Thresholds are in Settings. Link old sessions with `python manage.py link_customers`.
+
 ### Automatic runs (schedules)
 
 *Automation → Automatic runs* holds ready-made, switched-off runs: **Daily** (yesterday), **Weekly** (last
