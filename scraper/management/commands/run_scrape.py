@@ -5,15 +5,14 @@ Run a scrape from the command line (no browser, no job queue).
     python manage.py run_scrape --session a1b2c3            # continue an unfinished session
     python manage.py run_scrape --start ... --end ... --only sales,perf --workers 2
 
-Needs a valid Kronos login (the admin's Run page, or `python curefit_login.py`).
+Needs a valid Kronos login (the admin's Run page).
 """
 import datetime as dt
 
 from django.core.management.base import BaseCommand, CommandError
 
-import curefit_login as C
 from centers import services
-from scraper import engine
+from scraper import engine, login
 from scraper.models import Session
 from scraper.reports import REPORTS
 
@@ -31,7 +30,7 @@ class Command(BaseCommand):
         p.add_argument("--refresh", action="store_true", help="re-fetch even what the session has")
 
     def handle(self, *a, **o):
-        if not C.session_ok():
+        if not login.session_ok():
             raise CommandError("Not logged in to Kronos - log in first (admin Run page).")
         only = [x for x in (o["only"] or "").split(",") if x] or None
         bad = [r for r in (only or []) if r not in REPORTS]

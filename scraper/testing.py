@@ -3,7 +3,7 @@ import tempfile
 from unittest import mock
 
 from centers.models import Center
-from scraper import conf, engine, files, kronos
+from scraper import conf, files, kronos, login
 from scraper.reports import REPORTS
 
 
@@ -20,7 +20,7 @@ class FakeKronosMixin:
         for p in (
             mock.patch.object(files, "RUNS_DIR", self.tmp),
             mock.patch.object(conf.RunSettings, "pause", lambda self: None),
-            mock.patch.object(engine.C, "load_session", lambda: (object(), {})),
+            mock.patch.object(login, "load_session", lambda: (object(), {})),
             mock.patch.object(kronos, "get_token",
                               lambda http, rep, cid, s, e, cfg=None: f"{rep['dashboard']}:{cid}"),
             mock.patch.object(kronos, "warm_up", lambda mb, token, cfg=None: None),

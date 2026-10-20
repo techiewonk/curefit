@@ -1,5 +1,6 @@
 @echo off
-REM Development: same app, restarts when a .py file changes (running scrapes are not affected)
+REM Development: the web server restarts when a .py file changes (running scrapes are not affected).
 cd /d "%~dp0"
-python webapp.py --reload
+set CUREFIT_DEBUG=1
+.venv\Scripts\python manage.py serve --reload
 pause

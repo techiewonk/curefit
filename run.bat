@@ -1,5 +1,5 @@
 @echo off
-REM One-command auto flow: login (OTP) -> ask dates -> scrape -> dashboard
+REM Start the admin (web server + job runner) and open it in the browser.
 cd /d "%~dp0"
-python run.py
+.venv\Scripts\python manage.py serve
 pause

@@ -18,10 +18,9 @@ import requests
 from django.db import connection
 from django.utils import timezone
 
-import curefit_login as C
 from centers.models import Center, KnownEmpty
 
-from . import checks, conf, files, kronos
+from . import checks, conf, files, kronos, login
 from .throttle import Gate
 from .models import SectionResult, Session
 from .reports import REPORTS
@@ -69,7 +68,7 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
     session.save(update_fields=["status", "finished_at"])
     files.write_session_json(session)
 
-    http, _ = C.load_session()
+    http, _ = login.load_session()
     stats, done = {}, {}
     for rep in reports:
         done[rep] = set() if refresh else set(SectionResult.objects.filter(

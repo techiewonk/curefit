@@ -8,7 +8,7 @@ import uuid
 
 import requests
 
-import curefit_login as C
+from . import login
 
 log = logging.getLogger("scraper.http")
 
@@ -68,7 +68,7 @@ def embed_headers(token):
         "x-metabase-client": "embedding-iframe",
         "x-metabase-embedded": "true",
         "referer": f"https://metabase.curefit.co/embed/dashboard/{token}",
-        "user-agent": C.UA,
+        "user-agent": login.UA,
     }
 
 
