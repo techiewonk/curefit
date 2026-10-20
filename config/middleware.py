@@ -10,7 +10,16 @@ SAME_ORIGIN = {"same-origin", "none"}  # Sec-Fetch-Site: our own pages, or typed
 def from_another_site(request):
     """True when the browser says the request was started by another site (a link, <img> or form elsewhere).
 
-    Modern browsers send Sec-Fetch-Site; older ones are judged by the Origin or Referer host."""
+    Modern browsers send Sec-Fetch-Site; older ones are judged by the Origin or Referer host.
+
+    One exception: opening a page (a GET that the browser shows as the page, from a link, the new-tab page or a
+    bookmark) is let through even when another site started it. Reading a page changes nothing here: every action
+    that does something is a POST, and Django's CSRF check refuses those from other sites. What stays refused is
+    everything else another site could make the browser send in the background (<img>, scripts, frames, fetch).
+    """
+    if (request.method in ("GET", "HEAD") and request.headers.get("Sec-Fetch-Mode") == "navigate"
+            and request.headers.get("Sec-Fetch-Dest", "document") == "document"):
+        return False
     site = request.headers.get("Sec-Fetch-Site")
     if site is not None and site not in SAME_ORIGIN:
         return True

@@ -216,6 +216,18 @@ class SafetyTests(TransactionTestCase):
         self.assertEqual(c.get(BASE + "run/", HTTP_ORIGIN="null").status_code, 403)
         self.assertEqual(c.get("/admin/scraper/autorun/1/run-now/", HTTP_SEC_FETCH_SITE="cross-site").status_code, 403)
 
+    def test_opening_a_page_from_another_site_is_allowed_but_changes_nothing(self):
+        from scraper.models import Job
+        c = Client()
+        visit = {"HTTP_SEC_FETCH_SITE": "cross-site", "HTTP_SEC_FETCH_MODE": "navigate", "HTTP_SEC_FETCH_DEST": "document"}
+        self.assertEqual(c.get(BASE + "run/", **visit).status_code, 200)  # a link elsewhere, the new-tab page
+        self.assertEqual(c.get(BASE + "run/", HTTP_SEC_FETCH_SITE="cross-site", HTTP_SEC_FETCH_MODE="no-cors",
+                               HTTP_SEC_FETCH_DEST="image").status_code, 403)  # an <img> on another site
+        self.assertEqual(c.get(BASE + "run/", HTTP_SEC_FETCH_SITE="cross-site", HTTP_SEC_FETCH_MODE="navigate",
+                               HTTP_SEC_FETCH_DEST="iframe").status_code, 403)  # framed by another site
+        self.assertEqual(c.post(BASE + "coverage/run/", {"run": "all"}, **visit).status_code, 403)  # never a POST
+        self.assertEqual(Job.objects.count(), 0)
+
     def test_own_pages_and_typed_urls_are_served(self):
         c = Client()
         self.assertEqual(c.get(BASE + "run/", HTTP_SEC_FETCH_SITE="none").status_code, 200)
