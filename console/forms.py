@@ -32,7 +32,8 @@ class RunForm(forms.Form):
     """What to scrape: a period, a center list, some reports, how fast — or a session to continue."""
 
     start = forms.DateField(widget=UnfoldAdminSingleDateWidget)
-    end = forms.DateField(widget=UnfoldAdminSingleDateWidget)
+    end = forms.DateField(widget=UnfoldAdminSingleDateWidget,
+                          help_text="The sales report only holds the last 90 days before today.")
     centers = forms.ModelChoiceField(CenterList.objects.all(), to_field_name="name", empty_label=None,
                                      label="Centers", widget=UnfoldAdminRadioSelectWidget)
     reports = forms.MultipleChoiceField(choices=report_choices, initial=list(REPORTS),

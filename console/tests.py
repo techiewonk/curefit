@@ -104,6 +104,15 @@ class ConsoleViewTests(FakeKronosMixin, TransactionTestCase):
         self.assertContains(r, "4 centers × 2 reports = 8 fetches")
         self.assertNotContains(self.client.get(BASE + "run/estimate/", {"centers": "test"}), "fetches")
 
+    def test_estimate_fragment_warns_about_the_sales_window_for_old_periods(self):
+        old = {"centers": "test", "reports": ["sales", "perf"], "speed": "normal", "end": "2026-01-31"}
+        self.assertContains(self.client.get(BASE + "run/estimate/", old), "only holds the last 90 days")
+        self.assertNotContains(self.client.get(BASE + "run/estimate/", {**old, "reports": ["perf"]}), "only holds")
+
+    def test_favicon_and_static_are_served_without_errors(self):
+        self.assertEqual(self.client.get("/favicon.ico").status_code, 302)
+        self.assertContains(self.client.get(BASE + "run/"), "favicon.svg")
+
     def test_login_fragment(self):
         self.assertContains(self.client.get(BASE + "run/login/"), "logged in")
         self.assertContains(self.client.post(BASE + "run/login/", {"action": "send"}), "OTP sent")

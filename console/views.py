@@ -103,6 +103,7 @@ class EstimatePanel(Partial, TemplateView):
         data = form.cleaned_data
         if all(data.get(f) for f in ("centers", "reports", "speed")):
             ctx["estimate"] = selectors.estimate(data["centers"].centers.count(), data["reports"], form.workers)
+        ctx["window_notice"] = selectors.sales_window_notice(data.get("end"), data.get("reports", []))
         return ctx
 
 

@@ -101,7 +101,6 @@ USE_I18N = False
 USE_TZ = True
 
 STATIC_URL = "static/"
-WHITENOISE_USE_FINDERS = True  # serve app static files directly: no collectstatic step locally
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
@@ -123,6 +122,7 @@ Q_CLUSTER = {
     "catch_up": False,
 }
 
+from django.templatetags.static import static  # noqa: E402
 from django.urls import reverse_lazy  # noqa: E402
 
 _ADMIN = lambda model: reverse_lazy(f"admin:{model}_changelist")  # noqa: E731
@@ -153,6 +153,8 @@ UNFOLD = {
     "SITE_HEADER": "Curefit Admin",
     "SITE_SYMBOL": "monitoring",
     "SHOW_HISTORY": False,
+    "SITE_FAVICONS": [{"rel": "icon", "sizes": "32x32", "type": "image/svg+xml",
+                       "href": lambda request: static("console/favicon.svg")}],
     "DASHBOARD_CALLBACK": "console.dashboard.callback",
     "SIDEBAR": {
         "show_search": True,

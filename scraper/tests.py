@@ -198,3 +198,13 @@ class EngineTests(FakeKronosMixin, TransactionTestCase):
         status = {}
         engine.run_session(self.new(["sales", "gym"]), workers=2, status=status)
         self.assertEqual(status["workers"], 2)
+
+    def test_a_report_empty_for_every_center_never_makes_anyone_known_empty(self):
+        self.mode["empty_all"] = True  # e.g. the sales card on a period older than its 90-day window
+        engine.run_session(self.new(["sales"]))
+        engine.run_session(self.new(["sales"]))
+        self.assertFalse(KnownEmpty.objects.exists())
+        self.mode.clear()
+        s = engine.run_session(self.new(["sales"]))  # a recent period then works for everyone
+        self.assertEqual(s.status, Session.COMPLETE)
+        self.assertNotIn("known empty: not asked", list(SectionResult.objects.filter(session=s).values_list("error", flat=True)))

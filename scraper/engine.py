@@ -169,10 +169,6 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
                             if not SectionResult.objects.filter(session=session, center_id=cid, report=rep_name,
                                                                 status=SectionResult.OK).exists():
                                 record_result(session, cid, rep_name, SectionResult.EMPTY, 0, seconds)
-                            if SectionResult.objects.filter(center_id=cid, report=rep_name,
-                                                            status=SectionResult.EMPTY).exclude(session=session).exists():
-                                KnownEmpty.objects.get_or_create(
-                                    center_id=cid, report=rep_name, defaults={"note": "empty in two sessions"})
                             with lock:
                                 st["empty"].append(cid)
                             note(f"empty  {rep_name} · {cid} {label}")
@@ -246,7 +242,28 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
     return _finish(session, ids, reports, stats, flags, status)
 
 
+def register_known_empty(session):
+    """Mark center/reports as known-empty once they were empty in two sessions.
+
+    Only counts when the report returned data for other centers both times: a report that is
+    empty for *everyone* (the sales card on an old period) says nothing about one center.
+    """
+    def has_data(s, report):
+        return SectionResult.objects.filter(session=s, report=report, status=SectionResult.OK).exists()
+
+    for r in SectionResult.objects.filter(session=session, status=SectionResult.EMPTY).exclude(
+            error__startswith="known empty"):
+        if not has_data(session, r.report):
+            continue
+        earlier = SectionResult.objects.filter(center_id=r.center_id, report=r.report,
+                                               status=SectionResult.EMPTY).exclude(session=session)
+        if any(has_data(e.session, r.report) for e in earlier.select_related("session")):
+            KnownEmpty.objects.get_or_create(center_id=r.center_id, report=r.report,
+                                             defaults={"note": "empty in two sessions"})
+
+
 def _finish(session, ids, reports, stats, flags, status):
+    register_known_empty(session)
     files.export_reports(session)
     coverage = files.write_coverage(session, stats)
     files.merge_session(session)

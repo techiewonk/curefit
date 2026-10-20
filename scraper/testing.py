@@ -42,7 +42,7 @@ class FakeKronosMixin:
             raise kronos.SlowQuery("not completed")
         if self.mode.get("auth"):
             raise kronos.AuthError("HTTP 401")
-        if name == "sales" and cid == 2 and self.mode.get("empty2"):
+        if name == "sales" and (self.mode.get("empty_all") or (cid == 2 and self.mode.get("empty2"))):
             return [], []
         if name == "sales":
             return [[cid, "a", "p", "pk", "d", "Yes", "Yes", 10]] * self.mode.get("sales_rows", cid), []

@@ -16,7 +16,7 @@ run.bat        starts the admin and opens http://localhost:8000
 dev.bat        same, but the web server restarts whenever a .py file changes
 ```
 
-`install.bat` is safe to run again after an update. `run.bat` and `dev.bat` run it for you the first
+`install.bat` is safe to run again after an update. Static files are collected at every start. `run.bat` and `dev.bat` run it for you the first
 time and apply any pending migrations on every start, so after pulling new code you just start them.
 
 By hand: `python manage.py serve` (options: `--reload`, `--port 9000`, `--no-open`, `--no-jobs`).
@@ -64,13 +64,19 @@ sales_report.csv perf_long.csv perf_pivot.csv gym_members.csv analysis.csv cover
 
 - A new run always fetches everything; only a *continued* session skips what it already saved.
 - Empty results are recorded. A center that is empty for a report in two sessions becomes *known
-  empty* and is skipped next time (tick "re-check known-empty" to ask anyway).
+  empty* and is skipped next time (tick "re-check known-empty" to ask anyway). This only counts when
+  the report returned data for other centers in both sessions, so an old period that is empty for
+  everyone never marks anyone.
 - Failed and timed-out sections are retried when you continue the session.
 - After each run, automatic checks flag ACTIVE centers with no sales, big changes since the last run
   of the same period, and results that hit the row cap. They show up on Home.
 
 ## What to expect from Kronos (seen in real runs)
 
+- **The sales report only holds the last 90 days before today** ("Expired Pack User Details - Upto
+  Last 90 Days"). For a period that ends earlier it comes back empty for every center, and asking costs
+  about a minute per center. The Run page warns about this; untick *sales* for old periods.
+  (Checked live: a period ending 97 days ago returned 0 rows, one ending 66 days ago returned 32.)
 - The *Sales* and *Total Revenue* cards answer in seconds; the other perf-dashboard cards often take
   **minutes per center**, and an empty answer can take 5–8 minutes. Plan long runs accordingly: the
   estimate on the Run page uses the timings of your earlier runs.

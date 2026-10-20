@@ -3,3 +3,4 @@
   roughly {{ estimate.low_text }} to {{ estimate.high_text }} with {{ estimate.workers }} at a time
   {% if estimate.assumed %}<span class="block text-xs">{{ estimate.assumed|length }} report(s) have no timings yet and are assumed at 40 s each.</span>{% endif %}
 {% endif %}
+{% if window_notice %}<span class="block font-medium mt-1 text-orange-600">{{ window_notice }}</span>{% endif %}

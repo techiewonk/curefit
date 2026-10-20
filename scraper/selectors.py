@@ -37,6 +37,19 @@ def _duration(seconds):
     return timesince(now - timedelta(seconds=max(seconds, 60)), now) if seconds >= 60 else "under a minute"
 
 
+SALES_WINDOW_DAYS = 90  # the "Expired Pack User Details" card only holds expiries of the last 90 days
+
+
+def sales_window_notice(end, reports):
+    """Warning text when the sales report can only come back empty for this period, else None."""
+    since = timezone.localdate() - timedelta(days=SALES_WINDOW_DAYS)
+    if "sales" in reports and end and end < since:
+        return (f"The sales report only holds the last {SALES_WINDOW_DAYS} days (since {since:%d %b %Y}): "
+                "for a period that ends earlier it comes back empty, and asking costs about a minute per center. "
+                "Untick it, or pick a more recent period.")
+    return None
+
+
 # ------------------------------------------------------------------ monitor
 CELL = {  # state -> (Tailwind colour from Unfold's stylesheet, label)
     SectionResult.OK: ("bg-green-500", "ok"),

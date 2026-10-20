@@ -94,3 +94,11 @@ class SelectorTests(FakeKronosMixin, TransactionTestCase):
         self.assertEqual(job.percent, 50)
         self.assertAlmostEqual(job.eta_seconds, 100, delta=2)
         self.assertEqual(list(Job.objects.active()), [job])
+
+    def test_sales_window_notice_only_for_old_periods_that_include_sales(self):
+        today = timezone.localdate()
+        old, recent = today - timedelta(days=120), today - timedelta(days=10)
+        self.assertIn("last 90 days", selectors.sales_window_notice(old, ["sales", "perf"]))
+        self.assertIsNone(selectors.sales_window_notice(old, ["perf", "gym"]))
+        self.assertIsNone(selectors.sales_window_notice(recent, ["sales"]))
+        self.assertIsNone(selectors.sales_window_notice(None, ["sales"]))
