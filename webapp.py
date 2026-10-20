@@ -92,6 +92,11 @@ class RunBody(BaseModel):
     list_name: str = Field("actual", alias="list")
     only: Optional[List[str]] = None
     workers: int = 1
+    retry_empty: bool = False
+
+
+class PauseBody(BaseModel):
+    on: bool = True
 
 
 class SessionBody(BaseModel):
@@ -114,6 +119,21 @@ def index():
 @app.get("/api/health")
 def health():
     return {"ok": True, "pid": os.getpid(), "started": STARTED}
+
+
+@app.get("/api/home")
+def home():
+    return A.home_payload()
+
+
+@app.get("/api/estimate")
+def estimate(list: str = "actual", only: str = "", workers: int = 1):
+    return A.estimate_payload(list, [x for x in only.split(",") if x] or None, workers)
+
+
+@app.get("/api/monitor")
+def monitor(session: str):
+    return A.monitor_payload(session)
 
 
 @app.get("/api/config")
@@ -187,6 +207,11 @@ def login_verify(body: OtpBody):
 @app.post("/api/run")
 def run(body: RunBody):
     return A.start_job(body.model_dump(by_alias=True))
+
+
+@app.post("/api/pause")
+def pause(body: PauseBody):
+    return A.pause_job(body.on)
 
 
 @app.post("/api/stop")

@@ -383,6 +383,13 @@ def start_job(body):
     only = body.get("only") or None
     if only is not None and (not isinstance(only, list) or not all(o in S.REPORTS for o in only)):
         raise ApiError("Unknown report in selection")
+    if body.get("retry_empty") and session is not None:
+        # empties are recorded as done; clearing them makes the continue fetch them again
+        conn = db()
+        conn.execute("DELETE FROM scrape_log WHERE session_id=? AND row_count=0",
+                     (session["session_id"],))
+        conn.commit()
+        conn.close()
     try:
         workers = int(body.get("workers") or 1)
     except (TypeError, ValueError):
@@ -402,6 +409,19 @@ def start_job(body):
     return {"ok": True, "job": jid}
 
 
+def pause_job(on):
+    st = job_payload()
+    if st["state"] not in ("running", "starting"):
+        raise ApiError("No scrape is running", 409)
+    path = os.path.join(jobs_dir(), f"{st['id']}.pause")
+    if on:
+        with open(path, "w") as f:
+            f.write("pause")
+    elif os.path.exists(path):
+        os.remove(path)
+    return {"ok": True, "paused": bool(on)}
+
+
 def stop_job():
     st = job_payload()
     if st["state"] not in ("running", "starting"):
@@ -409,3 +429,119 @@ def stop_job():
     with open(os.path.join(jobs_dir(), f"{st['id']}.stop"), "w") as f:
         f.write("stop")
     return {"ok": True, "state": "stopping"}
+
+
+# ------------------------------ estimate / monitor / home ------------------------------
+DEFAULT_SECONDS = 40.0
+
+
+def _timings():
+    """Seconds per saved center/report, measured from earlier sessions (gap between saves)."""
+    import statistics
+    conn = db()
+    per = {}
+    try:
+        sessions = [r[0] for r in conn.execute("SELECT DISTINCT session_id FROM scrape_log")]
+        for sid in sessions:
+            rows = conn.execute("SELECT scraped_at, report FROM scrape_log WHERE session_id=? "
+                                "ORDER BY scraped_at", (sid,)).fetchall()
+            for (a, _), (b, rep) in zip(rows, rows[1:]):
+                gap = (dt.datetime.fromisoformat(b) - dt.datetime.fromisoformat(a)).total_seconds()
+                if 0 < gap < 600:
+                    per.setdefault(rep, []).append(gap)
+    except sqlite3.OperationalError:
+        pass
+    conn.close()
+    return {rep: {"median": statistics.median(v), "mean": statistics.mean(v), "n": len(v)}
+            for rep, v in per.items() if len(v) >= 3}
+
+
+def estimate_payload(list_name, only, workers):
+    if list_name not in CS.LISTS:
+        raise ApiError("Unknown center list")
+    reports = only or list(S.REPORTS)
+    if not all(r in S.REPORTS for r in reports):
+        raise ApiError("Unknown report in selection")
+    n = len(CS.read_list(list_name))
+    workers = max(1, min(int(workers or 1), MAX_WORKERS))
+    t = _timings()
+    low = sum(t.get(r, {}).get("median", DEFAULT_SECONDS) for r in reports) * n / workers
+    high = sum(t.get(r, {}).get("mean", DEFAULT_SECONDS * 1.4) for r in reports) * n / workers
+    return {"centers": n, "reports": len(reports), "pairs": n * len(reports), "workers": workers,
+            "seconds_low": round(low), "seconds_high": round(high),
+            "measured": sorted(r for r in reports if r in t), "assumed": sorted(r for r in reports if r not in t),
+            "per_report": {r: round(t[r]["median"]) for r in reports if r in t}}
+
+
+def monitor_payload(sid):
+    """Centers x reports grid for one session: o ok, e empty, f failed, r running, . waiting."""
+    info = S.find_session(sid)
+    if not info:
+        raise ApiError(f"Unknown session '{sid}'", 404)
+    reports = info.get("reports", [])
+    ids = info.get("centers", [])
+    meta = {c["id"]: c["name"] for c in CS.load_centers()}
+    conn = db()
+    done = {(r[0], r[1]): r[2] for r in conn.execute(
+        "SELECT center_id, report, row_count FROM scrape_log WHERE session_id=?", (sid,))}
+    conn.close()
+    job = job_payload()
+    live = job.get("session") == sid and job.get("state") in ("running", "starting")
+    cells, active = (job.get("cells", {}), set(job.get("active", []))) if live else ({}, set())
+    grid, rows = [], []
+    for cid in ids:
+        line, nums = [], []
+        for rep in reports:
+            key = f"{cid}|{rep}"
+            n = done.get((cid, rep))
+            if n is not None:
+                line.append("o" if n > 0 else "e"); nums.append(n)
+            elif key in active:
+                line.append("r"); nums.append(-1)
+            elif cells.get(key) == "failed":
+                line.append("f"); nums.append(-1)
+            else:
+                line.append("."); nums.append(-1)
+        grid.append("".join(line)); rows.append(nums)
+    return {"session": sid, "status": info.get("status"), "start": info["start"], "end": info["end"],
+            "reports": reports, "centers": [[c, meta.get(c, "")] for c in ids], "grid": grid,
+            "rows": rows, "live": live}
+
+
+def home_payload():
+    sessions = sessions_payload()
+    alerts = []
+    job = job_payload()
+    if job["state"] == "error":
+        alerts.append({"level": "bad", "text": f"Last scrape stopped: {job.get('error')}", "go": "run"})
+    if not logged_in():
+        alerts.append({"level": "warn", "text": "Not logged in — a scrape needs a fresh OTP.", "go": "run"})
+    unfinished = [s for s in sessions if s["status"] == "incomplete"]
+    if unfinished:
+        u = unfinished[0]
+        alerts.append({"level": "warn", "go": "run", "session": u["session"],
+                       "text": f"{len(unfinished)} unfinished session(s); latest {u['session']} "
+                               f"({u['start']} → {u['end']}) is missing {u['missing_count']} center/section pairs."})
+    done = [s for s in sessions if s["coverage"]]
+    if done:
+        c = done[0]["coverage"]
+        failed = sum(x["failed"] for x in c)
+        empty = sum(x["empty"] for x in c)
+        capped = sum(x["possibly_truncated"] for x in c)
+        skipped = [x["report"] for x in c if x["skipped_after_failures"]]
+        if failed:
+            alerts.append({"level": "bad", "go": "sessions", "text": f"Session {done[0]['session']}: {failed} failed center/section pairs."})
+        if skipped:
+            alerts.append({"level": "bad", "go": "sessions", "text": f"Reports skipped after repeated failures: {', '.join(skipped)}."})
+        if capped:
+            alerts.append({"level": "warn", "go": "sessions", "text": f"{capped} result(s) hit the row cap and may be incomplete."})
+        if empty:
+            alerts.append({"level": "info", "go": "sessions", "text": f"Session {done[0]['session']}: {empty} empty center/section pairs."})
+    synced = CS.synced_at()
+    if synced and (dt.datetime.now() - dt.datetime.fromisoformat(synced)).days > 30:
+        alerts.append({"level": "info", "go": "centers", "text": f"Center list last updated {synced[:10]} — consider updating it."})
+    return {"logged_in": logged_in(), "email": C.EMAIL, "job": job, "alerts": alerts,
+            "sessions": [{k: s[k] for k in ("session", "start", "end", "status", "created_at", "centers", "missing_count")}
+                         for s in sessions[:6]],
+            "lists": {k: len(CS.read_list(k)) for k in CS.LISTS},
+            "active_centers": sum(1 for c in CS.load_centers() if c["state"] == "ACTIVE")}

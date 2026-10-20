@@ -884,7 +884,8 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
     total = sum(len([c for c in ids if c not in done[r]]) for r in reports)
     if status is not None:
         status.update(state="running", session=sid, folder=folder, done=0, total=total,
-                      desc="", error=None, stop=False, log=[])
+                      desc="", error=None, stop=False, pause=False, log=[], cells={},
+                      active=[], started_at=time.time(), workers=workers)
     fail_streak = {r: 0 for r in reports}
     lock = threading.Lock()  # guards stats/flags/progress when several centers run at once
     flags = {"auth_failures": 0, "aborted": False, "stopped": False}
@@ -900,6 +901,20 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
             progress.advance(task)
             if status is not None:
                 status["done"] += 1
+
+    def mark(cid, rep_name, state):
+        """Live cell state for the admin's monitor: failed, or in-flight (active)."""
+        if status is None:
+            return
+        with lock:
+            key = f"{cid}|{rep_name}"
+            if state == "active":
+                status["active"].append(key)
+            else:
+                if key in status["active"]:
+                    status["active"].remove(key)
+                if state == "failed":
+                    status["cells"][key] = "failed"
 
     def process_center(cid):
         """Every pending section of one center, on this thread's own connection + session."""
@@ -917,6 +932,12 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                         with lock:
                             flags["aborted"] = flags["stopped"] = True
                         return
+                    while status is not None and status.get("pause") and not status.get("stop"):
+                        time.sleep(1)  # paused from the admin: hold here until resumed or stopped
+                    if status is not None and status.get("stop"):
+                        with lock:
+                            flags["aborted"] = flags["stopped"] = True
+                        return
                     st = stats[rep_name]
                     if st["skipped"]:
                         advance()
@@ -927,6 +948,7 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                                                       f"[dim]{name or code}[/dim]")
                     if status is not None:
                         status["desc"] = f"{rep_name} · center {cid} {name or code}"
+                    mark(cid, rep_name, "active")
                     try:
                         rows, cols = [], []
                         for attempt in (1, 2):  # an empty result gets one retry, fresh token
@@ -983,6 +1005,7 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                                 flags["aborted"] = True
                         log.error("auth_failed", report=rep_name, center_id=cid, error=str(e))
                         note(f"AUTH   {rep_name} · {cid} {e}")
+                        mark(cid, rep_name, "failed")
                     except Exception as e:
                         tconn.rollback()
                         token = None
@@ -994,9 +1017,11 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                                 st["skipped"] = True
                         log.error("center_failed", report=rep_name, center_id=cid, error=str(e))
                         note(f"FAILED {rep_name} · {cid} {name or code} · {e}")
+                        mark(cid, rep_name, "failed")
                         if skip:
                             log.error("report_skipped", report=rep_name,
                                       reason=f"{REPORT_FAIL_LIMIT} failures in a row, none succeeded")
+                    mark(cid, rep_name, "done")
                     advance()
                     if flags["aborted"]:
                         return

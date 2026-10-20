@@ -22,6 +22,7 @@ def run(jid):
         raise SystemExit(f"No job spec for {jid}")
     status_path = os.path.join(jobs, f"{jid}.json")
     stop_path = os.path.join(jobs, f"{jid}.stop")
+    pause_path = os.path.join(jobs, f"{jid}.pause")
     status = {"id": jid, "state": "running", "pid": os.getpid(), "session": None, "folder": None,
               "done": 0, "total": 0, "desc": "starting…", "log": [], "stop": False, "error": None}
     finished = threading.Event()
@@ -29,6 +30,8 @@ def run(jid):
     def publish():
         snap = dict(status)
         snap["log"] = list(status["log"])[-200:]
+        snap["cells"] = dict(status.get("cells", {}))
+        snap["active"] = list(status.get("active", []))
         snap["updated_at"] = time.time()
         A.write_json_atomic(status_path, snap)
 
@@ -36,6 +39,7 @@ def run(jid):
         while not finished.wait(1.0):
             if os.path.exists(stop_path):
                 status["stop"] = True
+            status["pause"] = os.path.exists(pause_path)
             try:
                 publish()
             except OSError:
