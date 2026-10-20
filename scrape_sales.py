@@ -407,14 +407,16 @@ def get_rows(mb, rep, token, start, end):
         while True:
             r = mb.get(url, headers=hdr, timeout=TIMEOUT)
             r.raise_for_status()
-            if r.status_code != 202:  # 202 = still computing; body is not a result yet
+            try:  # a 200 *or* 202 body can already be the finished result
                 j = r.json()
-                status = j.get("status")
-                if status == "completed":
-                    data = j["data"]
-                    return data["rows"], [c.get("name") for c in data.get("cols", [])]
-                if status == "failed":
-                    raise RuntimeError(f"metabase query failed: {j.get('error')}")
+            except ValueError:
+                j = {}
+            status = j.get("status") if isinstance(j, dict) else None
+            if status == "completed":
+                data = j["data"]
+                return data["rows"], [c.get("name") for c in data.get("cols", [])]
+            if status == "failed":
+                raise RuntimeError(f"metabase query failed: {j.get('error')}")
             if time.time() > deadline:
                 raise RuntimeError(f"metabase query not completed after {POLL_SECONDS}s "
                                    f"(status={status!r})")
@@ -784,7 +786,7 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
     for rep_name in reports:
         done[rep_name] = set() if refresh else {r[0] for r in conn.execute(
             "SELECT center_id FROM scrape_log WHERE session_id=? AND report=? AND start_date=? "
-            "AND end_date=? AND row_count>0", (sid, rep_name, start, end))}
+            "AND end_date=?", (sid, rep_name, start, end))}
         stats[rep_name] = {"requested": len(ids), "already_done": len(done[rep_name] & set(ids)),
                            "ok": 0, "empty": [], "failed": [], "capped": [], "skipped": False}
 
@@ -828,8 +830,12 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                             token = None
                             polite_sleep()
                         if not rows:
-                            # not logged as done: an empty result may be a transient miss
+                            # empty after a retry on a fresh token: recorded as done (0 rows)
+                            # for this session only; a new session fetches it again
                             st["empty"].append(cid)
+                            conn.execute("INSERT OR REPLACE INTO scrape_log VALUES (?,?,?,?,?,?,?)",
+                                         (rep_name, cid, start, end, 0, now, sid))
+                            conn.commit()
                             log.warning("center_empty", report=rep_name, center_id=cid,
                                         center=name or code)
                         else:
@@ -895,7 +901,7 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
     # complete = every requested center/section is saved in this session
     saved = {r: {x[0] for x in conn.execute(
         "SELECT center_id FROM scrape_log WHERE session_id=? AND report=? AND start_date=? "
-        "AND end_date=? AND row_count>0", (sid, r, start, end))} for r in reports}
+        "AND end_date=?", (sid, r, start, end))} for r in reports}
     missing = {r: [c for c in ids if c not in saved[r]] for r in reports}
     session["status"] = "complete" if not any(missing.values()) else "incomplete"
     session["finished_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")

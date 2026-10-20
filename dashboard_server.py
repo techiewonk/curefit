@@ -296,6 +296,11 @@ def main():
 
     DB_PATH = args.db if os.path.isabs(args.db) else os.path.join(HERE, args.db)
 
+    # databases from before sessions need the session columns (rows become 'legacy')
+    conn = sqlite3.connect(DB_PATH)
+    S.init_db(conn)
+    conn.close()
+
     url = f"http://localhost:{args.port}/"
     srv = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     print(f"Live dashboard: {url}   (DB: {DB_PATH})")
