@@ -182,18 +182,36 @@ def get_token(session, rep, center_id, start, end):
     return _with_retry(do, "iframeUrl")
 
 
+def _embed_headers(token):
+    return {
+        "accept": "application/json",
+        "x-metabase-client": "embedding-iframe",
+        "x-metabase-embedded": "true",
+        "referer": f"https://metabase.curefit.co/embed/dashboard/{token}",
+        "user-agent": C.UA,
+    }
+
+
+def warm_up(mb, token):
+    """Mimic the browser's dashboard load (session properties + dashboard definition).
+
+    Best effort: a failure here is logged but never blocks the data call.
+    """
+    hdr = _embed_headers(token)
+    for url in ("https://metabase.curefit.co/api/session/properties",
+                f"https://metabase.curefit.co/api/embed/dashboard/{token}"
+                f"?dashboard_load_id={uuid.uuid4()}"):
+        try:
+            mb.get(url, headers=hdr, timeout=TIMEOUT).raise_for_status()
+        except Exception as e:
+            log.warning("warmup_failed", url=url.split("?")[0], error=str(e))
+
+
 def get_rows(mb, rep, token, start, end, tries=6):
     params = urllib.parse.quote(json.dumps(rep["data_params"](start, end)))
     url = (f"https://metabase.curefit.co/api/embed/dashboard/{token}"
            f"/dashcard/{rep['dashcard']}/card/{rep['card']}?parameters={params}")
-    hdr = {
-        "accept": "application/json",
-        "x-metabase-client": "embedding-iframe",
-        "x-metabase-embedded": "true",
-        "x-metabase-guest-embed": "true",
-        "referer": f"https://metabase.curefit.co/embed/dashboard/{token}",
-        "user-agent": C.UA,
-    }
+    hdr = {**_embed_headers(token), "x-metabase-guest-embed": "true"}
 
     def do():
         for _ in range(tries):
@@ -512,8 +530,16 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                 now = time.strftime("%Y-%m-%dT%H:%M:%S")
                 progress.update(task, description=f"center {cid} [dim]{name or code}[/dim]")
                 try:
-                    token = get_token(session, rep, cid, start, end)
-                    rows = get_rows(mb, rep, token, start, end)
+                    rows = []
+                    for attempt in (1, 2):  # an empty 200 gets one retry with a fresh token
+                        token = get_token(session, rep, cid, start, end)
+                        warm_up(mb, token)
+                        rows = get_rows(mb, rep, token, start, end)
+                        if rows:
+                            break
+                        log.info("empty_result_retry", report=rep_name, center_id=cid,
+                                 attempt=attempt)
+                        polite_sleep()
                     if not rows:
                         # don't mark as done: an empty result may be a transient miss
                         conn.rollback()
