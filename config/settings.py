@@ -60,7 +60,7 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],  # project templates win over the apps' (Home dashboard)
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -119,11 +119,53 @@ Q_CLUSTER = {
     "catch_up": False,
 }
 
+from django.urls import reverse_lazy  # noqa: E402
+
+_ADMIN = lambda model: reverse_lazy(f"admin:{model}_changelist")  # noqa: E731
+
 UNFOLD = {
     "SITE_TITLE": "Curefit Admin",
     "SITE_HEADER": "Curefit Admin",
     "SITE_SYMBOL": "monitoring",
     "SHOW_HISTORY": False,
+    "DASHBOARD_CALLBACK": "console.dashboard.callback",
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {"title": "Operate", "separator": False, "items": [
+                {"title": "Home", "icon": "home", "link": reverse_lazy("admin:index")},
+                {"title": "Run a scrape", "icon": "play_arrow", "link": reverse_lazy("console:run")},
+                {"title": "Live monitor", "icon": "grid_view", "link": reverse_lazy("console:monitor")},
+            ]},
+            {"title": "Results", "separator": True, "items": [
+                {"title": "Analytics", "icon": "bar_chart", "link": reverse_lazy("console:analytics")},
+                {"title": "Compare sessions", "icon": "compare_arrows", "link": reverse_lazy("console:compare")},
+                {"title": "Sessions", "icon": "history", "link": _ADMIN("scraper_session")},
+                {"title": "Section results", "icon": "fact_check", "link": _ADMIN("scraper_sectionresult")},
+            ]},
+            {"title": "Data", "separator": True, "items": [
+                {"title": "Sales records", "icon": "receipt_long", "link": _ADMIN("scraper_salesrecord")},
+                {"title": "Perf metrics", "icon": "query_stats", "link": _ADMIN("scraper_perfmetric")},
+                {"title": "Gym members", "icon": "groups", "link": _ADMIN("scraper_gymmember")},
+                {"title": "Other cards", "icon": "dataset", "link": _ADMIN("scraper_cardrow")},
+            ]},
+            {"title": "Centers", "separator": True, "items": [
+                {"title": "Update from Kronos", "icon": "sync", "link": reverse_lazy("console:centers")},
+                {"title": "Centers", "icon": "store", "link": _ADMIN("centers_center")},
+                {"title": "Center lists", "icon": "list_alt", "link": _ADMIN("centers_centerlist")},
+                {"title": "Known empty", "icon": "block", "link": _ADMIN("centers_knownempty")},
+                {"title": "Sync history", "icon": "update", "link": _ADMIN("centers_centersynclog")},
+            ]},
+            {"title": "System", "separator": True, "items": [
+                {"title": "Jobs", "icon": "work", "link": _ADMIN("scraper_job")},
+                {"title": "Queued tasks", "icon": "queue", "link": _ADMIN("django_q_ormq")},
+                {"title": "Failed tasks", "icon": "error", "link": _ADMIN("django_q_failure")},
+                {"title": "Schedules", "icon": "schedule", "link": _ADMIN("django_q_schedule")},
+                {"title": "Settings", "icon": "settings", "link": _ADMIN("scraper_appsetting")},
+            ]},
+        ],
+    },
 }
 
 LOGGING = {

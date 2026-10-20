@@ -1,0 +1,83 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}Home | {{ site_title|default:_('Django site admin') }}{% endblock %}
+{% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'console/app.css' %}">
+<div class="cc">
+
+  <div class="row" style="justify-content:space-between">
+    <div class="row" style="margin:0">
+      <a class="lnk" href="{% url 'console:run' %}"><button class="primary">Run a scrape</button></a>
+      <a class="lnk" href="{% url 'console:monitor' %}"><button>Live monitor</button></a>
+      <a class="lnk" href="{% url 'console:centers' %}"><button>Update centers</button></a>
+      <a class="lnk" href="{% url 'console:analytics' %}"><button>Analytics</button></a>
+    </div>
+    <span>
+      <span class="badge {% if home.logged_in %}ok{% else %}warn{% endif %}">Kronos: {% if home.logged_in %}logged in{% else %}not logged in{% endif %}</span>
+      <span class="badge muted">{{ home.email }}</span>
+    </span>
+  </div>
+
+  {% if home.job.state == "running" or home.job.state == "queued" %}
+  <div class="panel">
+    <h2>Running now</h2>
+    <div>Session <b>{{ home.job.session }}</b> · {{ home.job.done }} / {{ home.job.total }}
+      <span class="muted">· {{ home.job.desc }}</span></div>
+    <div class="bar"><div style="width:{% widthratio home.job.done home.job.total 100 %}%"></div></div>
+    <a class="lnk" href="{% url 'console:monitor' %}">Open the live monitor →</a>
+  </div>
+  {% endif %}
+
+  <div class="panel">
+    <h2>Needs attention</h2>
+    {% for a in home.alerts %}
+      <div class="alert {{ a.level }}"><div>{{ a.text }}
+        {% if a.go %}<a class="lnk" href="{% url a.go %}">Open →</a>{% endif %}</div></div>
+    {% empty %}
+      <div class="muted">Nothing needs attention.</div>
+    {% endfor %}
+  </div>
+
+  {% if home.kpis %}
+  <h2>Latest session {{ home.latest.session_id }} · {{ home.latest.start_date }} → {{ home.latest.end_date }}</h2>
+  <div class="cards">
+    <div class="card"><div class="lbl">Centers</div><div class="val">{{ home.kpis.centers }}</div></div>
+    <div class="card"><div class="lbl">Sales count</div><div class="val">{{ home.kpis.sales_count }}</div></div>
+    <div class="card"><div class="lbl">Sales revenue</div><div class="val">₹{{ home.kpis.sales_revenue|floatformat:0 }}</div></div>
+    <div class="card"><div class="lbl">Total revenue</div><div class="val">₹{{ home.kpis.total_revenue|floatformat:0 }}</div></div>
+    <div class="card"><div class="lbl">Active rate</div><div class="val">{{ home.kpis.active_rate }}%</div></div>
+  </div>
+  {% endif %}
+
+  <div class="grid2">
+    <div class="panel">
+      <h2>Recent sessions</h2>
+      <table>
+        <thead><tr><th>Session</th><th>Period</th><th class="l">Status</th><th>Centers</th><th>Missing</th></tr></thead>
+        <tbody>
+        {% for s in home.sessions %}
+          <tr><td>{{ s.session_id }}</td><td>{{ s.start_date }} → {{ s.end_date }}</td>
+              <td class="l"><span class="badge {{ s.status }}">{{ s.status }}</span></td>
+              <td>{{ s.center_ids|length }}</td><td>{% if s.missing_count %}{{ s.missing_count }}{% endif %}</td></tr>
+        {% empty %}<tr><td colspan="5" class="muted l">No sessions yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <div style="margin-top:10px"><a class="lnk" href="{% url 'admin:scraper_session_changelist' %}">All sessions →</a></div>
+    </div>
+    <div class="panel">
+      <h2>Centers</h2>
+      <div class="cards" style="margin:0">
+        <div class="card"><div class="lbl">Active centers</div><div class="val">{{ home.active_centers }}</div></div>
+        {% for name, n in home.lists.items %}
+        <div class="card"><div class="lbl">{{ name }} list</div><div class="val">{{ n }}</div></div>
+        {% endfor %}
+      </div>
+      <div style="margin-top:12px"><a class="lnk" href="{% url 'console:centers' %}">Update or edit the lists →</a></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

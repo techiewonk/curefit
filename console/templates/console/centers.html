@@ -1,0 +1,78 @@
+{% extends "console/page.html" %}
+
+{% block page %}
+<div class="panel">
+  <h2>Center list from Kronos</h2>
+  <div class="row"><button id="syncBtn" class="primary">Update from Kronos</button>
+    <span class="muted" id="syncInfo"></span></div>
+  <div id="syncDiff" class="muted"></div>
+  <div class="muted" style="margin-top:6px">Needs a valid login (Run page). Past data keeps referring to centers that disappear from Kronos.</div>
+</div>
+
+<div class="panel">
+  <h2>Pick centers for a list</h2>
+  <div class="row" id="whichRow"></div>
+  <div class="row">
+    <input id="cSearch" type="search" placeholder="Search name / id / code" size="22">
+    <select id="cState"><option value="">Any state</option><option>ACTIVE</option><option>INACTIVE</option></select>
+    <select id="cCluster"></select><select id="cType"></select>
+    <button id="selFiltered">Select filtered</button><button id="deselFiltered">Deselect filtered</button>
+    <button id="presetActive">All ACTIVE</button><button id="presetClear">Clear</button>
+    <span style="flex:1"></span><span id="selCount" class="muted"></span>
+    <button id="saveList" class="primary">Save list</button>
+  </div>
+  <div class="muted" id="cShown" style="margin-bottom:8px"></div>
+  <div style="overflow:auto;max-height:560px"><table id="cTbl"></table></div>
+</div>
+
+<script>
+const CEN = {centers: [], map: {}, lists: {}, sel: new Set(), which: 'actual', filtered: []};
+async function init() {
+  const d = await api('centers/'); CEN.centers = d.centers; CEN.lists = d.lists;
+  CEN.map = Object.fromEntries(d.centers.map(c => [c.id, c]));
+  $('syncInfo').textContent = d.synced_at ? `${d.centers.length} centers known · last updated ${when(d.synced_at)}` : `${d.centers.length} centers known · never updated from Kronos`;
+  const opts = (id, label, vals) => $(id).innerHTML = `<option value="">${label}</option>` + [...new Set(vals.filter(Boolean))].sort().map(v => `<option>${esc(v)}</option>`).join('');
+  opts('cCluster', 'Any cluster', d.centers.map(c => c.cluster)); opts('cType', 'Any type', d.centers.map(c => c.type));
+  $('whichRow').innerHTML = Object.keys(d.lists).map(n => `<label><input type="radio" name="which" value="${esc(n)}" ${n === CEN.which ? 'checked' : ''}> ${esc(n)} list</label>`).join('');
+  document.querySelectorAll('input[name=which]').forEach(r => r.addEventListener('change', () => pick(r.value)));
+  pick(CEN.which);
+}
+function pick(w) { CEN.which = w; CEN.sel = new Set(CEN.lists[w] || []); render(); }
+function filtered() {
+  const q = $('cSearch').value.trim().toLowerCase(), st = $('cState').value, cl = $('cCluster').value, ty = $('cType').value;
+  return CEN.centers.filter(c => (!st || c.state === st) && (!cl || c.cluster === cl) && (!ty || c.type === ty) &&
+    (!q || (c.name + ' ' + c.id + ' ' + (c.code || '')).toLowerCase().includes(q)));
+}
+function render() {
+  CEN.filtered = filtered(); const shown = CEN.filtered.slice(0, 400);
+  $('cShown').textContent = `${CEN.filtered.length} match${CEN.filtered.length > 400 ? ' (showing the first 400 — narrow the filters)' : ''}`;
+  const inactive = [...CEN.sel].filter(id => CEN.map[id] && CEN.map[id].state !== 'ACTIVE').length;
+  $('selCount').textContent = `${CEN.sel.size} selected` + (inactive ? ` · ${inactive} not ACTIVE` : '');
+  $('cTbl').innerHTML = '<thead><tr><th></th><th>ID</th><th class="l">Name</th><th>Code</th><th>State</th><th>Type</th><th class="l">Cluster</th></tr></thead><tbody>' +
+    shown.map(c => `<tr><td><input type="checkbox" data-id="${esc(c.id)}" ${CEN.sel.has(c.id) ? 'checked' : ''}></td><td>${esc(c.id)}</td><td class="l">${esc(c.name)}</td>
+      <td>${esc(c.code)}</td><td class="${c.state === 'ACTIVE' ? 'ok' : 'muted'}" style="border:0">${esc(c.state)}</td><td>${esc(c.type)}</td><td class="l">${esc(c.cluster)}</td></tr>`).join('') + '</tbody>';
+}
+$('cTbl').addEventListener('change', e => { const id = +e.target.dataset.id; if (!id) return; e.target.checked ? CEN.sel.add(id) : CEN.sel.delete(id); render(); });
+['cSearch', 'cState', 'cCluster', 'cType'].forEach(id => $(id).addEventListener('input', render));
+$('selFiltered').onclick = () => { CEN.filtered.forEach(c => CEN.sel.add(c.id)); render(); };
+$('deselFiltered').onclick = () => { CEN.filtered.forEach(c => CEN.sel.delete(c.id)); render(); };
+$('presetActive').onclick = () => { CEN.sel = new Set(CEN.centers.filter(c => c.state === 'ACTIVE').map(c => c.id)); render(); };
+$('presetClear').onclick = () => { CEN.sel = new Set(); render(); };
+$('saveList').onclick = guard(async () => {
+  const r = await post('centers/list/', {list: CEN.which, ids: [...CEN.sel]});
+  CEN.lists[CEN.which] = [...CEN.sel];
+  toast(`Saved ${r.count} centers to the ${CEN.which} list` + (r.inactive.length ? ` (${r.inactive.length} not ACTIVE)` : ''));
+});
+$('syncBtn').onclick = guard(async () => {
+  $('syncBtn').disabled = true; $('syncDiff').textContent = 'Updating from Kronos…';
+  try {
+    const d = await post('centers/sync/');
+    const part = (k, l) => d[k].length ? `${d[k].length} ${l}: ` + d[k].slice(0, 8).map(x => esc(x.name || x.to || x.id)).join(', ') + (d[k].length > 8 ? '…' : '') : '';
+    $('syncDiff').innerHTML = `Updated: ${d.total} centers (${d.active} ACTIVE). ` +
+      ([part('added', 'new'), part('removed', 'no longer in Kronos'), part('state_changed', 'changed state'), part('renamed', 'renamed')].filter(Boolean).join(' · ') || 'no changes since the last update.');
+    await init();
+  } finally { $('syncBtn').disabled = false; }
+});
+guard(init)();
+</script>
+{% endblock %}

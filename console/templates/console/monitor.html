@@ -1,0 +1,70 @@
+{% extends "console/page.html" %}
+
+{% block page %}
+<div class="row">
+  <label class="muted">Session <select id="sess"></select></label>
+  <span id="state" class="badge">…</span>
+  <span class="muted" id="eta"></span>
+  <span style="flex:1"></span>
+  <a class="lnk" href="{% url 'console:run' %}">Back to Run →</a>
+</div>
+
+<div class="panel">
+  <div class="legend muted" id="legend"></div>
+  <div id="cellInfo" class="muted" style="margin:10px 0">Click a square for details.</div>
+  <div style="overflow:auto;max-height:70vh"><div id="grid" class="mgrid"></div></div>
+</div>
+
+<div class="panel"><h2>Log</h2><pre id="log">…</pre></div>
+
+<script>
+const NAMES = {o: 'ok', e: 'empty', f: 'failed', s: 'slow (timed out)', k: 'skipped', r: 'running', '.': 'waiting'};
+let M = null, SIG = '', TIMER = null;
+
+async function loadSessions() {
+  const list = await api('sessions/'), st = await api('status/');
+  const want = new URLSearchParams(location.search).get('session') || (st.job.session) || (list[0] && list[0].session);
+  $('sess').innerHTML = list.filter(s => s.status !== 'legacy').map(s =>
+    `<option value="${esc(s.session)}" ${s.session === want ? 'selected' : ''}>${esc(s.session)} · ${esc(s.start)} → ${esc(s.end)} · ${esc(s.status)} · ${s.centers} centers</option>`).join('')
+    || '<option value="">No sessions yet</option>';
+}
+
+async function load() {
+  const sid = $('sess').value; if (!sid) return;
+  M = await api('monitor/?' + q({session: sid}));
+  draw();
+  clearTimeout(TIMER); TIMER = setTimeout(guard(load), M.live ? 3000 : 15000);
+}
+
+function draw() {
+  const R = M.reports.length, cnt = {};
+  const sig = M.grid.join('|') + M.live; if (sig === SIG) return drawHead(cnt); SIG = sig;
+  const g = $('grid');
+  g.style.gridTemplateColumns = `230px repeat(${R}, 18px)`;
+  let html = '<div></div>' + M.reports.map(r => `<div class="h" title="${esc(M.labels[r] || r)}">${esc(r)}</div>`).join('');
+  M.centers.forEach(([cid, name], i) => {
+    html += `<div class="n" title="${esc(name)}">${cid} · ${esc(name)}</div>`;
+    for (let j = 0; j < R; j++) { const ch = M.grid[i][j]; cnt[ch] = (cnt[ch] || 0) + 1;
+      html += `<div class="c ${ch === '.' ? '' : ch}" data-i="${i}" data-j="${j}" title="${esc(name)} · ${esc(M.reports[j])}: ${NAMES[ch]}${M.rows[i][j] >= 0 ? ' (' + M.rows[i][j] + ' rows)' : ''}"></div>`; }
+  });
+  g.innerHTML = html; drawHead(cnt);
+}
+function drawHead(cnt) {
+  if (!Object.keys(cnt).length) M.grid.forEach(l => [...l].forEach(ch => cnt[ch] = (cnt[ch] || 0) + 1));
+  const col = {o: 'var(--ok)', e: 'var(--info)', f: 'var(--bad)', s: 'var(--warn)', k: 'var(--mute)', r: 'var(--accent)', '.': 'var(--soft)'};
+  $('legend').innerHTML = Object.keys(NAMES).map(ch => `<span><i style="background:${col[ch]}"></i>${NAMES[ch]} <b>${cnt[ch] || 0}</b></span>`).join('');
+  $('state').textContent = M.live ? 'running' : M.status; $('state').className = 'badge ' + (M.live ? 'running' : M.status);
+  const j = M.job;
+  $('eta').textContent = j ? `${j.done} / ${j.total}` + (j.started_at && j.done ? ' · about ' + hours((Date.now() / 1000 - j.started_at) / j.done * (j.total - j.done)) + ' left' : '') + (j.paused ? ' · paused' : '') : '';
+  $('log').textContent = j ? j.log.join('\n') : 'The log is shown while a run is active.';
+}
+$('grid').addEventListener('click', e => {
+  const c = e.target.closest('.c'); if (!c) return;
+  const i = +c.dataset.i, j = +c.dataset.j, ch = M.grid[i][j];
+  const err = M.errors[`${M.centers[i][0]}|${M.reports[j]}`];
+  $('cellInfo').textContent = `${M.centers[i][0]} · ${M.centers[i][1]} — ${M.reports[j]} (${M.labels[M.reports[j]] || ''}): ${NAMES[ch]}${M.rows[i][j] >= 0 ? ', ' + M.rows[i][j] + ' rows' : ''}${err ? ' — ' + err : ''}`;
+});
+$('sess').onchange = () => { SIG = ''; guard(load)(); };
+guard(async () => { await loadSessions(); await load(); })();
+</script>
+{% endblock %}

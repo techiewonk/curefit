@@ -1,0 +1,42 @@
+{% extends "console/page.html" %}
+
+{% block page %}
+<div class="row">
+  <label class="muted">Baseline <select id="a"></select></label>
+  <label class="muted">Compare with <select id="b"></select></label>
+  <button id="go" class="primary">Compare</button>
+  <label class="muted"><input type="checkbox" id="onlyDiff" checked> only centers that changed</label>
+</div>
+<div class="cards" id="sum"></div>
+<div class="panel"><div style="overflow:auto;max-height:70vh"><table id="tbl"></table></div></div>
+
+<script>
+async function init() {
+  const list = (await api('sessions/')).filter(s => s.centers > 0);
+  const opts = list.map(s => `<option value="${esc(s.session)}">${esc(s.start)} → ${esc(s.end)} · ${esc(s.session)} (${s.centers} centers)</option>`).join('');
+  $('a').innerHTML = opts; $('b').innerHTML = opts;
+  if (list.length > 1) $('b').selectedIndex = 1;
+}
+const sign = n => n == null ? '' : (n > 0 ? '+' : '') + num(n);
+const cls = n => n > 0 ? 'ok' : n < 0 ? 'bad' : 'muted';
+let LAST = null;
+function draw() {
+  if (!LAST) return;
+  const only = $('onlyDiff').checked;
+  const rows = LAST.rows.filter(r => !only || !r.a || !r.b || Object.values(r.diff || {}).some(v => v));
+  let tot = {sales: 0, rev: 0, total: 0};
+  rows.forEach(r => { if (r.diff) { tot.sales += r.diff.sales || 0; tot.rev += r.diff.sales_revenue || 0; tot.total += r.diff.total_revenue || 0; } });
+  $('sum').innerHTML = [['Centers shown', rows.length], ['Sales count change', sign(tot.sales)], ['Sales revenue change', sign(tot.rev)], ['Total revenue change', sign(tot.total)]]
+    .map(x => `<div class="card"><div class="lbl">${esc(x[0])}</div><div class="val">${esc(x[1])}</div></div>`).join('');
+  $('tbl').innerHTML = '<thead><tr><th>Center</th><th>Sales A</th><th>Sales B</th><th>Δ sales</th><th>Sales revenue A</th><th>Sales revenue B</th><th>Δ revenue</th><th>Δ total revenue</th></tr></thead><tbody>' +
+    rows.map(r => `<tr><td>${esc(r.center_id)} · ${esc(r.name)}${!r.a ? ' <span class="badge info">only in B</span>' : !r.b ? ' <span class="badge warn">only in A</span>' : ''}</td>
+      <td>${r.a ? num(r.a.sales) : ''}</td><td>${r.b ? num(r.b.sales) : ''}</td><td class="${r.diff ? cls(r.diff.sales) : ''}">${r.diff ? sign(r.diff.sales) : ''}</td>
+      <td>${r.a ? inr(r.a.sales_revenue) : ''}</td><td>${r.b ? inr(r.b.sales_revenue) : ''}</td>
+      <td class="${r.diff ? cls(r.diff.sales_revenue) : ''}">${r.diff ? sign(r.diff.sales_revenue) : ''}</td>
+      <td class="${r.diff ? cls(r.diff.total_revenue) : ''}">${r.diff ? sign(r.diff.total_revenue) : ''}</td></tr>`).join('') + '</tbody>';
+}
+$('go').onclick = guard(async () => { LAST = await api('compare/?' + q({a: $('a').value, b: $('b').value})); draw(); });
+$('onlyDiff').onchange = draw;
+guard(init)();
+</script>
+{% endblock %}
