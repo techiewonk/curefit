@@ -107,7 +107,7 @@ def rebuild_months(session=None):
         fields = dict(total_revenue=vals.get(trio[0]) if trio[0] else None,
                       new_revenue=vals.get(trio[1]) if trio[1] else None,
                       repeat_revenue=vals.get(trio[2]) if trio[2] else None,
-                      metrics={k: v for k, v in vals.items()}, last_session=session, updated_at=now)
+                      metrics={k: round(v, 4) for k, v in vals.items()}, last_session=session, updated_at=now)
         row = have.get((cid, month))
         if row is None:
             new.append(CenterMonth(center_id=cid, month=month, **fields))

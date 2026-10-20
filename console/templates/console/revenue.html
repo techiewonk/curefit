@@ -62,8 +62,12 @@
   {% component "unfold/components/card.html" with title="Groups by month — last 12 months" %}
     <div class="overflow-auto">
       <table class="data-table text-sm w-full whitespace-nowrap">
-        <thead><tr><th class="text-left">Group</th><th class="text-right">Gyms</th>
-          {% for l in group_months.labels %}<th class="text-right">{{ l }}</th>{% endfor %}<th class="text-right">Average</th></tr></thead>
+        <thead>
+          <tr><th rowspan="2" class="text-left">Group</th><th rowspan="2" class="text-right">Gyms</th>
+            <th colspan="{{ group_months.labels|length }}" class="border-b border-base-200 dark:border-base-700 text-center">Revenue</th>
+            <th rowspan="2" class="text-right">Average</th></tr>
+          <tr>{% for l in group_months.labels %}<th class="text-right">{{ l }}</th>{% endfor %}</tr>
+        </thead>
         <tbody>
         {% for g in group_months.rows %}
           <tr class="border-t border-base-100 dark:border-base-800"><td class="font-medium">{{ g.group }}</td><td class="text-right">{{ g.gyms }}</td>
@@ -106,12 +110,20 @@
     {% component "unfold/components/card.html" with title=sec.group %}
       <div class="max-h-[75vh] overflow-auto">
         <table class="data-table text-sm w-full whitespace-nowrap">
-          <thead class="sticky top-0 z-10 bg-white dark:bg-base-900"><tr>
-            <th class="text-left sticky left-0 bg-white dark:bg-base-900">{{ sec.group }}</th>
-            {% for l in labels %}<th class="text-right">{{ l }}</th>{% endfor %}
-            <th class="text-right">Average</th>{% for l in rank_labels %}<th class="text-right">Ranking {{ l }}</th>{% endfor %}<th class="text-right">Ranking</th>
-            <th class="text-right">vs prev</th><th class="text-right">Target</th><th class="text-right">Achieved</th><th class="text-left pl-3">Note</th>
-          </tr></thead>
+          <thead class="bg-white dark:bg-base-900">
+            <tr>
+              <th rowspan="2" class="text-left sticky left-0 z-10 bg-white dark:bg-base-900">{{ sec.group }}</th>
+              <th colspan="{{ labels|length }}" class="border-b border-base-200 dark:border-base-700 text-center">Revenue</th>
+              <th rowspan="2" class="text-right">Average</th>
+              <th colspan="{{ rank_labels|length|add:1 }}" class="border-b border-base-200 dark:border-base-700 text-center">Ranking</th>
+              <th rowspan="2" class="text-right">vs prev</th><th rowspan="2" class="text-right">Target</th>
+              <th rowspan="2" class="text-right">Achieved</th><th rowspan="2" class="text-left pl-3">Note</th>
+            </tr>
+            <tr>
+              {% for l in labels %}<th class="text-right">{{ l }}</th>{% endfor %}
+              {% for l in rank_labels %}<th class="text-right">{{ l }}</th>{% endfor %}<th class="text-right">By average</th>
+            </tr>
+          </thead>
           <tbody>
           {% for r in sec.rows %}
             <tr class="border-t border-base-100 dark:border-base-800">

@@ -1,16 +1,31 @@
 """django-import-export resources: one definition of each table's export columns, used by both
 the admin's Export button and the per-session report files."""
-from import_export import resources
+from import_export import resources, widgets
 from import_export.fields import Field
 
+from .numbers import trim
 from .models import CenterMonth, GymMember, GymPack, PerfMetric, SalesPack, SalesRecord
+
+
+class TrimmedFloatWidget(widgets.FloatWidget):
+    """Exports 354012.54, not 354012.54000000004."""
+
+    def render(self, value, obj=None, **kwargs):
+        return "" if value is None or value == "" else trim(value)
+
+
+class ModelResource(resources.ModelResource):
+    @classmethod
+    def widget_from_django_field(cls, f, default=widgets.Widget):
+        from django.db import models
+        return TrimmedFloatWidget if isinstance(f, models.FloatField) else super().widget_from_django_field(f, default)
 
 
 def _from(attribute, name):
     return Field(attribute=attribute, column_name=name, readonly=True)
 
 
-class SessionRecordResource(resources.ModelResource):
+class SessionRecordResource(ModelResource):
     """Columns every scraped table shares: where the row came from."""
 
     center_id = _from("center_id", "center_id")
@@ -51,7 +66,7 @@ class GymMemberResource(SessionRecordResource):
         export_order = fields
 
 
-class MasterResource(resources.ModelResource):
+class MasterResource(ModelResource):
     """The all-runs tables: no single session, but when each pack was last seen."""
 
     center_id = _from("center_id", "center_id")
@@ -84,7 +99,7 @@ class SalesPackResource(MasterResource):
         export_order = fields
 
 
-class CenterMonthResource(resources.ModelResource):
+class CenterMonthResource(ModelResource):
     """Center x month with a column for every metric (the names come from the data, so they are added here)."""
 
     center_id = _from("center_id", "center_id")
@@ -116,5 +131,6 @@ class CenterMonthResource(resources.ModelResource):
         if field.column_name == "month":
             return instance.month.strftime("%b-%y")
         if field.column_name in self.metric_names:
-            return instance.metrics.get(field.column_name)
+            value = instance.metrics.get(field.column_name)
+            return trim(value) if isinstance(value, float) else value
         return super().export_field(field, instance, **kwargs)

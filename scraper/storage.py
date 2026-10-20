@@ -9,7 +9,7 @@ from .models import CardColumns, CardRow, GymMember, PerfMetric, SalesRecord, Se
 
 def _f(value):
     try:
-        return None if value is None or value == "" else float(value)
+        return None if value is None or value == "" else round(float(value), 4)  # no float noise in the database
     except (TypeError, ValueError):
         return None
 

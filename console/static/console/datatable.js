@@ -17,6 +17,27 @@
     return a < b ? -dir : a > b ? dir : 0;
   }
 
+  /* One heading per column, for tables whose heading has two levels (colspan / rowspan). */
+  function columnHeaders(table) {
+    var grid = [], out = [];
+    if (!table.tHead) return out;
+    Array.prototype.forEach.call(table.tHead.rows, function (row, r) {
+      var c = 0;
+      grid[r] = grid[r] || [];
+      Array.prototype.forEach.call(row.cells, function (cell) {
+        while (grid[r][c]) c++;
+        for (var dr = 0; dr < (cell.rowSpan || 1); dr++) {
+          grid[r + dr] = grid[r + dr] || [];
+          for (var dc = 0; dc < (cell.colSpan || 1); dc++) grid[r + dr][c + dc] = cell;
+        }
+        c += cell.colSpan || 1;
+      });
+    });
+    var last = grid[table.tHead.rows.length - 1] || [];
+    for (var i = 0; i < last.length; i++) out.push(last[i]);
+    return out;
+  }
+
   function enhance(table) {
     var body = table.tBodies[0];
     if (!body || body.rows.length < 2) return;
@@ -44,7 +65,9 @@
     var holder = table.closest(".overflow-auto") || table;
     holder.parentNode.insertBefore(bar, holder);
 
-    Array.prototype.forEach.call(table.tHead ? table.tHead.rows[table.tHead.rows.length - 1].cells : [], function (th, i) {
+    var heads = columnHeaders(table);   // with grouped (two-level) headings: the bottom-most heading of each column
+    heads.forEach(function (th, i) {
+      if (!th) return;
       th.style.cursor = "pointer";
       th.title = "Click to sort";
       th.addEventListener("click", function () {
@@ -68,7 +91,8 @@
         (state.size ? " · page " + (state.page + 1) + " of " + Math.max(1, Math.ceil(shown.length / state.size)) : "");
       prev.style.visibility = state.size && state.page > 0 ? "visible" : "hidden";
       next.style.visibility = state.size && to < shown.length ? "visible" : "hidden";
-      Array.prototype.forEach.call(table.tHead ? table.tHead.rows[table.tHead.rows.length - 1].cells : [], function (th, i) {
+      heads.forEach(function (th, i) {
+        if (!th) return;
         th.setAttribute("aria-sort", i === state.col ? (state.dir > 0 ? "ascending" : "descending") : "none");
         th.setAttribute("data-arrow", i === state.col ? (state.dir > 0 ? " ▲" : " ▼") : "");
       });

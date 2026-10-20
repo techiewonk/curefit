@@ -17,6 +17,7 @@ from centers.models import KnownEmpty
 from config.admin_base import ExportModelAdmin
 
 from . import autorun, customers, files, jobs, perfwide
+from .numbers import tidy
 from console.templatetags.formats import inr
 from .conf import SPEED_CHOICES
 from .models import (AutoRun, CardColumns, CenterMonth, CardRow, Customer, CustomerPhone, GymMember, GymPack, Job, PerfMetric,
@@ -216,7 +217,12 @@ class GymMemberAdmin(DataAdmin):
 
 @admin.register(CardRow)
 class CardRowAdmin(DataAdmin):
-    list_display = ("center", "report", "row_num", "data", "session")
+    list_display = ("center", "report", "row_num", "values", "session")
+
+    @display(description="Row")
+    def values(self, obj):
+        return ", ".join("" if v is None else str(v) for v in tidy(obj.data))
+
     list_filter = [("session", RelatedDropdownFilter), ("center", AutocompleteSelectFilter),
                    ("report", AllValuesCheckboxFilter), ("row_num", RangeNumericFilter),
                    ("scraped_at", RangeDateTimeFilter)]

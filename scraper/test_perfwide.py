@@ -83,7 +83,7 @@ class PerfWideTests(FakeKronosMixin, TransactionTestCase):
         self.assertEqual(data.headers, ["center_id", "center", "group", "month", "total_revenue", "new_revenue",
                                         "repeat_revenue", "Retention %"])
         first = next(r for r in data.dict if r["center_id"] == "1" and r["month"] == "Aug-26")
-        self.assertEqual((first["group"], first["total_revenue"], first["Retention %"]), ("GYMS", "3000.0", 80))
+        self.assertEqual((first["group"], first["total_revenue"], first["Retention %"]), ("GYMS", "3000", "80"))
 
     def test_pages_home_and_the_old_link(self):
         for url in (reverse("console:perf_analysis"),
@@ -121,7 +121,7 @@ class PerfWideTests(FakeKronosMixin, TransactionTestCase):
         headers, rows = revenue.table(data)
         self.assertEqual([h for h in headers if h.startswith("ranking")][-2:], ["ranking Sep-26", "ranking"])
         self.assertEqual(len(headers), len(rows[0]))
-        self.assertContains(self.client.get(reverse("console:revenue")), "Ranking ")
+        self.assertContains(self.client.get(reverse("console:revenue")), ">Ranking</th>")
 
     def test_report_tables_load_the_data_table_script(self):
         page = self.client.get(reverse("console:revenue"))
