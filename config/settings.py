@@ -141,6 +141,9 @@ CONSTANCE_CONFIG = {
     "REPORT_FAIL_LIMIT": (3, "Failures in a row (none succeeded) before a report is skipped", int),
     "MAX_WORKERS": (4, "Most centers fetched at the same time", int),
     "LOGIN_EMAIL": ("shaurya@teamfit.in", "Kronos account that receives the login OTP", str),
+    "KEEP_RUN_ROWS": (0, "Keep the per-run sales and gym rows of only this many newest sessions (0 = all). "
+                         "The all-runs tables keep the data either way", int),
+    "SALES_CHUNK": ("whole", "How Expired Pack User Details is asked for by default: whole, day or week", str),
     "LEAD_EXPIRING_DAYS": (30, "A pack ending within this many days makes the customer 'expiring soon'", int),
     "LEAD_EXPIRED_DAYS": (90, "A pack that ended within this many days is 'expired recently'; older is 'lapsed'", int),
 }
@@ -149,6 +152,8 @@ CONSTANCE_CONFIG_FIELDSETS = {
     "Safety": ("ROW_CAP", "AUTH_FAIL_LIMIT", "REPORT_FAIL_LIMIT", "MAX_WORKERS"),
     "Account": ("LOGIN_EMAIL",),
     "Leads": ("LEAD_EXPIRING_DAYS", "LEAD_EXPIRED_DAYS"),
+    "Sales report": ("SALES_CHUNK",),
+    "Storage": ("KEEP_RUN_ROWS",),
 }
 
 UNFOLD = {
@@ -171,14 +176,17 @@ UNFOLD = {
             {"title": "Results", "separator": True, "items": [
                 {"title": "Analytics", "icon": "bar_chart", "link": reverse_lazy("console:analytics")},
                 {"title": "Revenue by gym", "icon": "leaderboard", "link": reverse_lazy("console:revenue")},
+                {"title": "Sales day coverage", "icon": "event_available", "link": reverse_lazy("console:coverage")},
                 {"title": "Compare sessions", "icon": "compare_arrows", "link": reverse_lazy("console:compare")},
                 {"title": "Sessions", "icon": "history", "link": _ADMIN("scraper_session")},
                 {"title": "Section results", "icon": "fact_check", "link": _ADMIN("scraper_sectionresult")},
             ]},
             {"title": "Data", "separator": True, "items": [
-                {"title": "Sales records", "icon": "receipt_long", "link": _ADMIN("scraper_salesrecord")},
+                {"title": "Sales records (per run)", "icon": "receipt_long", "link": _ADMIN("scraper_salesrecord")},
                 {"title": "Perf metrics", "icon": "query_stats", "link": _ADMIN("scraper_perfmetric")},
-                {"title": "Gym members", "icon": "groups", "link": _ADMIN("scraper_gymmember")},
+                {"title": "Gym members (all, merged)", "icon": "groups", "link": _ADMIN("scraper_gympack")},
+                {"title": "Expired packs (all, merged)", "icon": "receipt_long", "link": _ADMIN("scraper_salespack")},
+                {"title": "Gym members (per run)", "icon": "groups", "link": _ADMIN("scraper_gymmember")},
                 {"title": "Customers (leads)", "icon": "person_search", "link": _ADMIN("scraper_customer")},
                 {"title": "Other cards", "icon": "dataset", "link": _ADMIN("scraper_cardrow")},
             ]},

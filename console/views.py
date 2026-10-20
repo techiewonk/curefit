@@ -41,8 +41,9 @@ class RunView(ConsolePage, FormView):
     success_url = reverse_lazy("console:run")
 
     def get_initial(self):
-        q = self.request.GET  # links from Home: ?list=test  ?session=<id>
-        return {k: v for k, v in (("centers", q.get("list")), ("session", q.get("session"))) if v}
+        q = self.request.GET  # links from Home / coverage: ?list=test  ?session=<id>  ?start=&end=
+        return {k: v for k, v in (("centers", q.get("list")), ("session", q.get("session")),
+                                  ("start", q.get("start")), ("end", q.get("end"))) if v}
 
     def form_valid(self, form):
         if not auth.logged_in(fresh=True):
@@ -195,6 +196,37 @@ class AnalyticsView(ConsolePage, TemplateView):
                                  x["renewal_pct"], x["total_revenue"], x["new_pct"], x["repeat_pct"],
                                  x["active_pct"]] for x in c]})
         return ctx
+
+
+class CoverageView(ConsolePage, TemplateView):
+    """Expired Pack User Details by day: how many centers of a list are stored, and which days are missing."""
+
+    template_name = "console/coverage.html"
+    title = "Sales day coverage"
+
+    def get_context_data(self, **kwargs):
+        from django.db.models import Count
+        from django.utils import timezone
+
+        from scraper import coverage
+        from scraper.models import SalesCoverage
+        lists = CenterList.objects.all()
+        chosen = lists.filter(name=self.request.GET.get("list")).first() or lists.filter(name="actual").first() \
+            or lists.first()
+        ids = list(chosen.centers.values_list("center_id", flat=True)) if chosen else []
+        today = timezone.localdate()
+        first = coverage.window_start(today)
+        stored = {}
+        for i in range(0, len(ids), 900):
+            for row in SalesCoverage.objects.filter(center_id__in=ids[i:i + 900], day__gte=first) \
+                    .values("day").annotate(n=Count("center_id")):
+                stored[row["day"]] = stored.get(row["day"], 0) + row["n"]
+        days = [{"day": d, "stored": stored.get(d, 0), "missing": len(ids) - stored.get(d, 0)}
+                for d in coverage.days(first, today - coverage.ONE_DAY)]
+        gaps = [d for d in days if d["missing"]]
+        return super().get_context_data(
+            lists=lists, chosen=chosen, total=len(ids), days=days[::-1], gap_count=len(gaps),
+            first_gap=gaps[0]["day"] if gaps else None, last_gap=gaps[-1]["day"] if gaps else None, **kwargs)
 
 
 def _revenue_data(request):

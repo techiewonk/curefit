@@ -23,6 +23,9 @@ class Session(models.Model):
     STATUS_CHOICES = [(s, s) for s in (RUNNING, INCOMPLETE, COMPLETE, INTERRUPTED)]
     DAY, WEEK, MONTH = "day", "week", "month"
     GRANULARITY_CHOICES = [(DAY, "Day"), (WEEK, "Week"), (MONTH, "Month")]
+    WHOLE = "whole"
+    CHUNK_CHOICES = [(WHOLE, "Whole period in one request"), (DAY, "One request per day"),
+                     (WEEK, "One request per week")]
 
     session_id = models.CharField(max_length=40, primary_key=True)
     start_date = models.DateField()
@@ -38,6 +41,13 @@ class Session(models.Model):
     granularity = models.CharField(
         max_length=5, choices=GRANULARITY_CHOICES, default=MONTH,
         help_text="How the perf cards split the period: one row per day, week or month.")
+    sales_chunk = models.CharField(
+        max_length=5, choices=CHUNK_CHOICES, default=WHOLE,
+        help_text="Expired Pack User Details has no split of its own: ask for it a day or a week at a time.")
+    fill_missing = models.BooleanField(
+        default=False, help_text="Sales only: skip days already stored and fetch just the gaps.")
+    merged_into_masters = models.BooleanField(
+        default=False, help_text="Its sales and gym rows are in the all-runs tables (safe to prune).")
     coverage = models.JSONField(null=True, blank=True)
     missing = models.JSONField(default=dict, blank=True)
     checks = models.JSONField(default=list, blank=True, help_text="Automatic findings after the run")
@@ -257,6 +267,8 @@ class AutoRun(models.Model):
     granularity = models.CharField(
         max_length=5, choices=Session.GRANULARITY_CHOICES, default=Session.DAY,
         help_text="How the perf cards split the period: one row per day, week or month.")
+    sales_chunk = models.CharField(max_length=5, choices=Session.CHUNK_CHOICES, default=Session.WHOLE)
+    fill_missing = models.BooleanField(default=False, help_text="Sales only: fetch just the days not stored yet.")
     days = models.PositiveSmallIntegerField(
         default=1, validators=[MinValueValidator(1), MaxValueValidator(31)],
         help_text="Daily runs: 1 = yesterday only; 7 = the last seven days up to yesterday.")
@@ -333,3 +345,66 @@ class CustomerPhone(models.Model):
 
     def __str__(self):
         return self.phone
+
+
+class GymPack(models.Model):
+    """My Gym Member, merged over all runs: one row per member pack. A new run adds new packs and updates
+    changed ones (status, last class...), and never moves a date backwards."""
+
+    key = models.CharField(max_length=200, unique=True)  # center | user | pack | start date
+    center = models.ForeignKey(Center, on_delete=models.PROTECT, related_name="+")
+    user_id = models.CharField(max_length=40, db_index=True)
+    username = models.CharField(max_length=255, blank=True, null=True)
+    pack_name = models.CharField(max_length=255, blank=True, null=True)
+    final_amount_paid = models.FloatField(null=True, blank=True)
+    purchase_date = models.DateField(null=True, blank=True)
+    pack_start_date = models.DateField(null=True, blank=True)
+    pack_end_date = models.DateField(null=True, blank=True, db_index=True)
+    status = models.CharField(max_length=32, blank=True, null=True)
+    offline_vs_online = models.CharField(max_length=16, blank=True, null=True)
+    new_vs_repeat = models.CharField(max_length=32, blank=True, null=True)
+    class_level = models.CharField(max_length=64, blank=True, null=True)
+    last_class_date = models.DateField(null=True, blank=True)
+    customer = models.ForeignKey("scraper.Customer", null=True, blank=True, on_delete=models.SET_NULL,
+                                 related_name="gym_packs")
+    last_session = models.ForeignKey(Session, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    first_seen = models.DateTimeField(default=timezone.now)
+    scraped_at = models.DateTimeField(default=timezone.now, help_text="Last seen: when this pack was last fetched.")
+
+    class Meta:
+        indexes = [models.Index(fields=["center", "user_id"])]
+
+
+class SalesPack(models.Model):
+    """Expired Pack User Details, merged over all runs and days: one row per member pack and end date."""
+
+    key = models.CharField(max_length=200, unique=True)  # center | user | pack | end
+    center = models.ForeignKey(Center, on_delete=models.PROTECT, related_name="+")
+    user_id = models.CharField(max_length=40, db_index=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
+    phone = models.CharField(max_length=40, blank=True, null=True)
+    pack_name = models.CharField(max_length=255, blank=True, null=True)
+    member_end_date = models.DateField(null=True, blank=True, db_index=True)
+    active_last_30d = models.CharField(max_length=8, blank=True, null=True)
+    renewed = models.CharField(max_length=8, blank=True, null=True)
+    revenue = models.FloatField(null=True, blank=True)
+    customer = models.ForeignKey("scraper.Customer", null=True, blank=True, on_delete=models.SET_NULL,
+                                 related_name="sales_packs")
+    last_session = models.ForeignKey(Session, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    first_seen = models.DateTimeField(default=timezone.now)
+    scraped_at = models.DateTimeField(default=timezone.now, help_text="When the data in this row was fetched.")
+
+    class Meta:
+        indexes = [models.Index(fields=["center", "user_id"])]
+
+
+class SalesCoverage(models.Model):
+    """A day of Expired Pack User Details that was fetched for a center (empty days count too)."""
+
+    center = models.ForeignKey(Center, on_delete=models.CASCADE, related_name="+")
+    day = models.DateField(db_index=True)
+    session = models.ForeignKey(Session, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    fetched_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["center", "day"], name="one_coverage_per_center_day")]

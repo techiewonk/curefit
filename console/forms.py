@@ -12,6 +12,11 @@ from scraper.models import Session
 from scraper.reports import REPORTS, report_choices
 
 
+def default_chunk():
+    from constance import config as settings
+    return settings.SALES_CHUNK if settings.SALES_CHUNK in dict(Session.CHUNK_CHOICES) else Session.WHOLE
+
+
 def last_month():
     first_of_month = dt.date.today().replace(day=1)
     last = first_of_month - dt.timedelta(days=1)
@@ -37,6 +42,12 @@ class RunForm(forms.Form):
     granularity = forms.ChoiceField(
         choices=Session.GRANULARITY_CHOICES, initial=Session.MONTH, widget=UnfoldAdminSelectWidget, required=False,
         label="Split by", help_text="The perf cards give one row per day, week or month. Sales cards are not split.")
+    sales_chunk = forms.ChoiceField(
+        choices=Session.CHUNK_CHOICES, widget=UnfoldAdminSelectWidget, required=False, label="Ask for sales by",
+        help_text="Expired Pack User Details has no split of its own: ask for it a day or a week at a time "
+                  "so missing days can be filled in later. Default is in Settings.")
+    fill_missing = forms.BooleanField(required=False, label="Sales: only fetch days not stored yet",
+                                      widget=UnfoldBooleanSwitchWidget)
     session = forms.ModelChoiceField(Session.objects.unfinished(), required=False,
                                      empty_label="Start a new session", widget=UnfoldAdminRadioSelectWidget)
     retry_empty = forms.BooleanField(required=False, label="Also retry empty results",
@@ -49,6 +60,7 @@ class RunForm(forms.Form):
         start, end = last_month()
         self.fields["start"].initial, self.fields["end"].initial = start, end
         self.fields["centers"].initial = "actual"
+        self.fields["sales_chunk"].initial = default_chunk()
 
     @property
     def center_count(self):
@@ -74,6 +86,7 @@ class RunForm(forms.Form):
                 "only": None if every_report else d["reports"], "workers": self.workers,
                 "center_ids": [c.pk for c in d["pick"]] or None,
                 "speed": d["speed"], "granularity": d["granularity"] or Session.MONTH,
+                "sales_chunk": d["sales_chunk"] or default_chunk(), "fill_missing": d["fill_missing"],
                 "session": d["session"].pk if d["session"] else None,
                 "retry_empty": d["retry_empty"], "recheck_known": d["recheck_known"]}
 

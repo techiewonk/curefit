@@ -15,12 +15,13 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
+from constance import config
 from django.db import connection
 from django.utils import timezone
 
 from centers.models import Center, KnownEmpty
 
-from . import checks, conf, customers, files, kronos, login
+from . import checks, conf, coverage, customers, files, kronos, login, masters
 from .throttle import Gate
 from .models import SectionResult, Session
 from .reports import REPORTS
@@ -31,12 +32,14 @@ DONE_STATES = (SectionResult.OK, SectionResult.EMPTY)  # failed/slow sections ar
 
 
 # ------------------------------------------------------------------ sessions
-def new_session(start, end, center_ids, reports, speed="normal", workers=1, granularity=Session.MONTH):
+def new_session(start, end, center_ids, reports, speed="normal", workers=1, granularity=Session.MONTH,
+                sales_chunk=Session.WHOLE, fill_missing=False):
     sid = uuid.uuid4().hex[:6]
     session = Session.objects.create(
         session_id=sid, start_date=start, end_date=end, status=Session.RUNNING,
         folder=files.session_folder(start, end, sid), reports=list(reports),
-        center_ids=[int(c) for c in center_ids], speed=speed, workers=workers, granularity=granularity)
+        center_ids=[int(c) for c in center_ids], speed=speed, workers=workers, granularity=granularity,
+        sales_chunk=sales_chunk, fill_missing=bool(fill_missing))
     files.write_session_json(session)
     return session
 
@@ -150,21 +153,43 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
                     mark(cid, rep_name, "active")
                     t0 = time.monotonic()
                     try:
-                        rows, cols = [], []
-                        for attempt in (1, 2):  # an empty result gets one retry on a fresh token
-                            with gate.slot():
-                                if token is None:
-                                    token = kronos.get_token(http, rep, cid, start, end, cfg)
-                                    kronos.warm_up(tmb, token, cfg)
-                                rows, cols = kronos.get_rows(tmb, rep, token, start, end, cfg, session.granularity)
-                            if rows:
-                                break
-                            log.info("empty result, retrying: %s center %s (attempt %d)", rep_name, cid, attempt)
-                            token = None
-                            cfg.pause()
+                        rows, cols, fetched = [], [], None
+                        if rep_name == "sales" and session.sales_chunk != Session.WHOLE:
+                            # a day or a week at a time; a day with no expiries is simply empty, no retry
+                            fetched = coverage.to_fetch(session, cid)
+                            for first, last in fetched:
+                                if status is not None and status.get("stop"):
+                                    with lock:
+                                        flags["aborted"] = flags["stopped"] = True
+                                    return
+                                with gate.slot():
+                                    if token is None:
+                                        token = kronos.get_token(http, rep, cid, start, end, cfg)
+                                        kronos.warm_up(tmb, token, cfg)
+                                    part, cols_ = kronos.get_rows(tmb, rep, token, str(first), str(last), cfg)
+                                rows += part
+                                cols = cols or cols_
+                                cfg.pause()
+                        else:
+                            for attempt in (1, 2):  # an empty result gets one retry on a fresh token
+                                with gate.slot():
+                                    if token is None:
+                                        token = kronos.get_token(http, rep, cid, start, end, cfg)
+                                        kronos.warm_up(tmb, token, cfg)
+                                    rows, cols = kronos.get_rows(tmb, rep, token, start, end, cfg, session.granularity)
+                                if rows:
+                                    break
+                                log.info("empty result, retrying: %s center %s (attempt %d)", rep_name, cid, attempt)
+                                token = None
+                                cfg.pause()
                         seconds = round(time.monotonic() - t0, 1)
                         gate.healthy(seconds)
-                        if not rows:
+                        if fetched == []:  # fill_missing and every day is already stored
+                            save_section(session, cid, rep_name, [], cols, seconds)
+                            with lock:
+                                st["ok"] += 1
+                            note(f"ok     {rep_name} · {cid} {label} · all days already stored")
+                        elif not rows:
                             # empty after a retry: done for this session (a new session asks again)
                             if not SectionResult.objects.filter(session=session, center_id=cid, report=rep_name,
                                                                 status=SectionResult.OK).exists():
@@ -172,6 +197,8 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
                             with lock:
                                 st["empty"].append(cid)
                             note(f"empty  {rep_name} · {cid} {label}")
+                            if fetched:
+                                coverage.mark(session, cid, fetched)
                         else:
                             if len(rows) >= row_cap:
                                 with lock:
@@ -182,6 +209,8 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
                             with lock:
                                 st["ok"] += 1
                             note(f"ok     {rep_name} · {cid} {label} · {len(rows)} rows · {seconds}s")
+                            if fetched:
+                                coverage.mark(session, cid, fetched)
                         with lock:
                             fail_streak[rep_name] = 0
                             flags["auth_failures"] = 0
@@ -276,6 +305,8 @@ def _finish(session, ids, reports, stats, flags, status):
     session.checks = checks.run(session)
     try:
         customers.link_session(session)  # sales / gym rows -> customers, newest status wins
+        masters.merge_session(session)   # the all-runs gym and expired-pack tables
+        masters.prune_run_rows(config.KEEP_RUN_ROWS)
     except Exception:  # noqa: BLE001 - a linking problem must not fail a finished scrape; `link_customers` retries
         log.exception("could not link customers for %s", session.session_id)
     session.status = Session.COMPLETE if not session.missing else Session.INCOMPLETE

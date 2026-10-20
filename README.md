@@ -71,6 +71,27 @@ Every admin list has range filters (numbers, dates, date-times), text filters, v
 dropdowns; press *Filter* to apply. **Export** on any list downloads exactly the filtered rows as CSV or XLSX.
 Analytics and Compare have their own *Download CSV / XLSX* links.
 
+### One complete table per report (all runs merged)
+
+Each run keeps its own rows (the raw record), and every finished run is also **merged** into two tables under
+*Data*, so repeated and overlapping runs never double count:
+
+| Table | One row per | Updated when a run sees it again |
+|---|---|---|
+| **Gym members (all, merged)** — My Gym Member | member + pack + pack start date | status, class level, amount and so on come from the **newest scrape**; pack end date and last class date only ever move **forward** (an extension updates the row, it does not add one) |
+| **Expired packs (all, merged)** — Expired Pack User Details | member + pack + pack end date | renewed / active / revenue come from the newest scrape; a renewal has a new end date, so it is a new row |
+
+Rows are never deleted by a run; a pack that no longer shows up keeps its *last seen* time. The newest scrape
+wins by its fetch time, so merging an old session late cannot undo newer data. Fill the tables from sessions
+scraped earlier with `python manage.py merge_masters` (also done at start-up). To save space, **Keep run rows** in
+Settings can drop the per-run sales/gym rows of older sessions once they are merged (performance numbers are kept).
+
+**Expired Pack User Details by day or week.** This card has no split of its own and only holds the last 90 days
+before today; its start/end filter on the pack end date. On the Run page, *Ask for sales by* a **day** or a **week**
+(default in Settings) asks for one piece at a time, and *only fetch days not stored yet* fetches just the gaps.
+*Results → Sales day coverage* lists every day of the 90-day window with how many centers are stored and links to
+fill the gaps. Automatic runs have the same two options.
+
 ### Revenue by gym (management view)
 
 *Results → Revenue by gym* shows gyms × months from the Franchise Performance **Total Revenue** (run it with

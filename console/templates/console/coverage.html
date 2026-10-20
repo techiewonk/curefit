@@ -1,0 +1,35 @@
+{% extends "console/base.html" %}
+{% load unfold humanize %}
+
+{% block page %}
+<form method="get" class="flex flex-row flex-wrap gap-3 items-end">
+  <label class="mb-4 text-sm">Center list
+    <select name="list" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+      {% for l in lists %}<option value="{{ l.name }}" {% if l == chosen %}selected{% endif %}>{{ l.name }} ({{ l.centers.count }})</option>{% endfor %}
+    </select>
+  </label>
+  {% if first_gap %}
+    <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:run' %}?list={{ chosen.name }}&start={{ first_gap|date:'Y-m-d' }}&end={{ last_gap|date:'Y-m-d' }}">Fill the {{ gap_count }} missing day(s) →</a>
+  {% endif %}
+</form>
+
+{% component "unfold/components/card.html" %}
+  Expired Pack User Details only keeps the <strong>last 90 days</strong>, so these are the days you can still fetch.
+  A day counts as stored for a center once it was fetched (a day with no expiries counts too). Run the Run page with
+  <em>Ask for sales by: day</em> and <em>only fetch days not stored yet</em> to fill the gaps.
+{% endcomponent %}
+
+{% component "unfold/components/card.html" with title="Days in the window" %}
+  <div class="max-h-[70vh] overflow-auto">
+    <table class="w-full text-sm">
+      <thead><tr><th class="text-left">Day</th><th class="text-right">Centers stored</th><th class="text-right">Missing</th></tr></thead>
+      <tbody>
+      {% for d in days %}
+        <tr><td>{{ d.day|date:"D d M Y" }}</td><td class="text-right">{{ d.stored }} / {{ total }}</td>
+          <td class="text-right {% if d.missing %}text-orange-600{% else %}text-green-600{% endif %}">{% if d.missing %}{{ d.missing }}{% else %}complete{% endif %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endcomponent %}
+{% endblock %}

@@ -3,7 +3,7 @@ the admin's Export button and the per-session report files."""
 from import_export import resources
 from import_export.fields import Field
 
-from .models import GymMember, PerfMetric, SalesRecord
+from .models import GymMember, GymPack, PerfMetric, SalesPack, SalesRecord
 
 
 def _from(attribute, name):
@@ -48,4 +48,37 @@ class GymMemberResource(SessionRecordResource):
         fields = HEAD + ("user_id", "username", "pack_name", "final_amount_paid", "purchase_date",
                          "pack_start_date", "pack_end_date", "status", "offline_vs_online", "new_vs_repeat",
                          "class_level", "last_class_date", "scraped_at")
+        export_order = fields
+
+
+class MasterResource(resources.ModelResource):
+    """The all-runs tables: no single session, but when each pack was last seen."""
+
+    center_id = _from("center_id", "center_id")
+    center_name = _from("center__name", "center_name")
+    center_code = _from("center__code", "center_code")
+    last_seen = _from("scraped_at", "last_seen")
+    last_session = _from("last_session_id", "last_session")
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("center")
+
+
+MASTER_HEAD = ("center_id", "center_name", "center_code")
+
+
+class GymPackResource(MasterResource):
+    class Meta:
+        model = GymPack
+        fields = MASTER_HEAD + ("user_id", "username", "pack_name", "final_amount_paid", "purchase_date",
+                                "pack_start_date", "pack_end_date", "status", "offline_vs_online", "new_vs_repeat",
+                                "class_level", "last_class_date", "last_seen", "last_session")
+        export_order = fields
+
+
+class SalesPackResource(MasterResource):
+    class Meta:
+        model = SalesPack
+        fields = MASTER_HEAD + ("user_id", "name", "phone", "pack_name", "member_end_date", "active_last_30d",
+                                "renewed", "revenue", "last_seen", "last_session")
         export_order = fields

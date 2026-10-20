@@ -18,10 +18,11 @@ from config.admin_base import ExportModelAdmin
 
 from . import autorun, customers, files, jobs
 from .conf import SPEED_CHOICES
-from .models import (AutoRun, CardColumns, CardRow, Customer, CustomerPhone, GymMember, Job, PerfMetric,
-                     SalesRecord, SectionResult, Session)
+from .models import (AutoRun, CardColumns, CardRow, Customer, CustomerPhone, GymMember, GymPack, Job, PerfMetric,
+                     SalesCoverage, SalesPack, SalesRecord, SectionResult, Session)
 from .reports import report_choices
-from .resources import GymMemberResource, PerfMetricResource, SalesRecordResource
+from .resources import (GymMemberResource, GymPackResource, PerfMetricResource, SalesPackResource,
+                        SalesRecordResource)
 
 STATUS_LABELS = {"complete": "success", "ok": "success", "done": "success", "finished": "success",
                  "incomplete": "warning", "slow": "warning", "cancelled": "warning", "empty": "info",
@@ -362,3 +363,45 @@ class CustomerAdmin(ExportModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+
+@admin.register(GymPack)
+class GymPackAdmin(DataAdmin):
+    """My Gym Member merged over every run: one row per member pack."""
+
+    list_display = ("center", "username", "user_id", "pack_name", "pack_start_date", "pack_end_date", "status",
+                    "last_class_date", "final_amount_paid", "scraped_at")
+    list_filter = [("center", AutocompleteSelectFilter), ("pack_end_date", RangeDateFilter),
+                   ("pack_start_date", RangeDateFilter), ("purchase_date", RangeDateFilter),
+                   ("last_class_date", RangeDateFilter), ("final_amount_paid", RangeNumericFilter),
+                   ("status", AllValuesCheckboxFilter), ("new_vs_repeat", AllValuesCheckboxFilter),
+                   ("offline_vs_online", AllValuesCheckboxFilter), ("class_level", AllValuesCheckboxFilter),
+                   ("pack_name", FieldTextFilter), ("username", FieldTextFilter),
+                   ("scraped_at", RangeDateTimeFilter), ("first_seen", RangeDateTimeFilter)]
+    search_fields = ("username", "user_id", "center__name", "pack_name")
+    list_select_related = ("center",)
+    resource_classes = [GymPackResource]
+
+
+@admin.register(SalesPack)
+class SalesPackAdmin(DataAdmin):
+    """Expired Pack User Details merged over every run and day."""
+
+    list_display = ("center", "name", "phone", "pack_name", "member_end_date", "renewed", "active_last_30d",
+                    "revenue", "scraped_at")
+    list_filter = [("center", AutocompleteSelectFilter), ("member_end_date", RangeDateFilter),
+                   ("revenue", RangeNumericFilter), ("renewed", AllValuesCheckboxFilter),
+                   ("active_last_30d", AllValuesCheckboxFilter), ("pack_name", FieldTextFilter),
+                   ("name", FieldTextFilter), ("phone", FieldTextFilter),
+                   ("scraped_at", RangeDateTimeFilter), ("first_seen", RangeDateTimeFilter)]
+    search_fields = ("name", "phone", "user_id", "center__name", "pack_name")
+    list_select_related = ("center",)
+    resource_classes = [SalesPackResource]
+
+
+@admin.register(SalesCoverage)
+class SalesCoverageAdmin(DataAdmin):
+    list_display = ("center", "day", "session", "fetched_at")
+    list_filter = [("center", AutocompleteSelectFilter), ("day", RangeDateFilter),
+                   ("fetched_at", RangeDateTimeFilter)]
+    list_select_related = ("center", "session")

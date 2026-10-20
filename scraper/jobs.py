@@ -81,7 +81,9 @@ def enqueue(spec, sync=False):
             raise JobError("Give a valid period (start on or before end)")
         session = engine.new_session(spec["start"], spec["end"], ids, only or list(REPORTS),
                                      speed=spec.get("speed", "normal"), workers=workers,
-                                     granularity=spec.get("granularity") or Session.MONTH)
+                                     granularity=spec.get("granularity") or Session.MONTH,
+                                     sales_chunk=spec.get("sales_chunk") or Session.WHOLE,
+                                     fill_missing=spec.get("fill_missing"))
 
     job = Job.objects.create(
         id=time.strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:4], session=session,

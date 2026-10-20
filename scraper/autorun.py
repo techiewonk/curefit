@@ -99,7 +99,8 @@ def run(auto, force=False, inline=False):
         return _record(auto, "skipped", "Another scrape is still running.")
     spec = {"start": start.isoformat(), "end": end.isoformat(), "list": auto.centers.name,
             "only": None if set(auto.reports) == set(REPORTS) else auto.reports,
-            "workers": SPEED_PROFILES[auto.speed], "speed": auto.speed, "granularity": auto.granularity}
+            "workers": SPEED_PROFILES[auto.speed], "speed": auto.speed, "granularity": auto.granularity,
+            "sales_chunk": auto.sales_chunk, "fill_missing": auto.fill_missing}
     if inline:
         return _run_inline(auto, spec, start, end)
     try:
@@ -124,7 +125,8 @@ def _run_inline(auto, spec, start, end):
     if not ids:
         return _record(auto, "failed", f"The {spec['list']} center list is empty.")
     session = engine.new_session(start, end, ids, spec["only"] or list(REPORTS), speed=spec["speed"],
-                                 workers=spec["workers"], granularity=spec["granularity"])
+                                 workers=spec["workers"], granularity=spec["granularity"],
+                                 sales_chunk=spec["sales_chunk"], fill_missing=spec["fill_missing"])
     _record(auto, "started", f"Running session {session.session_id} for {start} to {end}.", session)
     session = engine.run_session(session, workers=spec["workers"], adaptive=spec["speed"] == "adaptive")
     status = "finished" if session.status == session.COMPLETE else "incomplete"

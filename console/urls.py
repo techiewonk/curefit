@@ -16,6 +16,7 @@ urlpatterns = [
     path("monitor/", page(views.MonitorView), name="monitor"),
     path("analytics/", page(views.AnalyticsView), name="analytics"),
     path("compare/", page(views.CompareView), name="compare"),
+    path("coverage/", page(views.CoverageView), name="coverage"),
     path("revenue/", page(views.RevenueView), name="revenue"),
     path("revenue/csv/", views.RevenueCsv.as_view(), name="revenue_csv"),
     path("analytics/csv/", views.AnalyticsCsv.as_view(), name="analytics_csv"),

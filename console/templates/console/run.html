@@ -18,6 +18,8 @@
       {% include "unfold/helpers/field.html" with field=form.pick %}
       {% include "unfold/helpers/field.html" with field=form.speed %}
       {% include "unfold/helpers/field.html" with field=form.granularity %}
+      {% include "unfold/helpers/field.html" with field=form.sales_chunk %}
+      {% include "unfold/helpers/field.html" with field=form.fill_missing %}
     </div>
     {# offers to continue an unfinished session for the chosen period #}
     <div hx-get="{% url 'console:resume' %}" hx-trigger="load, change from:#id_start, change from:#id_end"
