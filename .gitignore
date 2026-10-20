@@ -30,7 +30,8 @@ staticfiles/
 dj_run.*
 dj_pid.txt
 *.sqlite3
-test_db.sqlite3*
+test_db*.sqlite3*
+test_*.sqlite3*
 *.out
 *.err
 serve_pid.txt

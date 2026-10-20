@@ -90,7 +90,7 @@ DATABASES = {
             "init_command": "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys=ON;",
         },
         # tests use a real file (not :memory:) so the scraper's worker threads share one database
-        "TEST": {"NAME": BASE_DIR / "test_db.sqlite3"},
+        "TEST": {"NAME": os.environ.get("CUREFIT_TEST_DB") or BASE_DIR / "test_db.sqlite3"},  # one per parallel test run
     }
 }
 
