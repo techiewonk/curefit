@@ -13,8 +13,8 @@ from django.views.generic import FormView, TemplateView, View
 from unfold.views import UnfoldSiteViewMixin
 
 from centers import sync
-from centers.models import Center, CenterList, CenterSyncLog
-from scraper import analysis, auth, coverage, jobs, revenue, selectors
+from centers.models import Center, CenterGroup, CenterList, CenterSyncLog
+from scraper import analysis, auth, coverage, jobs, perfwide, revenue, selectors
 from scraper.models import Job, Session
 
 from .forms import CompareForm, OtpForm, RunForm, SessionPickForm
@@ -231,6 +231,72 @@ class CoverageView(ConsolePage, TemplateView):
             first_gap=gaps[0]["day"] if gaps else None, last_gap=gaps[-1]["day"] if gaps else None, **kwargs)
 
 
+def _perf_filters(request):
+    g = request.GET
+    since, until = perfwide.parse_month(g.get("from")), perfwide.parse_month(g.get("to"))
+    return {"group": g.get("group", ""), "since": since, "until": until, "search": g.get("q", "")}
+
+
+class PerfTableView(ConsolePage, TemplateView):
+    """Performance metrics as a wide table: a row per center and month, a column per metric."""
+
+    template_name = "console/perf.html"
+    title = "Perf metrics"
+
+    def get_context_data(self, **kwargs):
+        from django.core.paginator import Paginator
+        f = _perf_filters(self.request)
+        rows, columns = perfwide.wide_rows(**f)
+        page = Paginator(rows, 100).get_page(self.request.GET.get("page"))
+        query = self.request.GET.copy()
+        query.pop("page", None)
+        return super().get_context_data(
+            page=page, columns=columns, total=len(rows), groups=list(CenterGroup.objects.values_list("name", flat=True)),
+            group=f["group"], q=f["search"], since=self.request.GET.get("from", ""), until=self.request.GET.get("to", ""),
+            query=query.urlencode(), **kwargs)
+
+
+class PerfCsv(Partial, View):
+    def get(self, request):
+        rows, columns = perfwide.wide_rows(**_perf_filters(request))
+        headers, body = perfwide.table(rows, columns)
+        return _download(request, "perf_metrics_by_month", headers, body)
+
+
+class PerfAnalysisView(ConsolePage, TemplateView):
+    """One metric over months: chart per group, and a comparison (vs previous month, last year, two ranges, group)."""
+
+    template_name = "console/perf_analysis.html"
+    title = "Perf analysis"
+    PALETTE = ["#7c3aed", "#22c55e", "#f97316", "#3b82f6", "#ef4444", "#14b8a6", "#eab308", "#ec4899"]
+
+    def get_context_data(self, **kwargs):
+        g = self.request.GET
+        names = perfwide.ordered_metrics(perfwide.metric_names())
+        metric = g.get("metric") if g.get("metric") in names else (names[0] if names else "")
+        mode = g.get("mode") if g.get("mode") in ("mom", "yoy", "range", "group") else "mom"
+        agg = "avg" if g.get("agg") == "avg" else "sum"
+        month = perfwide.parse_month(g.get("month"))
+        a = (perfwide.parse_month(g.get("a_from")), perfwide.parse_month(g.get("a_to")))
+        b = (perfwide.parse_month(g.get("b_from")), perfwide.parse_month(g.get("b_to")))
+        ranges = (a, b) if all(a) and all(b) else (None, None)
+        try:
+            months_back = min(max(int(g.get("months", 12)), 3), 48)
+        except ValueError:
+            months_back = 12
+        data = perfwide.analyse(metric, g.get("group", ""), mode, agg, month, *ranges, months_back=months_back) \
+            if metric else None
+        chart = json.dumps({"labels": [revenue.label(m) for m in data["months"]], "datasets": [
+            {"label": name, "data": [None if v is None else round(v, 2) for v in points],
+             "borderColor": self.PALETTE[i % len(self.PALETTE)]} for i, (name, points) in enumerate(data["lines"].items())]}) \
+            if data and data["lines"] else None
+        return super().get_context_data(
+            data=data, chart=chart, metrics=names, metric=metric, mode=mode, agg=agg, months_back=months_back,
+            group=g.get("group", ""), groups=list(CenterGroup.objects.values_list("name", flat=True)),
+            month=(data["month"].strftime("%Y-%m") if data else ""), a_from=g.get("a_from", ""), a_to=g.get("a_to", ""),
+            b_from=g.get("b_from", ""), b_to=g.get("b_to", ""), **kwargs)
+
+
 def _revenue_data(request):
     try:
         months = min(max(int(request.GET.get("months", 0)), 0), 48)  # 0 = all months with data
@@ -252,16 +318,20 @@ class RevenueView(ConsolePage, TemplateView):
             {"label": g, "data": [round(series[m]) if series[m] else None for m in data["months"]],
              "borderColor": palette[i % len(palette)]} for i, (g, series) in enumerate(data["group_totals"].items())]})
         rows = data["rows"]
+        group_months = revenue.group_month_table(self.request.GET.get("group", ""))
         sections = [{**sec, "rows": [{**r, "cells": [r["values"].get(m) for m in data["months"]]} for r in sec["rows"]]}
                     for sec in data["sections"]]
         return super().get_context_data(
-            data=data, rows=rows, sections=sections, months_back=months, shown_months=len(data["months"]), group=self.request.GET.get("group", ""),
+            data=data, rows=rows, sections=sections, group_months=group_months, months_back=months, shown_months=len(data["months"]), group=self.request.GET.get("group", ""),
             labels=[revenue.label(m) for m in data["months"]], chart=chart if len(data["months"]) > 1 else None,
             latest_label=revenue.label(data["latest_month"]) if data["latest_month"] else "", **kwargs)
 
 
 class RevenueCsv(Partial, View):
     def get(self, request):
+        if request.GET.get("part") == "groups":  # the groups x last 12 months table
+            headers, rows = revenue.group_month_download(revenue.group_month_table(request.GET.get("group", "")))
+            return _download(request, "revenue_by_group_month", headers, rows)
         data, _ = _revenue_data(request)
         headers, rows = revenue.table(data)
         return _download(request, "revenue_by_gym", headers, rows)

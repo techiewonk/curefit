@@ -59,6 +59,29 @@
     </table>
   {% endcomponent %}
 
+  {% component "unfold/components/card.html" with title="Groups by month — last 12 months" %}
+    <div class="overflow-auto">
+      <table class="text-sm w-full whitespace-nowrap">
+        <thead><tr><th class="text-left">Group</th><th class="text-right">Gyms</th>
+          {% for l in group_months.labels %}<th class="text-right">{{ l }}</th>{% endfor %}<th class="text-right">Average</th></tr></thead>
+        <tbody>
+        {% for g in group_months.rows %}
+          <tr class="border-t border-base-100 dark:border-base-800"><td class="font-medium">{{ g.group }}</td><td class="text-right">{{ g.gyms }}</td>
+            {% for v in g.cells %}<td class="text-right">{{ v|inr }}</td>{% endfor %}
+            <td class="text-right font-medium">{{ g.average|inr }}</td></tr>
+        {% endfor %}
+        </tbody>
+        <tfoot><tr class="border-t-2 border-base-200 dark:border-base-700 font-semibold"><td>Total</td><td></td>
+          {% for v in group_months.total %}<td class="text-right">{{ v|inr }}</td>{% endfor %}<td></td></tr></tfoot>
+      </table>
+    </div>
+    <div class="flex flex-row gap-4 mt-2">
+      <a class="text-primary-600" href="{% url 'console:revenue_csv' %}?part=groups&group={{ group|urlencode }}">Download CSV</a>
+      <a class="text-primary-600" href="{% url 'console:revenue_csv' %}?part=groups&group={{ group|urlencode }}&format=xlsx">Download XLSX</a>
+      <span class="text-xs text-font-subtle-light dark:text-font-subtle-dark">A gym in two groups counts in both, so the total can exceed the sum of distinct gyms. The current month is partial.</span>
+    </div>
+  {% endcomponent %}
+
   {% if chart %}
     {% component "unfold/components/card.html" with title="Revenue by group" %}
       {% component "unfold/components/chart/line.html" with data=chart height=260 %}{% endcomponent %}

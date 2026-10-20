@@ -12,4 +12,6 @@ class ExportModelAdmin(ExportActionMixin, ModelAdmin):
     export_form_class = ExportForm
     formats = [CSV, XLSX]
     list_filter_submit = True      # a button applies the range filters
+    list_fullwidth = True          # lists use the whole screen width
+    list_horizontal_scrollbar_top = True
     show_full_result_count = False

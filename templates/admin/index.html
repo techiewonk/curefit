@@ -1,5 +1,5 @@
 {% extends "admin/base.html" %}
-{% load i18n unfold humanize %}
+{% load i18n unfold humanize formats %}
 
 {% block title %}Home | {{ site_title|default:_('Django site admin') }}{% endblock %}
 {% block branding %}{% include "unfold/helpers/site_branding.html" %}{% endblock %}
@@ -33,6 +33,30 @@
       </div>
     {% endcomponent %}
   {% endif %}
+
+  {% component "unfold/components/card.html" with title="Groups" %}
+    <div class="flex flex-row flex-wrap gap-3 items-center mb-3">
+      <a href="{% url 'admin:centers_centergroup_add' %}" class="bg-primary-600 border border-transparent font-medium px-3 py-2 rounded-default text-white">New group</a>
+      <a href="{% url 'admin:centers_centergroup_changelist' %}" class="text-primary-600">Edit groups and their gyms →</a>
+      <a href="{% url 'console:revenue' %}" class="text-primary-600">Revenue by gym →</a>
+    </div>
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    {% for g in home.group_cards %}
+      <div class="border border-base-200 dark:border-base-700 p-3 rounded-default">
+        <div class="flex flex-row items-center justify-between"><a class="font-semibold text-primary-600" href="{% url 'console:revenue' %}?group={{ g.group|urlencode }}">{{ g.group }}</a>
+          <span class="text-xs text-font-subtle-light dark:text-font-subtle-dark">{{ g.gyms }} gyms</span></div>
+        <div class="mt-1 text-2xl font-semibold">{% if g.latest %}₹{{ g.latest|inr }}{% else %}-{% endif %}</div>
+        <div class="text-sm">
+          {% if g.mom_pct is not None %}<span class="{% if g.mom_pct > 0 %}text-green-600{% elif g.mom_pct < 0 %}text-red-600{% endif %}">{{ g.mom_pct }}% vs prev month</span>{% endif %}
+          {% if g.achievement is not None %} · {{ g.achievement }}% of target{% endif %}
+        </div>
+        {% if g.best %}<div class="text-xs text-font-subtle-light dark:text-font-subtle-dark mt-1">Top: {{ g.best.name }}</div>{% endif %}
+      </div>
+    {% empty %}
+      <p>{% if home.groups_defined %}No monthly revenue for these groups yet - run the performance report split by month.{% else %}No groups yet. Create GYMS, HYBRIDS ... and add gyms to them.{% endif %}</p>
+    {% endfor %}
+    </div>
+  {% endcomponent %}
 
   {% component "unfold/components/card.html" with title="Needs attention" %}
     {% for a in home.alerts %}

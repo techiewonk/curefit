@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.timesince import timesince
 
-from centers.models import Center, CenterList, KnownEmpty
+from centers.models import Center, CenterGroup, CenterList, KnownEmpty
 
 from . import analysis, auth
 from .models import AutoRun, Job, SalesRecord, SectionResult, Session
@@ -179,8 +179,11 @@ def home():
         if a.enabled and a.last_status in ("failed", "skipped", "incomplete"):
             alerts.append({"level": "warning", "text": f"Automatic run '{a.name}': {a.last_message}",
                            "url": "console:run"})
+    from . import revenue  # also late: revenue reads the perf tables
+    group_cards = revenue.matrix(months=3)["summary"]
     latest = Session.objects.filter(status=Session.COMPLETE).first() or Session.objects.first()
-    return {"job": job, "alerts": alerts, "autoruns": autoruns, "sessions": Session.objects.all()[:6],
+    return {"job": job, "alerts": alerts, "autoruns": autoruns, "group_cards": group_cards,
+            "groups_defined": CenterGroup.objects.count(), "sessions": Session.objects.all()[:6],
             "latest": latest,
             "kpis": analytics(latest)["totals"] if latest and SalesRecord.objects.filter(session=latest).exists() else None,
             "lists": CenterList.objects.all(), "active_centers": Center.objects.filter(state="ACTIVE").count(),

@@ -1,0 +1,2 @@
+/* use the whole width of the screen: every list and page, so wide tables are visible without scrolling */
+#content, #content.container, .container { max-width: none !important; }

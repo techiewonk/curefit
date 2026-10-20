@@ -163,6 +163,7 @@ UNFOLD = {
     "SITE_HEADER": "Curefit Admin",
     "SITE_SYMBOL": "monitoring",
     "SHOW_HISTORY": False,
+    "STYLES": [lambda request: static("console/wide.css")],
     "SITE_FAVICONS": [{"rel": "icon", "sizes": "32x32", "type": "image/svg+xml",
                        "href": lambda request: static("console/favicon.svg")}],
     "DASHBOARD_CALLBACK": "console.dashboard.callback",
@@ -177,19 +178,25 @@ UNFOLD = {
             ]},
             {"title": "Results", "separator": True, "items": [
                 {"title": "Analytics", "icon": "bar_chart", "link": reverse_lazy("console:analytics")},
-                {"title": "Revenue by gym", "icon": "leaderboard", "link": reverse_lazy("console:revenue")},
-                {"title": "Sales day coverage", "icon": "event_available", "link": reverse_lazy("console:coverage")},
                 {"title": "Compare sessions", "icon": "compare_arrows", "link": reverse_lazy("console:compare")},
                 {"title": "Sessions", "icon": "history", "link": _ADMIN("scraper_session")},
                 {"title": "Section results", "icon": "fact_check", "link": _ADMIN("scraper_sectionresult")},
             ]},
-            {"title": "Data", "separator": True, "items": [
-                {"title": "Sales records (per run)", "icon": "receipt_long", "link": _ADMIN("scraper_salesrecord")},
-                {"title": "Perf metrics", "icon": "query_stats", "link": _ADMIN("scraper_perfmetric")},
+            {"title": "Gym members", "separator": True, "items": [
                 {"title": "Gym members (all, merged)", "icon": "groups", "link": _ADMIN("scraper_gympack")},
-                {"title": "Expired packs (all, merged)", "icon": "receipt_long", "link": _ADMIN("scraper_salespack")},
-                {"title": "Gym members (per run)", "icon": "groups", "link": _ADMIN("scraper_gymmember")},
+                {"title": "Gym members (per run)", "icon": "history", "link": _ADMIN("scraper_gymmember")},
                 {"title": "Customers (leads)", "icon": "person_search", "link": _ADMIN("scraper_customer")},
+            ]},
+            {"title": "Expired packs (sales)", "separator": True, "items": [
+                {"title": "Expired packs (all, merged)", "icon": "receipt_long", "link": _ADMIN("scraper_salespack")},
+                {"title": "Sales records (per run)", "icon": "history", "link": _ADMIN("scraper_salesrecord")},
+                {"title": "Sales day coverage", "icon": "event_available", "link": reverse_lazy("console:coverage")},
+            ]},
+            {"title": "Performance", "separator": True, "items": [
+                {"title": "Perf metrics (by month)", "icon": "query_stats", "link": reverse_lazy("console:perf")},
+                {"title": "Perf analysis and compare", "icon": "insights", "link": reverse_lazy("console:perf_analysis")},
+                {"title": "Revenue by gym", "icon": "leaderboard", "link": reverse_lazy("console:revenue")},
+                {"title": "Perf metrics (raw rows)", "icon": "table_rows", "link": _ADMIN("scraper_perfmetric")},
                 {"title": "Other cards", "icon": "dataset", "link": _ADMIN("scraper_cardrow")},
             ]},
             {"title": "Centers", "separator": True, "items": [

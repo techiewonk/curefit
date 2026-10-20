@@ -141,6 +141,30 @@ def matrix(group="", months=12, today=None):
             "top_movers": moving[::-1][:5], "bottom_movers": moving[:5]}
 
 
+def group_month_table(group="", today=None):
+    """Each group by month for the last 12 months: gyms, the monthly total, average of the full months, and a total row."""
+    data = matrix(group, 12, today)
+    months, complete = data["months"], [m for m in data["months"] if m < data["current"]]
+    rows = []
+    for name, series in data["group_totals"].items():
+        done = [series[m] for m in complete if series[m]]
+        rows.append({"group": name, "gyms": sum(1 for r in data["rows"] if name in r["groups"]),
+                     "cells": [series[m] or None for m in months],
+                     "average": sum(done) / len(done) if done else None})
+    order = {g: i for i, g in enumerate(list(CenterGroup.objects.values_list("name", flat=True)) + [UNGROUPED])}
+    rows.sort(key=lambda r: order.get(r["group"], 99))
+    total = [sum(r["cells"][i] or 0 for r in rows) or None for i in range(len(months))]  # a gym in two groups counts twice
+    return {"months": months, "labels": [label(m) for m in months], "rows": rows, "total": total,
+            "current": data["current"]}
+
+
+def group_month_download(table_):
+    headers = ["group", "gyms"] + table_["labels"] + ["average"]
+    rows = [[r["group"], r["gyms"]] + r["cells"] + [None if r["average"] is None else round(r["average"])]
+            for r in table_["rows"]]
+    return headers, rows
+
+
 def table(data):
     """Headers and rows for a download: the sheet's columns, one block per group, ranks within the group."""
     months = data["months"]

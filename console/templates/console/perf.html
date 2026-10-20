@@ -1,0 +1,56 @@
+{% extends "console/base.html" %}
+{% load unfold humanize formats %}
+
+{% block page %}
+<form method="get" class="flex flex-row flex-wrap gap-3 items-end">
+  <label class="mb-4 text-sm">Group
+    <select name="group" onchange="this.form.submit()" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700">
+      <option value="">All groups</option>
+      {% for g in groups %}<option value="{{ g }}" {% if g == group %}selected{% endif %}>{{ g }}</option>{% endfor %}
+      <option value="Ungrouped" {% if group == "Ungrouped" %}selected{% endif %}>Ungrouped</option>
+    </select>
+  </label>
+  <label class="mb-4 text-sm">From month<input type="month" name="from" value="{{ since }}" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700"></label>
+  <label class="mb-4 text-sm">To month<input type="month" name="to" value="{{ until }}" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700"></label>
+  <label class="mb-4 text-sm">Gym<input type="search" name="q" value="{{ q }}" placeholder="name or id" class="block border border-base-200 px-3 py-2 rounded-default dark:bg-base-900 dark:border-base-700"></label>
+  <button type="submit" class="bg-primary-600 border border-transparent font-medium mb-4 px-4 py-2 rounded-default text-white">Filter</button>
+  <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:perf' %}">Clear</a>
+  {% if total %}
+    <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:perf_csv' %}?{{ query }}">Download CSV</a>
+    <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:perf_csv' %}?{{ query }}&format=xlsx">Download XLSX</a>
+  {% endif %}
+  <a class="mb-4 px-3 py-2 text-primary-600" href="{% url 'console:perf_analysis' %}">Chart and compare →</a>
+</form>
+
+{% if not total %}
+  {% component "unfold/components/card.html" %}
+    No monthly performance numbers match. Run <strong>Total Revenue and Split</strong> (and the other performance cards) with
+    <em>Split by: month</em> on the <a class="text-primary-600" href="{% url 'console:run' %}">Run page</a>.
+  {% endcomponent %}
+{% else %}
+  {% component "unfold/components/card.html" with title="One row per gym and month, one column per metric" %}
+    <p class="mb-2 text-sm text-font-subtle-light dark:text-font-subtle-dark">{{ total|intcomma }} rows · {{ columns|length }} metrics. Months split by month win over day/week runs; several runs of the same month collapse to one figure.</p>
+    <div class="max-h-[75vh] overflow-auto">
+      <table class="text-sm w-full whitespace-nowrap">
+        <thead class="sticky top-0 z-10 bg-white dark:bg-base-900"><tr>
+          <th class="text-left sticky left-0 bg-white dark:bg-base-900">Gym</th><th class="text-left">Group</th><th class="text-left">Month</th>
+          {% for c in columns %}<th class="text-right">{{ c }}</th>{% endfor %}
+        </tr></thead>
+        <tbody>
+        {% for r in page %}
+          <tr class="border-t border-base-100 dark:border-base-800">
+            <td class="sticky left-0 bg-white dark:bg-base-900 font-medium">{{ r.name }}</td><td>{{ r.group }}</td><td>{{ r.month|date:"M-y" }}</td>
+            {% for v in r.cells %}<td class="text-right">{{ v|inr }}</td>{% endfor %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="flex flex-row gap-4 items-center mt-3 text-sm">
+      {% if page.has_previous %}<a class="text-primary-600" href="?{{ query }}&page={{ page.previous_page_number }}">← Previous</a>{% endif %}
+      <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+      {% if page.has_next %}<a class="text-primary-600" href="?{{ query }}&page={{ page.next_page_number }}">Next →</a>{% endif %}
+    </div>
+  {% endcomponent %}
+{% endif %}
+{% endblock %}
