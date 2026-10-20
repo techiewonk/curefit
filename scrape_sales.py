@@ -500,7 +500,8 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
             done = set()
             if not refresh:
                 done = {r[0] for r in conn.execute(
-                    "SELECT center_id FROM scrape_log WHERE report=? AND start_date=? AND end_date=?",
+                    "SELECT center_id FROM scrape_log WHERE report=? AND start_date=? AND end_date=? "
+                    "AND row_count>0",
                     (rep_name, start, end))}
             todo = [c for c in ids if c not in done]
             log.info("report_start", report=rep_name, to_scrape=len(todo), skipped=len(done))
