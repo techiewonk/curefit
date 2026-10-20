@@ -30,25 +30,29 @@ def db():
 
 
 def list_periods():
+    """One entry per scrape session (legacy rows from before sessions show as 'legacy')."""
     conn = db()
     try:
         rows = conn.execute("""
-            SELECT start_date, end_date, COUNT(DISTINCT center_id) AS centers
-            FROM scrape_log GROUP BY start_date, end_date
-            ORDER BY start_date DESC, end_date DESC
+            SELECT session_id, start_date, end_date, COUNT(DISTINCT center_id) AS centers,
+                   MAX(scraped_at) AS last_at
+            FROM scrape_log WHERE row_count>0
+            GROUP BY session_id, start_date, end_date
+            ORDER BY last_at DESC
         """).fetchall()
     except sqlite3.OperationalError:
         rows = []
     conn.close()
-    return [{"start": r[0], "end": r[1], "centers": r[2]} for r in rows]
+    return [{"session": r[0], "start": r[1], "end": r[2], "centers": r[3], "last": r[4]}
+            for r in rows]
 
 
-def analysis_payload(start, end):
+def analysis_payload(sid, start, end):
     conn = db()
     metrics = [r[0] for r in conn.execute(
-        "SELECT DISTINCT metric FROM perf_metrics WHERE start_date=? AND end_date=? ORDER BY metric",
-        (start, end))]
-    analysis = S.build_analysis(conn, start, end, metrics)
+        "SELECT DISTINCT metric FROM perf_metrics WHERE session_id=? AND start_date=? "
+        "AND end_date=? ORDER BY metric", (sid, start, end))]
+    analysis = S.build_analysis(conn, start, end, metrics, sid)
     rows = analysis["rows"]
 
     # per-center extras: active rate + average ticket size
@@ -57,7 +61,8 @@ def analysis_payload(start, end):
         """SELECT center_id, COUNT(*),
                   SUM(CASE WHEN active_last_30d='Yes' THEN 1 ELSE 0 END),
                   COALESCE(SUM(revenue),0)
-           FROM sales WHERE start_date=? AND end_date=? GROUP BY center_id""", (start, end)):
+           FROM sales WHERE session_id=? AND start_date=? AND end_date=?
+           GROUP BY center_id""", (sid, start, end)):
         extra[str(cid)] = {
             "active_count": act or 0,
             "active_rate": round(100.0 * (act or 0) / cnt, 1) if cnt else 0,
@@ -68,8 +73,8 @@ def analysis_payload(start, end):
     packs = [{"pack": p, "count": c, "revenue": round(r or 0, 0)}
              for p, c, r in conn.execute(
                  """SELECT pack_name, COUNT(*), SUM(revenue)
-                    FROM sales WHERE start_date=? AND end_date=?
-                    GROUP BY pack_name ORDER BY COUNT(*) DESC""", (start, end))]
+                    FROM sales WHERE session_id=? AND start_date=? AND end_date=?
+                    GROUP BY pack_name ORDER BY COUNT(*) DESC""", (sid, start, end))]
 
     sc = sum((r[2] or 0) for r in rows)
     sr = sum((r[3] or 0) for r in rows)
@@ -89,13 +94,14 @@ def analysis_payload(start, end):
             "packs": packs, "totals": totals, "start": start, "end": end}
 
 
-def sales_detail(start, end, center_id):
+def sales_detail(sid, start, end, center_id):
     conn = db()
     cols = ["user_id", "name", "phone", "pack_name", "member_end_date",
             "active_last_30d", "renewed", "revenue"]
     rows = conn.execute(
-        f"SELECT {','.join(cols)} FROM sales WHERE start_date=? AND end_date=? AND center_id=? "
-        f"ORDER BY revenue DESC NULLS LAST, name", (start, end, str(center_id))).fetchall()
+        f"SELECT {','.join(cols)} FROM sales WHERE session_id=? AND start_date=? AND end_date=? "
+        f"AND center_id=? ORDER BY revenue DESC NULLS LAST, name",
+        (sid, start, end, str(center_id))).fetchall()
     conn.close()
     return {"header": cols, "rows": rows}
 
@@ -121,9 +127,10 @@ class Handler(BaseHTTPRequestHandler):
             elif u.path == "/api/periods":
                 self._send(json.dumps(list_periods()))
             elif u.path == "/api/analysis":
-                self._send(json.dumps(analysis_payload(q["start"][0], q["end"][0])))
+                self._send(json.dumps(analysis_payload(q["session"][0], q["start"][0], q["end"][0])))
             elif u.path == "/api/sales":
-                self._send(json.dumps(sales_detail(q["start"][0], q["end"][0], q["center_id"][0])))
+                self._send(json.dumps(sales_detail(q["session"][0], q["start"][0], q["end"][0],
+                                                   q["center_id"][0])))
             else:
                 self.send_error(404)
         except Exception as e:
@@ -164,7 +171,7 @@ PAGE = r"""<!DOCTYPE html>
   <h1>Curefit Live Dashboard</h1>
   <span class="sub">reads directly from curefit.db</span>
   <span style="flex:1"></span>
-  <label class="sub">Period&nbsp;</label>
+  <label class="sub">Session&nbsp;</label>
   <select id="period"></select>
   <button onclick="load()">↻ Reload</button>
 </header>
@@ -197,16 +204,16 @@ async function initPeriods(){
   const ps=await j('/api/periods');
   const sel=document.getElementById('period');
   if(!ps.length){sel.innerHTML='<option>no data yet</option>';return;}
-  sel.innerHTML=ps.map(p=>`<option value="${p.start}|${p.end}">${p.start} → ${p.end} (${p.centers} centers)</option>`).join('');
+  sel.innerHTML=ps.map(p=>`<option value="${p.session}|${p.start}|${p.end}">${p.start} → ${p.end} · session ${p.session} (${p.centers} centers)</option>`).join('');
   load();
 }
 
 async function load(){
   const v=document.getElementById('period').value;
   if(!v||v==='no data yet')return;
-  const [start,end]=v.split('|');
-  CURRENT={start,end};
-  const d=await j(`/api/analysis?start=${start}&end=${end}`);
+  const [session,start,end]=v.split('|');
+  CURRENT={session,start,end};
+  const d=await j(`/api/analysis?session=${session}&start=${start}&end=${end}`);
   renderCards(d.totals); renderTable(d); renderCharts(d); renderPacks(d.packs);
   document.getElementById('detailPanel').style.display='none';
 }
@@ -266,7 +273,7 @@ const mixChart_ctx=()=>document.getElementById('mixChart');
 async function showDetail(cid,cname,rowEl){
   document.querySelectorAll('#tbl tr').forEach(t=>t.classList.remove('sel'));
   rowEl.classList.add('sel');
-  const d=await j(`/api/sales?start=${CURRENT.start}&end=${CURRENT.end}&center_id=${cid}`);
+  const d=await j(`/api/sales?session=${CURRENT.session}&start=${CURRENT.start}&end=${CURRENT.end}&center_id=${cid}`);
   const money=[7];
   let t='<thead><tr>'+d.header.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
   t+=d.rows.map(r=>'<tr>'+r.map((v,i)=>`<td>${v==null?'':(money.includes(i)?inr(v):v)}</td>`).join('')+'</tr>').join('');

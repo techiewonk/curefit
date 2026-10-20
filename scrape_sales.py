@@ -26,6 +26,7 @@ import csv
 import json
 import os
 import random
+import re
 import sqlite3
 import time
 import uuid
@@ -120,6 +121,7 @@ REPORTS.update(GENERIC_REPORTS)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CENTERS_JSON = os.path.join(HERE, "centers.json")
+RUNS_DIR = os.path.join(HERE, "runs")
 
 
 def polite_sleep():
@@ -154,6 +156,78 @@ def read_center_ids(path):
     return ids
 
 
+# --------------------------- sessions ---------------------------
+# Every run lives in runs/<date>/<start>_to_<end>_<id>/ with a session.json, one folder per
+# center holding one CSV per section, and the period-level reports.
+def _slug(text):
+    return re.sub(r"[^A-Za-z0-9]+", "-", text or "").strip("-") or "center"
+
+
+def _save_session(info):
+    with open(os.path.join(info["folder"], "session.json"), "w", encoding="utf-8") as f:
+        json.dump({k: v for k, v in info.items() if k != "folder"}, f, indent=2)
+
+
+def new_session(start, end, ids, reports):
+    sid = uuid.uuid4().hex[:6]
+    folder = os.path.join(RUNS_DIR, time.strftime("%Y-%m-%d"), f"{start}_to_{end}_{sid}")
+    os.makedirs(folder, exist_ok=True)
+    info = {"session_id": sid, "start": start, "end": end, "status": "running",
+            "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "finished_at": None,
+            "centers": ids, "reports": reports, "folder": folder}
+    _save_session(info)
+    return info
+
+
+def list_sessions():
+    """All sessions on disk, newest first."""
+    out = []
+    if os.path.isdir(RUNS_DIR):
+        for day in os.listdir(RUNS_DIR):
+            day_dir = os.path.join(RUNS_DIR, day)
+            if not os.path.isdir(day_dir):
+                continue
+            for name in os.listdir(day_dir):
+                f = os.path.join(day_dir, name, "session.json")
+                if os.path.exists(f):
+                    with open(f, encoding="utf-8") as fh:
+                        info = json.load(fh)
+                    info["folder"] = os.path.join(day_dir, name)
+                    out.append(info)
+    return sorted(out, key=lambda i: i.get("created_at", ""), reverse=True)
+
+
+def find_session(sid):
+    return next((i for i in list_sessions() if i["session_id"] == sid), None)
+
+
+def find_unfinished(start, end):
+    """Latest session for this exact period that did not complete."""
+    return next((i for i in list_sessions()
+                 if i["start"] == start and i["end"] == end and i["status"] != "complete"), None)
+
+
+TYPED_COLUMNS = {
+    "sales": ["user_id", "name", "phone", "pack_name", "member_end_date",
+              "active_last_30d", "renewed", "revenue"],
+    "perf": ["metric_date", "metric", "value"],
+    "gym": ["userid", "username", "packname", "final_amountpaid", "Purchasedate",
+            "Packstartdate", "Packenddate", "status", "offline_vs_online", "new_vs_repeat",
+            "Userclasslevel", "last_class_date"],
+}
+
+
+def write_center_file(folder, cid, name, code, rep_name, cols, rows):
+    """centers/<id>_<name>/<section>.csv inside the session folder."""
+    width = len(rows[0]) if rows else 0
+    header = cols if cols and len(cols) == width else \
+        (TYPED_COLUMNS.get(rep_name) if len(TYPED_COLUMNS.get(rep_name, [])) == width else None) \
+        or [f"col{i + 1}" for i in range(width)]
+    d = os.path.join(folder, "centers", f"{cid}_{_slug(name or code)}")
+    os.makedirs(d, exist_ok=True)
+    _write_csv(os.path.join(d, f"{rep_name}.csv"), header, rows)
+
+
 # ---------------------------- DB ----------------------------
 def init_db(conn):
     conn.executescript("""
@@ -161,14 +235,12 @@ def init_db(conn):
         center_id TEXT, center_name TEXT, center_code TEXT,
         start_date TEXT, end_date TEXT,
         user_id TEXT, name TEXT, phone TEXT, pack_name TEXT, member_end_date TEXT,
-        active_last_30d TEXT, renewed TEXT, revenue REAL, scraped_at TEXT
+        active_last_30d TEXT, renewed TEXT, revenue REAL, scraped_at TEXT, session_id TEXT
     );
-    CREATE INDEX IF NOT EXISTS idx_sales_period ON sales (center_id, start_date, end_date);
     CREATE TABLE IF NOT EXISTS perf_metrics (
         center_id TEXT, center_name TEXT, center_code TEXT,
         start_date TEXT, end_date TEXT,
-        metric_date TEXT, metric TEXT, value REAL, scraped_at TEXT,
-        PRIMARY KEY (center_id, start_date, end_date, metric_date, metric)
+        metric_date TEXT, metric TEXT, value REAL, scraped_at TEXT, session_id TEXT
     );
     CREATE TABLE IF NOT EXISTS gym_members (
         center_id TEXT, center_name TEXT, center_code TEXT,
@@ -176,22 +248,64 @@ def init_db(conn):
         user_id TEXT, username TEXT, pack_name TEXT, final_amount_paid REAL,
         purchase_date TEXT, pack_start_date TEXT, pack_end_date TEXT, status TEXT,
         offline_vs_online TEXT, new_vs_repeat TEXT, class_level TEXT, last_class_date TEXT,
-        scraped_at TEXT
+        scraped_at TEXT, session_id TEXT
     );
-    CREATE INDEX IF NOT EXISTS idx_gym_period ON gym_members (center_id, start_date, end_date);
     CREATE TABLE IF NOT EXISTS card_rows (
         report TEXT, center_id TEXT, center_name TEXT, center_code TEXT,
-        start_date TEXT, end_date TEXT, row_num INTEGER, data TEXT, scraped_at TEXT
+        start_date TEXT, end_date TEXT, row_num INTEGER, data TEXT, scraped_at TEXT,
+        session_id TEXT
     );
-    CREATE INDEX IF NOT EXISTS idx_card_rows ON card_rows (report, center_id, start_date, end_date);
     CREATE TABLE IF NOT EXISTS card_columns (report TEXT PRIMARY KEY, columns TEXT);
     CREATE TABLE IF NOT EXISTS scrape_log (
         report TEXT, center_id TEXT, start_date TEXT, end_date TEXT,
-        row_count INTEGER, scraped_at TEXT,
-        PRIMARY KEY (report, center_id, start_date, end_date)
+        row_count INTEGER, scraped_at TEXT, session_id TEXT,
+        PRIMARY KEY (session_id, report, center_id, start_date, end_date)
     );
     """)
     _migrate_sales(conn)
+    _migrate_sessions(conn)
+    conn.executescript("""
+    CREATE INDEX IF NOT EXISTS idx_sales_sess ON sales (session_id, center_id, start_date, end_date);
+    CREATE INDEX IF NOT EXISTS idx_perf_sess ON perf_metrics (session_id, center_id, start_date, end_date);
+    CREATE INDEX IF NOT EXISTS idx_gym_sess ON gym_members (session_id, center_id, start_date, end_date);
+    CREATE INDEX IF NOT EXISTS idx_card_sess ON card_rows
+        (session_id, report, center_id, start_date, end_date);
+    """)
+    conn.commit()
+
+
+def _columns(conn, table):
+    return [r[1] for r in conn.execute(f"PRAGMA table_info({table})")]
+
+
+def _migrate_sessions(conn):
+    """Databases from before sessions: tag every existing row as session 'legacy'."""
+    for t in ("sales", "gym_members", "card_rows"):
+        if "session_id" not in _columns(conn, t):
+            conn.execute(f"ALTER TABLE {t} ADD COLUMN session_id TEXT")
+            conn.execute(f"UPDATE {t} SET session_id='legacy'")
+    if "session_id" not in _columns(conn, "perf_metrics"):  # old primary key forbids sessions
+        conn.executescript("""
+        ALTER TABLE perf_metrics RENAME TO perf_old;
+        CREATE TABLE perf_metrics (
+            center_id TEXT, center_name TEXT, center_code TEXT,
+            start_date TEXT, end_date TEXT,
+            metric_date TEXT, metric TEXT, value REAL, scraped_at TEXT, session_id TEXT
+        );
+        INSERT INTO perf_metrics SELECT *, 'legacy' FROM perf_old;
+        DROP TABLE perf_old;
+        """)
+    if "session_id" not in _columns(conn, "scrape_log"):
+        conn.executescript("""
+        ALTER TABLE scrape_log RENAME TO log_old;
+        CREATE TABLE scrape_log (
+            report TEXT, center_id TEXT, start_date TEXT, end_date TEXT,
+            row_count INTEGER, scraped_at TEXT, session_id TEXT,
+            PRIMARY KEY (session_id, report, center_id, start_date, end_date)
+        );
+        INSERT INTO scrape_log SELECT *, 'legacy' FROM log_old;
+        DROP TABLE log_old;
+        """)
     conn.commit()
 
 
@@ -309,42 +423,42 @@ def get_rows(mb, rep, token, start, end):
 
 
 # ------------------------- persistence -------------------------
-def store_sales(conn, cid, name, code, start, end, rows, now):
-    conn.execute("DELETE FROM sales WHERE center_id=? AND start_date=? AND end_date=?",
-                 (cid, start, end))
+def store_sales(conn, cid, name, code, start, end, rows, now, sid):
+    conn.execute("DELETE FROM sales WHERE session_id=? AND center_id=? AND start_date=? AND end_date=?",
+                 (sid, cid, start, end))
     for r in rows:  # [user_id,name,phone,pack,end,active,renewed,revenue]
-        conn.execute("""INSERT OR REPLACE INTO sales VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        conn.execute("INSERT INTO sales VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                      (cid, name, code, start, end, str(r[0]), r[1], r[2], r[3], r[4],
-                      r[5], r[6], r[7], now))
+                      r[5], r[6], r[7], now, sid))
 
 
-def store_perf(conn, cid, name, code, start, end, rows, now):
-    conn.execute("DELETE FROM perf_metrics WHERE center_id=? AND start_date=? AND end_date=?",
-                 (cid, start, end))
+def store_perf(conn, cid, name, code, start, end, rows, now, sid):
+    conn.execute("DELETE FROM perf_metrics WHERE session_id=? AND center_id=? "
+                 "AND start_date=? AND end_date=?", (sid, cid, start, end))
     for r in rows:  # [date, metric, value]
-        conn.execute("""INSERT OR REPLACE INTO perf_metrics VALUES (?,?,?,?,?,?,?,?,?)""",
-                     (cid, name, code, start, end, r[0], (r[1] or "").strip(), r[2], now))
+        conn.execute("INSERT INTO perf_metrics VALUES (?,?,?,?,?,?,?,?,?,?)",
+                     (cid, name, code, start, end, r[0], (r[1] or "").strip(), r[2], now, sid))
 
 
-def store_gym(conn, cid, name, code, start, end, rows, now):
-    conn.execute("DELETE FROM gym_members WHERE center_id=? AND start_date=? AND end_date=?",
-                 (cid, start, end))
+def store_gym(conn, cid, name, code, start, end, rows, now, sid):
+    conn.execute("DELETE FROM gym_members WHERE session_id=? AND center_id=? "
+                 "AND start_date=? AND end_date=?", (sid, cid, start, end))
     for r in rows:  # [userid, username, pack, amount, purchased, pack_start, pack_end, status,
         #             offline_vs_online, new_vs_repeat, class_level, last_class_date]
-        conn.execute("INSERT INTO gym_members VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                     (cid, name, code, start, end, str(r[0]), *r[1:12], now))
+        conn.execute("INSERT INTO gym_members VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                     (cid, name, code, start, end, str(r[0]), *r[1:12], now, sid))
 
 
 STORE = {"sales": store_sales, "perf": store_perf, "gym": store_gym}
 
 
-def store_generic(conn, report, cols, cid, name, code, start, end, rows, now):
+def store_generic(conn, report, cols, cid, name, code, start, end, rows, now, sid):
     """Cards whose columns are not modelled: one JSON row each, columns kept per report."""
-    conn.execute("DELETE FROM card_rows WHERE report=? AND center_id=? AND start_date=? AND end_date=?",
-                 (report, cid, start, end))
+    conn.execute("DELETE FROM card_rows WHERE session_id=? AND report=? AND center_id=? "
+                 "AND start_date=? AND end_date=?", (sid, report, cid, start, end))
     conn.executemany(
-        "INSERT INTO card_rows VALUES (?,?,?,?,?,?,?,?,?)",
-        [(report, cid, name, code, start, end, i, json.dumps(r, default=str), now)
+        "INSERT INTO card_rows VALUES (?,?,?,?,?,?,?,?,?,?)",
+        [(report, cid, name, code, start, end, i, json.dumps(r, default=str), now, sid)
          for i, r in enumerate(rows)])
     conn.execute("INSERT OR REPLACE INTO card_columns VALUES (?,?)", (report, json.dumps(cols)))
 
@@ -367,44 +481,46 @@ def _write_csv(path, header, rows):
         w.writerows(rows)
 
 
-def export_reports(conn, start, end):
-    ts = time.strftime("%Y%m%d-%H%M%S")
+def export_reports(conn, start, end, sid, out_dir):
+    """Period-level reports for one session, written into the session folder."""
     written = []
+
+    def out(name):
+        return os.path.join(out_dir, name)
 
     # 1) sales member-level report
     cols = ["center_id", "center_name", "center_code", "start_date", "end_date",
             "user_id", "name", "phone", "pack_name", "member_end_date",
             "active_last_30d", "renewed", "revenue", "scraped_at"]
     rows = conn.execute(
-        f"SELECT {','.join(cols)} FROM sales WHERE start_date=? AND end_date=? "
-        f"ORDER BY CAST(center_id AS INT), name", (start, end)).fetchall()
-    p = versioned_path(os.path.join(HERE, f"sales_report_{start}_{end}_{ts}"))
-    _write_csv(p, cols, rows); written.append(p)
+        f"SELECT {','.join(cols)} FROM sales WHERE session_id=? AND start_date=? AND end_date=? "
+        f"ORDER BY CAST(center_id AS INT), name", (sid, start, end)).fetchall()
+    _write_csv(out("sales_report.csv"), cols, rows); written.append(out("sales_report.csv"))
 
     # 2) perf long report
     pcols = ["center_id", "center_name", "center_code", "start_date", "end_date",
              "metric_date", "metric", "value", "scraped_at"]
     prows = conn.execute(
-        f"SELECT {','.join(pcols)} FROM perf_metrics WHERE start_date=? AND end_date=? "
-        f"ORDER BY CAST(center_id AS INT), metric", (start, end)).fetchall()
-    p = versioned_path(os.path.join(HERE, f"perf_long_{start}_{end}_{ts}"))
-    _write_csv(p, pcols, prows); written.append(p)
+        f"SELECT {','.join(pcols)} FROM perf_metrics WHERE session_id=? AND start_date=? "
+        f"AND end_date=? ORDER BY CAST(center_id AS INT), metric", (sid, start, end)).fetchall()
+    _write_csv(out("perf_long.csv"), pcols, prows); written.append(out("perf_long.csv"))
 
     # 3) perf pivoted wide (one row per center, metrics as columns)
     metrics = [m[0] for m in conn.execute(
-        "SELECT DISTINCT metric FROM perf_metrics WHERE start_date=? AND end_date=? ORDER BY metric",
-        (start, end))]
+        "SELECT DISTINCT metric FROM perf_metrics WHERE session_id=? AND start_date=? "
+        "AND end_date=? ORDER BY metric", (sid, start, end))]
     centers = conn.execute(
         "SELECT DISTINCT center_id, center_name FROM perf_metrics "
-        "WHERE start_date=? AND end_date=? ORDER BY CAST(center_id AS INT)", (start, end))
+        "WHERE session_id=? AND start_date=? AND end_date=? ORDER BY CAST(center_id AS INT)",
+        (sid, start, end))
     pivot_rows = []
     for cid, cname in centers.fetchall():
         vals = dict(conn.execute(
-            "SELECT metric, value FROM perf_metrics WHERE center_id=? AND start_date=? AND end_date=?",
-            (cid, start, end)).fetchall())
+            "SELECT metric, value FROM perf_metrics WHERE session_id=? AND center_id=? "
+            "AND start_date=? AND end_date=?", (sid, cid, start, end)).fetchall())
         pivot_rows.append([cid, cname] + [vals.get(m) for m in metrics])
-    p = versioned_path(os.path.join(HERE, f"perf_pivot_{start}_{end}_{ts}"))
-    _write_csv(p, ["center_id", "center_name"] + metrics, pivot_rows); written.append(p)
+    _write_csv(out("perf_pivot.csv"), ["center_id", "center_name"] + metrics, pivot_rows)
+    written.append(out("perf_pivot.csv"))
 
     # 3b) gym members (member/pack list)
     gcols = ["center_id", "center_name", "center_code", "start_date", "end_date",
@@ -412,39 +528,37 @@ def export_reports(conn, start, end):
              "pack_start_date", "pack_end_date", "status", "offline_vs_online",
              "new_vs_repeat", "class_level", "last_class_date", "scraped_at"]
     grows = conn.execute(
-        f"SELECT {','.join(gcols)} FROM gym_members WHERE start_date=? AND end_date=? "
-        f"ORDER BY CAST(center_id AS INT), username", (start, end)).fetchall()
-    p = versioned_path(os.path.join(HERE, f"gym_members_{start}_{end}_{ts}"))
-    _write_csv(p, gcols, grows); written.append(p)
+        f"SELECT {','.join(gcols)} FROM gym_members WHERE session_id=? AND start_date=? "
+        f"AND end_date=? ORDER BY CAST(center_id AS INT), username", (sid, start, end)).fetchall()
+    _write_csv(out("gym_members.csv"), gcols, grows); written.append(out("gym_members.csv"))
 
-    # 3c) generic cards: one CSV per report that has data for this period
+    # 3c) generic cards: one CSV per report that has data in this session
     for rname in GENERIC_REPORTS:
         row = conn.execute("SELECT columns FROM card_columns WHERE report=?", (rname,)).fetchone()
         data = conn.execute(
             "SELECT center_id, center_name, center_code, data, scraped_at FROM card_rows "
-            "WHERE report=? AND start_date=? AND end_date=? "
-            "ORDER BY CAST(center_id AS INT), row_num", (rname, start, end)).fetchall()
+            "WHERE session_id=? AND report=? AND start_date=? AND end_date=? "
+            "ORDER BY CAST(center_id AS INT), row_num", (sid, rname, start, end)).fetchall()
         if not row or not data:
             continue
         cols = json.loads(row[0])
-        out = []
+        rows_out = []
         for cid, cn, cc, d, scraped in data:
             vals = json.loads(d)
             vals += [None] * (len(cols) - len(vals))
-            out.append([cid, cn, cc] + vals + [scraped])
-        p = versioned_path(os.path.join(HERE, f"{rname}_{start}_{end}_{ts}"))
-        _write_csv(p, ["center_id", "center_name", "center_code"] + cols + ["scraped_at"], out)
-        written.append(p)
+            rows_out.append([cid, cn, cc] + vals + [scraped])
+        _write_csv(out(f"{rname}.csv"),
+                   ["center_id", "center_name", "center_code"] + cols + ["scraped_at"], rows_out)
+        written.append(out(f"{rname}.csv"))
 
     # 4) analysis: revenue summary + new/repeat split + combined
-    analysis = build_analysis(conn, start, end, metrics)
-    p = versioned_path(os.path.join(HERE, f"analysis_{start}_{end}_{ts}"))
-    _write_csv(p, analysis["header"], analysis["rows"]); written.append(p)
+    analysis = build_analysis(conn, start, end, metrics, sid)
+    _write_csv(out("analysis.csv"), analysis["header"], analysis["rows"])
+    written.append(out("analysis.csv"))
 
     # 5) standalone HTML dashboard (data embedded, no server needed)
-    p = versioned_path(os.path.join(HERE, f"dashboard_{start}_{end}_{ts}"), ".html")
-    _write_html(p, start, end, analysis)
-    written.append(p)
+    _write_html(out("dashboard.html"), start, end, analysis)
+    written.append(out("dashboard.html"))
 
     return written, analysis
 
@@ -532,7 +646,7 @@ def _find_metric(metrics, *needles):
     return None
 
 
-def build_analysis(conn, start, end, metrics):
+def build_analysis(conn, start, end, metrics, sid):
     m_total = _find_metric(metrics, "total", "revenue") or _find_metric(metrics, "1.", "total")
     m_new = _find_metric(metrics, "new", "revenue")
     m_repeat = _find_metric(metrics, "repeat", "revenue")
@@ -544,17 +658,19 @@ def build_analysis(conn, start, end, metrics):
     # pull the center list from whatever we scraped (sales or perf)
     centers = conn.execute("""
         SELECT center_id, MAX(center_name) FROM (
-            SELECT center_id, center_name FROM sales WHERE start_date=? AND end_date=?
-            UNION SELECT center_id, center_name FROM perf_metrics WHERE start_date=? AND end_date=?
+            SELECT center_id, center_name FROM sales
+              WHERE session_id=? AND start_date=? AND end_date=?
+            UNION SELECT center_id, center_name FROM perf_metrics
+              WHERE session_id=? AND start_date=? AND end_date=?
         ) GROUP BY center_id ORDER BY CAST(center_id AS INT)
-    """, (start, end, start, end)).fetchall()
+    """, (sid, start, end, sid, start, end)).fetchall()
 
     for cid, cname in centers:
         sc = conn.execute(
             "SELECT COUNT(*), COALESCE(SUM(revenue),0), "
             "SUM(CASE WHEN renewed='Yes' THEN 1 ELSE 0 END) "
-            "FROM sales WHERE center_id=? AND start_date=? AND end_date=?",
-            (cid, start, end)).fetchone()
+            "FROM sales WHERE session_id=? AND center_id=? AND start_date=? AND end_date=?",
+            (sid, cid, start, end)).fetchone()
         count, sales_rev, renewals = sc[0], sc[1], sc[2] or 0
         rr = round(100.0 * renewals / count, 1) if count else 0.0
 
@@ -562,8 +678,9 @@ def build_analysis(conn, start, end, metrics):
             if not metric:
                 return None
             row = conn.execute(
-                "SELECT SUM(value) FROM perf_metrics WHERE center_id=? AND metric=? "
-                "AND start_date=? AND end_date=?", (cid, metric, start, end)).fetchone()
+                "SELECT SUM(value) FROM perf_metrics WHERE session_id=? AND center_id=? "
+                "AND metric=? AND start_date=? AND end_date=?",
+                (sid, cid, metric, start, end)).fetchone()
             return row[0]
         total, new, repeat = pv(m_total), pv(m_new), pv(m_repeat)
         new_pct = round(100.0 * new / total, 1) if total and new is not None else None
@@ -612,9 +729,7 @@ def print_analysis(analysis, start, end):
 
 
 # ----------------------------- runner -----------------------------
-def _write_coverage(stats, start, end):
-    ts = time.strftime("%Y%m%d-%H%M%S")
-    path = versioned_path(os.path.join(HERE, f"coverage_{start}_{end}_{ts}"))
+def _write_coverage(stats, path):
     rows = []
     for rep_name, st in stats.items():
         rows.append([rep_name, st["requested"], st["already_done"], st["ok"], len(st["empty"]),
@@ -623,11 +738,17 @@ def _write_coverage(stats, start, end):
     _write_csv(path, ["report", "requested", "already_done", "scraped", "empty", "failed",
                       "possibly_truncated", "skipped_after_failures", "empty_center_ids",
                       "failed_center_ids"], rows)
-    return path, rows
+    return rows
 
 
-def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refresh=False):
-    """Scrape all configured reports for the centers in the CSV. Callable from run.py."""
+def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refresh=False,
+               session=None):
+    """Scrape all configured reports for the centers in the CSV into one session.
+
+    session=None starts a brand-new session (nothing is skipped because of older runs).
+    Pass an existing session dict (see find_unfinished / find_session) to resume it: only
+    the center/section pairs it has not saved yet are fetched.
+    """
     csv_path = centers_csv if os.path.isabs(centers_csv) else os.path.join(HERE, centers_csv)
     db_path = db if os.path.isabs(db) else os.path.join(HERE, db)
 
@@ -635,24 +756,35 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
     meta = load_center_meta()
     reports = [only] if only else list(REPORTS)
 
+    if session is None:
+        session = new_session(start, end, ids, reports)
+        resumed = False
+    else:
+        start, end = session["start"], session["end"]
+        session["status"] = "running"
+        _save_session(session)
+        resumed = True
+    sid, folder = session["session_id"], session["folder"]
+
     conn = sqlite3.connect(db_path)
     init_db(conn)
 
-    session, _ = C.load_session()
+    http, _ = C.load_session()
     mb = requests.Session()
     mb.cookies.set("metabase.DEVICE", str(uuid.uuid4()))
 
     console.print(Panel.fit(
-        f"[bold]Curefit scraper[/bold]\n"
+        f"[bold]Curefit scraper[/bold]  session [magenta]{sid}[/magenta]"
+        f"{' (resumed)' if resumed else ''}\n"
         f"period [cyan]{start} → {end}[/cyan]\n"
         f"centers [cyan]{len(ids)}[/cyan]   reports [cyan]{len(reports)}[/cyan]\n"
-        f"db [dim]{db_path}[/dim]", border_style="cyan"))
+        f"folder [dim]{folder}[/dim]\ndb [dim]{db_path}[/dim]", border_style="cyan"))
 
     stats, done = {}, {}
     for rep_name in reports:
         done[rep_name] = set() if refresh else {r[0] for r in conn.execute(
-            "SELECT center_id FROM scrape_log WHERE report=? AND start_date=? AND end_date=? "
-            "AND row_count>0", (rep_name, start, end))}
+            "SELECT center_id FROM scrape_log WHERE session_id=? AND report=? AND start_date=? "
+            "AND end_date=? AND row_count>0", (sid, rep_name, start, end))}
         stats[rep_name] = {"requested": len(ids), "already_done": len(done[rep_name] & set(ids)),
                            "ok": 0, "empty": [], "failed": [], "capped": [], "skipped": False}
 
@@ -686,7 +818,7 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                         rows, cols = [], []
                         for attempt in (1, 2):  # an empty result gets one retry, fresh token
                             if token is None:
-                                token = get_token(session, rep, cid, start, end)
+                                token = get_token(http, rep, cid, start, end)
                                 warm_up(mb, token)
                             rows, cols = get_rows(mb, rep, token, start, end)
                             if rows:
@@ -706,12 +838,13 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
                                 log.warning("possible_truncation", report=rep_name,
                                             center_id=cid, rows=len(rows), cap=ROW_CAP)
                             if rep_name in STORE:
-                                STORE[rep_name](conn, cid, name, code, start, end, rows, now)
+                                STORE[rep_name](conn, cid, name, code, start, end, rows, now, sid)
                             else:
                                 store_generic(conn, rep_name, cols, cid, name, code,
-                                              start, end, rows, now)
-                            conn.execute("INSERT OR REPLACE INTO scrape_log VALUES (?,?,?,?,?,?)",
-                                         (rep_name, cid, start, end, len(rows), now))
+                                              start, end, rows, now, sid)
+                            write_center_file(folder, cid, name, code, rep_name, cols, rows)
+                            conn.execute("INSERT OR REPLACE INTO scrape_log VALUES (?,?,?,?,?,?,?)",
+                                         (rep_name, cid, start, end, len(rows), now, sid))
                             conn.commit()
                             st["ok"] += 1
                             log.info("center_ok", report=rep_name, center_id=cid,
@@ -745,17 +878,29 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
 
     if aborted:
         console.print("[bold red]Session rejected (401/403) — stopping. Log in again "
-                      "(python run.py) and re-run; finished centers are kept.[/bold red]")
+                      "(python run.py) and continue this session; saved centers are kept."
+                      "[/bold red]")
 
     totals = {k: sum(len(v[k]) for v in stats.values()) for k in ("empty", "failed", "capped")}
     totals["ok"] = sum(v["ok"] for v in stats.values())
-    log.info("scrape_done", ok=totals["ok"], failed=totals["failed"], empty=totals["empty"],
-             possibly_truncated=totals["capped"], aborted=aborted)
+    log.info("scrape_done", session=sid, ok=totals["ok"], failed=totals["failed"],
+             empty=totals["empty"], possibly_truncated=totals["capped"], aborted=aborted)
 
-    written, analysis = export_reports(conn, start, end)
-    cov_path, cov_rows = _write_coverage(stats, start, end)
+    written, analysis = export_reports(conn, start, end, sid, folder)
+    cov_path = os.path.join(folder, "coverage.csv")
+    cov_rows = _write_coverage(stats, cov_path)
     written.append(cov_path)
     print_analysis(analysis, start, end)
+
+    # complete = every requested center/section is saved in this session
+    saved = {r: {x[0] for x in conn.execute(
+        "SELECT center_id FROM scrape_log WHERE session_id=? AND report=? AND start_date=? "
+        "AND end_date=? AND row_count>0", (sid, r, start, end))} for r in reports}
+    missing = {r: [c for c in ids if c not in saved[r]] for r in reports}
+    session["status"] = "complete" if not any(missing.values()) else "incomplete"
+    session["finished_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+    session["missing"] = {r: m for r, m in missing.items() if m}
+    _save_session(session)
 
     cov = Table(title="Coverage", header_style="bold cyan")
     for h in ("Report", "Centers", "Already done", "Scraped", "Empty", "Failed", "Capped", "Skipped"):
@@ -769,12 +914,15 @@ def run_scrape(start, end, centers_csv=CENTERS_CSV, db=DB_FILE, only=None, refre
             console.print(f"[red]{rep_name}: {len(st['capped'])} result(s) hit the {ROW_CAP}-row "
                           f"cap, may be incomplete (centers {', '.join(st['capped'])})[/red]")
 
-    files_tbl = Table(title="Files written", header_style="bold green", show_header=False)
+    files_tbl = Table(title="Period files", header_style="bold green", show_header=False)
     for pth in written:
-        files_tbl.add_row(os.path.basename(pth))
+        files_tbl.add_row(os.path.relpath(pth, folder))
     console.print(files_tbl)
+    colour = "green" if session["status"] == "complete" else "yellow"
+    console.print(f"Session [magenta]{sid}[/magenta] is [{colour}]{session['status']}[/{colour}] "
+                  f"→ {folder}")
     conn.close()
-    return written
+    return session
 
 
 def main():
@@ -784,9 +932,16 @@ def main():
     ap.add_argument("--end", default=END_DATE)
     ap.add_argument("--db", default=DB_FILE)
     ap.add_argument("--only", choices=list(REPORTS), help="scrape just one report")
-    ap.add_argument("--refresh", action="store_true", help="re-scrape even if logged")
+    ap.add_argument("--session", help="resume this session id (default: start a new session)")
+    ap.add_argument("--refresh", action="store_true",
+                    help="re-fetch everything, even what the session already saved")
     args = ap.parse_args()
-    run_scrape(args.start, args.end, args.centers_csv, args.db, args.only, args.refresh)
+    session = None
+    if args.session:
+        session = find_session(args.session)
+        if session is None:
+            raise SystemExit(f"No session '{args.session}' under {RUNS_DIR}")
+    run_scrape(args.start, args.end, args.centers_csv, args.db, args.only, args.refresh, session)
 
 
 if __name__ == "__main__":

@@ -212,3 +212,27 @@ function if the columns differ from the existing reports.
 | `curefit.db` | SQLite results database (auto-generated) |
 
 > **Note:** `session.json` holds a live login token — keep it private and don't commit it.
+
+---
+
+## Sessions (one folder per run)
+
+Every run is a **session** with its own folder, so a new run is never blocked by data that
+an older run already saved:
+
+```
+runs/2026-10-20/2026-07-01_to_2026-07-31_a1b2c3/
+  session.json                 period, centers, status (running / incomplete / complete)
+  centers/1_Cult-Indiranagar/  one folder per center, one CSV per section
+      sales.csv  perf.csv  gym.csv  perf_membership.csv ...
+  sales_report.csv  perf_long.csv  perf_pivot.csv  gym_members.csv  analysis.csv
+  dashboard.html  coverage.csv
+```
+
+- A new run always scrapes everything fresh.
+- If the previous session for the same period did not finish, `run.bat` offers to
+  **continue** it: only the center/section pairs that are still missing are fetched.
+  From the command line: `python scrape_sales.py --start ... --end ... --session a1b2c3`.
+- `curefit.db` stays the shared database; every row is tagged with its session id, and
+  rows from before sessions are tagged `legacy`.
+- `dashboard.bat` has a session picker, so each run can be viewed on its own.
