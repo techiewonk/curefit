@@ -31,7 +31,7 @@ stops both; a scrape that was in flight shows as *interrupted* and can be contin
 ## First run
 
 1. Open **Run a scrape**, click *Send OTP*, enter the code from the email, *Verify*.
-2. Open **Update from Kronos** and click the button: this loads every center.
+2. Open **Update** (under Centers) and click the button: this loads every center from Kronos.
 3. On **Centers**, tick centers and use *Add to Actual list* / *Add to Test list*.
 4. On **Run a scrape**, pick the *test* list first, a period and the reports, then *Start*.
 
@@ -44,7 +44,7 @@ stops both; a scrape that was in flight shows as *interrupted* and can be contin
 | **Live monitor** | Centers × reports grid that updates while a run is active (click a square for its result) |
 | **Analytics / Compare sessions** | Charts and per-center numbers for any session; the difference between two sessions |
 | **Sessions, Section results, Sales / Perf / Gym / Other cards** | Standard admin lists with search, filters and CSV/XLSX export |
-| **Update from Kronos / Centers / Center lists / Known empty** | Refresh the center list; build the *actual* and *test* lists; centers that are always empty for a report |
+| **Update / Centers / Center groups / Center lists / Known empty** | Refresh the center list; build the *actual* and *test* lists; centers that are always empty for a report |
 | **Settings** | Delays, retries, timeouts, row cap, safety limits, the Kronos login email |
 
 **Speed:** Gentle (1 center at a time), Normal (2), Fast (4), or Adaptive (starts at 2, halves when

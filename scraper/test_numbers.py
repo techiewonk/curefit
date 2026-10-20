@@ -55,3 +55,14 @@ class NumberTests(FakeKronosMixin, TransactionTestCase):
                 mock.patch("waitress.serve"), mock.patch("subprocess.Popen"), mock.patch("threading.Timer"):
             call_command("serve", "--no-open", "--no-jobs")
         self.assertEqual(called.call_args_list[0].args[0], "migrate")
+
+    def test_an_auto_reload_restart_migrates_too_but_skips_the_slow_steps(self):
+        import os
+        from unittest import mock
+        from django.core.management import call_command
+        with mock.patch.dict(os.environ, {"RUN_MAIN": "true"}),                 mock.patch("console.management.commands.serve.call_command") as called,                 mock.patch("django.core.management.commands.runserver.Command.handle"), mock.patch("subprocess.Popen"):
+            call_command("serve", "--no-open", "--no-jobs", "--reload")
+        names = [c.args[0] for c in called.call_args_list]
+        self.assertEqual(names[0], "migrate")
+        self.assertNotIn("link_customers", names)
+        self.assertNotIn("merge_masters", names)

@@ -16,6 +16,7 @@
       {% include "unfold/helpers/field.html" with field=form.end %}
       {% include "unfold/helpers/field.html" with field=form.centers %}
       {% include "unfold/helpers/field.html" with field=form.pick %}
+      {% include "unfold/helpers/field.html" with field=form.groups %}
       {% include "unfold/helpers/field.html" with field=form.speed %}
       {% include "unfold/helpers/field.html" with field=form.granularity %}
       {% include "unfold/helpers/field.html" with field=form.sales_chunk %}
@@ -34,6 +35,29 @@
     <div hx-get="{% url 'console:estimate' %}" hx-include="#run-form" hx-trigger="load, change from:#run-form"
          class="text-sm text-font-subtle-light dark:text-font-subtle-dark"></div>
   </div>
+
+  {% component "unfold/components/card.html" with title="Save as campaign (run it automatically)" %}
+    <p class="mb-3 text-sm text-font-subtle-light dark:text-font-subtle-dark">
+      Keeps everything above (gyms, groups, reports, speed, splits, options) under a name and runs it on a schedule.
+      The dates above are not repeated: choose the period each run should report on.
+    </p>
+    {% if campaign.errors %}{% include "unfold/helpers/form_errors.html" with errors=campaign.non_field_errors %}{% endif %}
+    <div class="grid gap-x-6 md:grid-cols-3">
+      {% include "unfold/helpers/field.html" with field=campaign.name %}
+      {% include "unfold/helpers/field.html" with field=campaign.period_rule %}
+      {% include "unfold/helpers/field.html" with field=campaign.days %}
+      {% include "unfold/helpers/field.html" with field=campaign.frequency %}
+      {% include "unfold/helpers/field.html" with field=campaign.run_at %}
+      {% include "unfold/helpers/field.html" with field=campaign.weekday %}
+      {% include "unfold/helpers/field.html" with field=campaign.month_day %}
+      {% include "unfold/helpers/field.html" with field=campaign.cron %}
+      {% include "unfold/helpers/field.html" with field=campaign.enabled %}
+      {% include "unfold/helpers/field.html" with field=campaign.continue_unfinished %}
+    </div>
+    <button type="submit" name="save_campaign" value="1" class="border border-primary-600 font-medium px-4 py-2 rounded-default text-primary-600">
+      Save as campaign
+    </button>
+  {% endcomponent %}
 </form>
 
 <div id="job-panel" hx-get="{% url 'console:job' %}" hx-trigger="load, every 2s" hx-swap="innerHTML"></div>

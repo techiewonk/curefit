@@ -202,7 +202,7 @@ UNFOLD = {
                 {"title": "Section results", "icon": "fact_check", "link": _ADMIN("scraper_sectionresult")},
             ]},
             {"title": "Centers", "separator": True, "items": [
-                {"title": "Update from Kronos", "icon": "sync", "link": reverse_lazy("console:centers")},
+                {"title": "Update", "icon": "sync", "link": reverse_lazy("console:centers")},
                 {"title": "Centers", "icon": "store", "link": _ADMIN("centers_center")},
                 {"title": "Center groups", "icon": "workspaces", "link": _ADMIN("centers_centergroup")},
                 {"title": "Center lists", "icon": "list_alt", "link": _ADMIN("centers_centerlist")},

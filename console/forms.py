@@ -3,12 +3,12 @@ import datetime as dt
 
 from django import forms
 from unfold.widgets import (UnfoldAdminCheckboxSelectMultipleWidget, UnfoldAdminRadioSelectWidget,
-                            UnfoldAdminSelect2MultipleWidget, UnfoldAdminSelectWidget, UnfoldAdminSingleDateWidget,
+                            UnfoldAdminSelect2MultipleWidget, UnfoldAdminSelectWidget, UnfoldAdminSingleDateWidget, UnfoldAdminSingleTimeWidget,
                             UnfoldAdminTextInputWidget, UnfoldBooleanSwitchWidget)
 
-from centers.models import Center, CenterList
+from centers.models import Center, CenterGroup, CenterList
 from scraper.conf import SPEED_CHOICES, SPEED_PROFILES
-from scraper.models import Session
+from scraper.models import AutoRun, Session
 from scraper.reports import REPORTS, TYPED, report_choices
 
 
@@ -35,6 +35,10 @@ class RunForm(forms.Form):
         Center.objects.order_by("center_id"), required=False, label="Or choose centers",
         help_text="Optional, handy for testing: type to search and pick one or more. When any are chosen "
                   "they are used instead of the list above.",
+        widget=UnfoldAdminSelect2MultipleWidget)
+    groups = forms.ModelMultipleChoiceField(
+        CenterGroup.objects.all(), required=False, label="Or choose groups",
+        help_text="Optional: every gym of the chosen groups (together with any gyms chosen above).",
         widget=UnfoldAdminSelect2MultipleWidget)
     reports = forms.MultipleChoiceField(choices=report_choices, initial=list(TYPED),  # the extra cards start unticked
                                         help_text="The three core reports are ticked. The extra perf and sales cards are off until you tick them.",
@@ -63,11 +67,18 @@ class RunForm(forms.Form):
         self.fields["centers"].initial = "actual"
         self.fields["sales_chunk"].initial = default_chunk()
 
+    def chosen_ids(self):
+        """The gyms picked by hand plus the gyms of the chosen groups; empty = use the center list."""
+        d = self.cleaned_data
+        ids = {c.pk for c in d.get("pick") or []}
+        for group in d.get("groups") or []:
+            ids.update(group.centers.values_list("pk", flat=True))
+        return sorted(ids)
+
     @property
     def center_count(self):
         """How many centers this run covers: the chosen ones, else the whole list."""
-        d = self.cleaned_data
-        return len(d["pick"]) if d.get("pick") else d["centers"].centers.count()
+        return len(self.chosen_ids()) or self.cleaned_data["centers"].centers.count()
 
     def clean(self):
         data = super().clean()
@@ -85,7 +96,7 @@ class RunForm(forms.Form):
         every_report = set(d["reports"]) == set(REPORTS)
         return {"start": d["start"].isoformat(), "end": d["end"].isoformat(), "list": d["centers"].name,
                 "only": None if every_report else d["reports"], "workers": self.workers,
-                "center_ids": [c.pk for c in d["pick"]] or None,
+                "center_ids": self.chosen_ids() or None,
                 "speed": d["speed"], "granularity": d["granularity"] or Session.MONTH,
                 "sales_chunk": d["sales_chunk"] or default_chunk(), "fill_missing": d["fill_missing"],
                 "session": d["session"].pk if d["session"] else None,
@@ -111,3 +122,40 @@ class SessionPickForm(forms.Form):
 
     session = forms.ModelChoiceField(
         Session.objects.all(), widget=UnfoldAdminSelectWidget(attrs={"onchange": "this.form.submit()"}))
+
+
+class CampaignForm(forms.ModelForm):
+    """'Save as campaign' on the Run page: a name and a schedule; everything else is taken from the Run form."""
+
+    use_required_attribute = False  # these fields only matter when Save as campaign is pressed, not when Start is
+
+    class Meta:
+        model = AutoRun
+        fields = ["name", "frequency", "run_at", "weekday", "month_day", "cron", "period_rule", "days", "enabled",
+                  "continue_unfinished"]
+        widgets = {"name": UnfoldAdminTextInputWidget, "frequency": UnfoldAdminSelectWidget,
+                   "weekday": UnfoldAdminSelectWidget, "period_rule": UnfoldAdminSelectWidget,
+                   "run_at": UnfoldAdminSingleTimeWidget, "cron": UnfoldAdminTextInputWidget,
+                   "month_day": UnfoldAdminTextInputWidget, "days": UnfoldAdminTextInputWidget,
+                   "enabled": UnfoldBooleanSwitchWidget, "continue_unfinished": UnfoldBooleanSwitchWidget}
+        labels = {"period_rule": "Period each run reports on", "enabled": "Switched on", "days": "Last N days"}
+
+    def save_from(self, run_form, commit=True):
+        """The campaign: this form's name and schedule, with the settings of the (valid) Run form."""
+        d = run_form.cleaned_data
+        auto = self.save(commit=False)
+        auto.centers = d["centers"]
+        auto.reports = d["reports"]
+        auto.speed = d["speed"]
+        auto.granularity = d["granularity"] or Session.MONTH
+        auto.sales_chunk = d["sales_chunk"] or Session.WHOLE
+        auto.fill_missing = d["fill_missing"]
+        auto.retry_empty = d["retry_empty"]
+        auto.recheck_known = d["recheck_known"]
+        if auto.period_rule == AutoRun.FIXED:  # the dates typed on the Run page
+            auto.start_date, auto.end_date = d["start"], d["end"]
+        if commit:
+            auto.save()
+            auto.gyms.set(d["pick"])
+            auto.groups.set(d["groups"])
+        return auto

@@ -4,7 +4,7 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
-from centers.models import Center, CenterList
+from centers.models import Center, CenterGroup, CenterList
 
 
 class SessionQuerySet(models.QuerySet):
@@ -240,12 +240,19 @@ class Job(models.Model):
 
 
 class AutoRun(models.Model):
-    """A scrape that starts by itself every day, for the days up to yesterday (a daily report)."""
+    """A campaign: everything the Run page sets (period rule, gyms, reports, speed, splits, options) saved under a
+    name and attached to a schedule, so it runs by itself."""
 
     DAILY, WEEKLY, MONTHLY, CRON = "daily", "weekly", "monthly", "cron"
-    FREQUENCY_CHOICES = [(DAILY, "Daily: the days up to yesterday"), (WEEKLY, "Weekly: last week, Monday to Sunday"),
-                         (MONTHLY, "Monthly: last calendar month"),
-                         (CRON, "Cron expression: your own schedule (reports the days up to yesterday)")]
+    FREQUENCY_CHOICES = [(DAILY, "Every day"), (WEEKLY, "Every week, on the day below"),
+                         (MONTHLY, "Every month, on the day below"), (CRON, "Cron expression: your own schedule")]
+    LAST_DAYS, PREV_WEEK, PREV_MONTH, MONTH_TO_DATE, FIXED, MISSING_SALES = (
+        "last_days", "prev_week", "prev_month", "month_to_date", "fixed", "missing_sales")
+    PERIOD_CHOICES = [
+        (LAST_DAYS, "The last N days up to yesterday (N = 1: yesterday only)"),
+        (PREV_WEEK, "Previous week, Monday to Sunday"), (PREV_MONTH, "Previous calendar month"),
+        (MONTH_TO_DATE, "This month so far, up to yesterday"), (FIXED, "Fixed dates (never move)"),
+        (MISSING_SALES, "Only the sales days of the last 90 that are not stored yet")]
     WEEKDAYS = [(0, "Monday"), (1, "Tuesday"), (2, "Wednesday"), (3, "Thursday"), (4, "Friday"),
                 (5, "Saturday"), (6, "Sunday")]
 
@@ -261,7 +268,13 @@ class AutoRun(models.Model):
     month_day = models.PositiveSmallIntegerField(
         default=1, validators=[MinValueValidator(1), MaxValueValidator(28)],
         help_text="Monthly runs: day of the month (1-28).")
-    centers = models.ForeignKey(CenterList, on_delete=models.PROTECT, related_name="auto_runs")
+    period_rule = models.CharField(max_length=14, choices=PERIOD_CHOICES, default=LAST_DAYS)
+    start_date = models.DateField(null=True, blank=True, help_text="Fixed dates only.")
+    end_date = models.DateField(null=True, blank=True, help_text="Fixed dates only.")
+    centers = models.ForeignKey(CenterList, null=True, blank=True, on_delete=models.PROTECT, related_name="auto_runs",
+                                verbose_name="center list", help_text="Gyms of this list ...")
+    groups = models.ManyToManyField(CenterGroup, blank=True, related_name="auto_runs", help_text="... plus the gyms of these groups ...")
+    gyms = models.ManyToManyField(Center, blank=True, related_name="auto_runs", help_text="... plus these gyms.")
     reports = models.JSONField(default=list)
     speed = models.CharField(max_length=16, default="adaptive")
     granularity = models.CharField(
@@ -269,9 +282,14 @@ class AutoRun(models.Model):
         help_text="How the perf cards split the period: one row per day, week or month.")
     sales_chunk = models.CharField(max_length=5, choices=Session.CHUNK_CHOICES, default=Session.WHOLE)
     fill_missing = models.BooleanField(default=False, help_text="Sales only: fetch just the days not stored yet.")
+    retry_empty = models.BooleanField(default=False, help_text="Also ask again for results that came back empty.")
+    recheck_known = models.BooleanField(default=False, help_text="Also re-check the gyms registered as always empty.")
+    continue_unfinished = models.BooleanField(
+        default=True, help_text="If the last run of this campaign did not finish, the next run for the same period "
+                                "continues it instead of starting again.")
     days = models.PositiveSmallIntegerField(
         default=1, validators=[MinValueValidator(1), MaxValueValidator(31)],
-        help_text="Daily runs: 1 = yesterday only; 7 = the last seven days up to yesterday.")
+        help_text="'Last N days' only: 1 = yesterday only; 7 = the last seven days up to yesterday.")
     last_run_at = models.DateTimeField(null=True, blank=True)
     last_session = models.ForeignKey(Session, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     last_status = models.CharField(max_length=10, blank=True)  # started / skipped / failed
@@ -288,6 +306,9 @@ class AutoRun(models.Model):
         from django.core.exceptions import ValidationError
         if self.frequency == self.CRON and not croniter.is_valid(self.cron or ""):
             raise ValidationError({"cron": "Enter a valid cron expression, for example 30 6 * * *."})
+        if self.period_rule == self.FIXED:
+            if not (self.start_date and self.end_date) or self.start_date > self.end_date:
+                raise ValidationError({"end_date": "Fixed dates need a start date on or before the end date."})
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)

@@ -36,10 +36,9 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         if opts["list"] or not opts["name"]:
             for a in AutoRun.objects.select_related("centers"):
-                start, end = autorun.period(a)
                 when = a.cron if a.frequency == a.CRON else f"{a.frequency} at {a.run_at:%H:%M}"
-                self.stdout.write(f"{'on ' if a.enabled else 'off'}  {a.name}  [{when}]  list {a.centers.name}  "
-                                  f"period {start} to {end} by {a.granularity}")
+                self.stdout.write(f"{'on ' if a.enabled else 'off'}  {a.name}  [{when}]  {len(autorun.center_ids(a))} gyms  "
+                                  f"{autorun.summary(a)} by {a.granularity}")
             return
         try:
             auto = AutoRun.objects.get(name=opts["name"])

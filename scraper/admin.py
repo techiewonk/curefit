@@ -261,29 +261,69 @@ class JobAdmin(ExportModelAdmin):
 
 
 class AutoRunForm(forms.ModelForm):
-    reports = forms.MultipleChoiceField(choices=report_choices, initial=list(TYPED), widget=UnfoldAdminCheckboxSelectMultipleWidget)
+    reports = forms.MultipleChoiceField(choices=report_choices, initial=list(TYPED), widget=UnfoldAdminCheckboxSelectMultipleWidget,
+                                        help_text="The three core reports are ticked by default; tick the extra cards you want.")
     speed = forms.ChoiceField(choices=SPEED_CHOICES, widget=UnfoldAdminSelectWidget)
 
     class Meta:
         model = AutoRun
         fields = "__all__"
 
+    def clean(self):
+        data = super().clean()
+        if self.errors.get("centers") or self.errors.get("groups") or self.errors.get("gyms"):
+            return data
+        if not (data.get("centers") or data.get("groups") or data.get("gyms")):
+            self.add_error("centers", "Pick a center list, groups or gyms: a campaign needs something to run on.")
+        if data.get("period_rule") == AutoRun.MISSING_SALES and "sales" not in data.get("reports", ["sales"]):
+            data["reports"] = list(data.get("reports") or []) + ["sales"]
+        return data
+
 
 @admin.register(AutoRun)
 class AutoRunAdmin(ExportModelAdmin):
-    """Runs that start by themselves. Switch one on, or press Run now to test it with yesterday's data."""
+    """Campaigns: the Run-page setup saved under a name and attached to a schedule.
+
+    Switch one on and the job runner starts it on schedule; Run now tests it with the period it would report on."""
 
     form = AutoRunForm
-    list_display = ("name", "enabled", "frequency", "centers", "granularity", "next_run_at", "last_run_at",
-                    "last_status_badge", "last_message")
+    list_display = ("name", "enabled", "schedule_text", "period_text", "gyms_text", "granularity", "next_run_at",
+                    "last_run_at", "last_status_badge", "last_message")
     list_editable = ("enabled",)
     list_filter = [("enabled", BooleanRadioFilter), ("frequency", ChoicesDropdownFilter),
-                   ("granularity", ChoicesDropdownFilter), ("centers", RelatedDropdownFilter),
-                   ("last_run_at", RangeDateTimeFilter)]
+                   ("period_rule", ChoicesDropdownFilter), ("granularity", ChoicesDropdownFilter),
+                   ("centers", RelatedDropdownFilter), ("last_run_at", RangeDateTimeFilter)]
+    search_fields = ("name",)
+    autocomplete_fields = ("gyms", "groups")
     readonly_fields = ("last_run_at", "last_session", "last_status", "last_message")
+    fieldsets = (
+        ("Campaign", {"fields": ("name", "enabled")}),
+        ("Schedule: when it runs", {"fields": ("frequency", "run_at", "weekday", "month_day", "cron")}),
+        ("Period: what it reports on", {"fields": ("period_rule", "days", "start_date", "end_date")}),
+        ("Gyms: who it runs for", {"fields": ("centers", "groups", "gyms")}),
+        ("Reports and speed", {"fields": ("reports", "speed", "granularity", "sales_chunk", "fill_missing")}),
+        ("Options", {"fields": ("retry_empty", "recheck_known", "continue_unfinished")}),
+        ("Last run", {"fields": ("last_run_at", "last_session", "last_status", "last_message")}),
+    )
     actions = ["run_selected"]
     actions_row = ["run_now"]
     actions_detail = ["run_now"]
+
+    @display(description="Schedule")
+    def schedule_text(self, obj):
+        if obj.frequency == AutoRun.CRON:
+            return f"cron {obj.cron}"
+        extra = f" {dict(AutoRun.WEEKDAYS)[obj.weekday]}" if obj.frequency == AutoRun.WEEKLY else \
+            f" day {obj.month_day}" if obj.frequency == AutoRun.MONTHLY else ""
+        return f"{obj.get_frequency_display().split(',')[0].lower()}{extra} at {obj.run_at:%H:%M}"
+
+    @display(description="Period")
+    def period_text(self, obj):
+        return autorun.summary(obj)
+
+    @display(description="Gyms")
+    def gyms_text(self, obj):
+        return len(autorun.center_ids(obj))
 
     @display(description="Next run")
     def next_run_at(self, obj):

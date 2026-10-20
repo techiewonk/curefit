@@ -12,9 +12,9 @@ from django_q.models import Schedule
 
 from centers import services
 
-from . import auth, engine, jobs
+from . import auth, coverage, engine, jobs
 from .conf import SPEED_PROFILES
-from .models import AutoRun
+from .models import AutoRun, Session
 from .reports import REPORTS
 
 TASK = "scraper.tasks.auto_run"
@@ -24,16 +24,41 @@ ONE_DAY = dt.timedelta(days=1)
 
 
 def period(auto, today=None):
-    """(first day, last day) this run reports on."""
+    """(first day, last day) this campaign reports on, from its period rule."""
     today = today or timezone.localdate()
-    if auto.frequency == AutoRun.WEEKLY:  # the week before this one, Monday to Sunday
+    yesterday = today - ONE_DAY
+    rule = auto.period_rule
+    if rule == AutoRun.PREV_WEEK:  # the week before this one, Monday to Sunday
         monday = today - dt.timedelta(days=today.weekday())
         return monday - dt.timedelta(days=7), monday - ONE_DAY
-    if auto.frequency == AutoRun.MONTHLY:  # the calendar month before this one
+    if rule == AutoRun.PREV_MONTH:  # the calendar month before this one
         end = today.replace(day=1) - ONE_DAY
         return end.replace(day=1), end
-    end = today - ONE_DAY
-    return end - dt.timedelta(days=auto.days - 1), end
+    if rule == AutoRun.MONTH_TO_DATE:  # the 1st of the month yesterday is in, up to yesterday
+        return yesterday.replace(day=1), yesterday
+    if rule == AutoRun.FIXED and auto.start_date and auto.end_date:
+        return auto.start_date, auto.end_date
+    if rule == AutoRun.MISSING_SALES:  # the whole 90-day window; only the days not stored yet are fetched
+        return coverage.window_start(today), yesterday
+    return yesterday - dt.timedelta(days=auto.days - 1), yesterday
+
+
+def center_ids(auto):
+    """The gyms of this campaign: its center list, plus the gyms of its groups, plus the gyms picked by hand."""
+    ids = set()
+    if auto.centers_id:
+        ids.update(services.list_ids(auto.centers.name))
+    for group in auto.groups.all():
+        ids.update(group.centers.values_list("pk", flat=True))
+    ids.update(auto.gyms.values_list("pk", flat=True))
+    return sorted(ids)
+
+
+def summary(auto):
+    """One line describing what the campaign does (for the list and the messages)."""
+    start, end = period(auto)
+    parts = [dict(AutoRun.PERIOD_CHOICES)[auto.period_rule].split(" (")[0], f"{start} to {end}"]
+    return " · ".join(parts)
 
 
 def next_occurrence(auto, now=None):
@@ -93,22 +118,40 @@ def run(auto, force=False, inline=False):
     if not force and auto.last_status == "started" and auto.last_run_at and \
             timezone.localdate(auto.last_run_at) == timezone.localdate():
         return _record(auto, "skipped", "Already started today.", auto.last_session, keep_time=True)
+    ids = center_ids(auto)
+    if not ids:
+        return _record(auto, "failed", "No gyms: pick a center list, groups or gyms for this campaign.")
     if not auth.logged_in(fresh=True):
         return _record(auto, "skipped", "Not logged in to Kronos: log in on the Run page, then run again.")
     if jobs.active_job():
         return _record(auto, "skipped", "Another scrape is still running.")
-    spec = {"start": start.isoformat(), "end": end.isoformat(), "list": auto.centers.name,
-            "only": None if set(auto.reports) == set(REPORTS) else auto.reports,
+    missing = auto.period_rule == AutoRun.MISSING_SALES
+    reports = ["sales"] if missing else auto.reports
+    spec = {"start": start.isoformat(), "end": end.isoformat(), "list": auto.centers.name if auto.centers_id else "campaign",
+            "center_ids": ids, "only": None if set(reports) == set(REPORTS) else reports,
             "workers": SPEED_PROFILES[auto.speed], "speed": auto.speed, "granularity": auto.granularity,
-            "sales_chunk": auto.sales_chunk, "fill_missing": auto.fill_missing}
+            "sales_chunk": Session.DAY if missing else auto.sales_chunk, "fill_missing": True if missing else auto.fill_missing,
+            "retry_empty": auto.retry_empty, "recheck_known": auto.recheck_known}
+    unfinished = _unfinished(auto, start, end) if auto.continue_unfinished else None
+    if unfinished:  # the last run of this campaign for this period did not finish: pick it up
+        spec = {"session": unfinished.pk, "workers": spec["workers"], "speed": spec["speed"],
+                "retry_empty": spec["retry_empty"], "recheck_known": spec["recheck_known"]}
     if inline:
         return _run_inline(auto, spec, start, end)
     try:
         job = jobs.enqueue(spec)
     except jobs.JobError as e:
         return _record(auto, "failed", str(e))
-    return _record(auto, "started", f"Queued session {job.session_id} for {start} to {end} (by {auto.granularity}).",
-                   job.session)
+    what = "Continued" if unfinished else "Queued"
+    return _record(auto, "started", f"{what} session {job.session_id} for {start} to {end} ({len(ids)} gyms).", job.session)
+
+
+def _unfinished(auto, start, end):
+    """This campaign's last session, if it is for the same period and did not complete."""
+    last = auto.last_session
+    if last and last.start_date == start and last.end_date == end and last.status != Session.COMPLETE:
+        return last
+    return None
 
 
 def _record(auto, status, message, session=None, keep_time=False):
@@ -121,14 +164,15 @@ def _record(auto, status, message, session=None, keep_time=False):
 
 
 def _run_inline(auto, spec, start, end):
-    ids = services.list_ids(spec["list"])
-    if not ids:
-        return _record(auto, "failed", f"The {spec['list']} center list is empty.")
-    session = engine.new_session(start, end, ids, spec["only"] or list(REPORTS), speed=spec["speed"],
-                                 workers=spec["workers"], granularity=spec["granularity"],
-                                 sales_chunk=spec["sales_chunk"], fill_missing=spec["fill_missing"])
+    if spec.get("session"):
+        session = Session.objects.get(pk=spec["session"])
+    else:
+        session = engine.new_session(start, end, spec["center_ids"], spec["only"] or list(REPORTS), speed=spec["speed"],
+                                     workers=spec["workers"], granularity=spec["granularity"],
+                                     sales_chunk=spec["sales_chunk"], fill_missing=spec["fill_missing"])
     _record(auto, "started", f"Running session {session.session_id} for {start} to {end}.", session)
-    session = engine.run_session(session, workers=spec["workers"], adaptive=spec["speed"] == "adaptive")
+    session = engine.run_session(session, workers=spec["workers"], adaptive=spec["speed"] == "adaptive",
+                                 recheck_known=spec["recheck_known"])
     status = "finished" if session.status == session.COMPLETE else "incomplete"
     return _record(auto, status, f"Session {session.session_id} {session.status}: {session.missing_count} "
                                  f"center/section pairs missing.", session)

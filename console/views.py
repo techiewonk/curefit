@@ -19,7 +19,7 @@ from scraper import analysis, auth, coverage, jobs, perfwide, revenue, selectors
 from scraper.models import Job, Session
 
 from . import charts
-from .forms import CompareForm, OtpForm, RunForm, SessionPickForm
+from .forms import CampaignForm, CompareForm, OtpForm, RunForm, SessionPickForm
 
 
 class ConsolePage(UnfoldSiteViewMixin):
@@ -46,6 +46,21 @@ class RunView(ConsolePage, FormView):
         q = self.request.GET  # links from Home / coverage: ?list=test  ?session=<id>  ?start=&end=
         return {k: v for k, v in (("centers", q.get("list")), ("session", q.get("session")),
                                   ("start", q.get("start")), ("end", q.get("end"))) if v}
+
+    def get_context_data(self, **kwargs):
+        kwargs.setdefault("campaign", CampaignForm(prefix="c"))
+        return super().get_context_data(**kwargs)
+
+    def post(self, request, *args, **kwargs):
+        if "save_campaign" not in request.POST:
+            return super().post(request, *args, **kwargs)
+        form, campaign = self.get_form(), CampaignForm(request.POST, prefix="c")
+        if form.is_valid() and campaign.is_valid():
+            auto = campaign.save_from(form)
+            messages.success(request, f"Saved the campaign '{auto.name}'. It is {'on' if auto.enabled else 'off'}: "
+                                      "switch it on, edit it or press Run now in Automatic runs.")
+            return redirect("admin:scraper_autorun_change", auto.pk)
+        return self.render_to_response(self.get_context_data(form=form, campaign=campaign))
 
     def form_valid(self, form):
         if not auth.logged_in(fresh=True):
