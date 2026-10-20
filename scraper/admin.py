@@ -11,6 +11,7 @@ from unfold.decorators import action, display
 from centers.models import KnownEmpty
 
 from . import files, jobs
+from .resources import GymMemberResource, PerfMetricResource, SalesRecordResource
 from .models import (CardColumns, CardRow, GymMember, Job, PerfMetric, SalesRecord,
                      SectionResult, Session)
 
@@ -155,6 +156,7 @@ class DataAdmin(ExportActionMixin, ModelAdmin):
 
 @admin.register(SalesRecord)
 class SalesRecordAdmin(DataAdmin):
+    resource_classes = [SalesRecordResource]
     list_display = ("center", "name", "phone", "pack_name", "member_end_date", "renewed", "revenue", "session")
     list_filter = ("session", "renewed", "active_last_30d")
     search_fields = ("name", "phone", "user_id", "center__name", "pack_name")
@@ -162,6 +164,7 @@ class SalesRecordAdmin(DataAdmin):
 
 @admin.register(PerfMetric)
 class PerfMetricAdmin(DataAdmin):
+    resource_classes = [PerfMetricResource]
     list_display = ("center", "metric_date", "metric", "value", "session")
     list_filter = ("session", "metric")
     search_fields = ("center__name", "metric")
@@ -169,6 +172,7 @@ class PerfMetricAdmin(DataAdmin):
 
 @admin.register(GymMember)
 class GymMemberAdmin(DataAdmin):
+    resource_classes = [GymMemberResource]
     list_display = ("center", "username", "pack_name", "final_amount_paid", "status", "new_vs_repeat", "session")
     list_filter = ("session", "status", "new_vs_repeat", "offline_vs_online")
     search_fields = ("username", "user_id", "center__name", "pack_name")

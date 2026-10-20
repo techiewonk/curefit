@@ -44,7 +44,8 @@ def run_job(job_id):
     state, error = Job.DONE, ""
     try:
         engine.run_session(session, workers=spec.get("workers", 1), status=status,
-                           refresh=spec.get("refresh", False), only=spec.get("only"))
+                           refresh=spec.get("refresh", False), only=spec.get("only"),
+                           adaptive=spec.get("adaptive", False), recheck_known=spec.get("recheck_known", False))
     except Exception as e:  # shown in the admin instead of dying silently
         log.exception("job %s failed", job.pk)
         state, error = Job.ERROR, str(e)

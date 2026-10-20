@@ -19,9 +19,10 @@ from django.db import connection
 from django.utils import timezone
 
 import curefit_login as C
-from centers.models import Center
+from centers.models import Center, KnownEmpty
 
 from . import conf, files, kronos
+from .throttle import Gate
 from .models import SectionResult, Session
 from .reports import REPORTS
 from .storage import record_result, save_section
@@ -47,13 +48,20 @@ def find_unfinished(start, end):
 
 
 # ------------------------------------------------------------------ run
-def run_session(session, workers=1, status=None, refresh=False, only=None):
-    """Fetch everything the session has not saved yet. Returns the updated Session."""
+def run_session(session, workers=1, status=None, refresh=False, only=None, adaptive=False,
+                recheck_known=False):
+    """Fetch everything the session has not saved yet. Returns the updated Session.
+
+    adaptive: start with `workers` centers at a time and let the run slow down or speed up by itself
+    (up to the MAX_WORKERS setting). recheck_known: also ask for the known-empty center/reports.
+    """
     start, end = str(session.start_date), str(session.end_date)
     ids = [int(c) for c in session.center_ids]
     reports = [r for r in (only or session.reports) if r in REPORTS]
     cfg = conf.RunSettings.load()
     workers = max(1, min(int(workers or 1), cfg.max_workers))
+    gate = Gate(workers, cfg.max_workers if adaptive else workers, adaptive)
+    known_empty = set() if recheck_known else set(KnownEmpty.objects.values_list("center_id", "report"))
     centers = Center.objects.in_bulk(ids)
 
     session.status = Session.RUNNING
@@ -67,7 +75,7 @@ def run_session(session, workers=1, status=None, refresh=False, only=None):
         done[rep] = set() if refresh else set(SectionResult.objects.filter(
             session=session, report=rep, status__in=DONE_STATES).values_list("center_id", flat=True))
         stats[rep] = {"requested": len(ids), "already_done": len(done[rep] & set(ids)), "ok": 0,
-                      "empty": [], "failed": [], "slow": [], "capped": [], "skipped": False}
+                      "empty": [], "known_empty": [], "failed": [], "slow": [], "capped": [], "skipped": False}
 
     groups = {}  # reports of one dashboard share a signed token per center
     for rep in reports:
@@ -130,6 +138,13 @@ def run_session(session, workers=1, status=None, refresh=False, only=None):
                     if st["skipped"]:
                         advance()
                         continue
+                    if (cid, rep_name) in known_empty:  # always empty: do not spend minutes asking again
+                        record_result(session, cid, rep_name, SectionResult.EMPTY, 0, 0, "known empty: not asked")
+                        with lock:
+                            st["known_empty"].append(cid)
+                        note(f"known-empty {rep_name} · {cid} {label}")
+                        advance()
+                        continue
                     rep = REPORTS[rep_name]
                     if status is not None:
                         status["desc"] = f"{rep_name} · center {cid} {label}"
@@ -138,21 +153,27 @@ def run_session(session, workers=1, status=None, refresh=False, only=None):
                     try:
                         rows, cols = [], []
                         for attempt in (1, 2):  # an empty result gets one retry on a fresh token
-                            if token is None:
-                                token = kronos.get_token(http, rep, cid, start, end, cfg)
-                                kronos.warm_up(tmb, token, cfg)
-                            rows, cols = kronos.get_rows(tmb, rep, token, start, end, cfg)
+                            with gate.slot():
+                                if token is None:
+                                    token = kronos.get_token(http, rep, cid, start, end, cfg)
+                                    kronos.warm_up(tmb, token, cfg)
+                                rows, cols = kronos.get_rows(tmb, rep, token, start, end, cfg)
                             if rows:
                                 break
                             log.info("empty result, retrying: %s center %s (attempt %d)", rep_name, cid, attempt)
                             token = None
                             cfg.pause()
                         seconds = round(time.monotonic() - t0, 1)
+                        gate.healthy(seconds)
                         if not rows:
                             # empty after a retry: done for this session (a new session asks again)
                             if not SectionResult.objects.filter(session=session, center_id=cid, report=rep_name,
                                                                 status=SectionResult.OK).exists():
                                 record_result(session, cid, rep_name, SectionResult.EMPTY, 0, seconds)
+                            if SectionResult.objects.filter(center_id=cid, report=rep_name,
+                                                            status=SectionResult.EMPTY).exclude(session=session).exists():
+                                KnownEmpty.objects.get_or_create(
+                                    center_id=cid, report=rep_name, defaults={"note": "empty in two sessions"})
                             with lock:
                                 st["empty"].append(cid)
                             note(f"empty  {rep_name} · {cid} {label}")
@@ -180,6 +201,7 @@ def run_session(session, workers=1, status=None, refresh=False, only=None):
                         mark(cid, rep_name, "failed")
                     except kronos.SlowQuery as e:
                         token = None
+                        gate.struggling()
                         record_result(session, cid, rep_name, SectionResult.SLOW, 0,
                                       round(time.monotonic() - t0, 1), str(e))
                         with lock:
@@ -188,6 +210,7 @@ def run_session(session, workers=1, status=None, refresh=False, only=None):
                         mark(cid, rep_name, "slow")
                     except Exception as e:
                         token = None
+                        gate.struggling()
                         record_result(session, cid, rep_name, SectionResult.FAILED, 0, None, str(e))
                         with lock:
                             st["failed"].append(cid)
@@ -200,22 +223,24 @@ def run_session(session, workers=1, status=None, refresh=False, only=None):
                         if skip:
                             log.error("report %s skipped: %d failures in a row, none succeeded", rep_name, report_limit)
                     mark(cid, rep_name, "done")
+                    if status is not None:
+                        status["workers"] = gate.limit
                     advance()
                     if flags["aborted"]:
                         return
                     cfg.pause()
         finally:
             tmb.close()
-            if workers > 1:
+            if gate.maximum > 1:
                 connection.close()  # this worker thread's own database connection
 
-    if workers <= 1:
+    if gate.maximum <= 1:
         for cid in ids:
             if flags["aborted"]:
                 break
             process_center(cid)
     else:
-        with ThreadPoolExecutor(max_workers=workers) as pool:
+        with ThreadPoolExecutor(max_workers=gate.maximum) as pool:
             for fut in [pool.submit(process_center, cid) for cid in ids]:
                 fut.result()
 

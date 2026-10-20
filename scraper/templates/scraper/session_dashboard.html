@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Curefit sales {{ start }} to {{ end }}</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+ body{font-family:system-ui,Segoe UI,Arial,sans-serif;margin:0;background:#0f1115;color:#e6e6e6}
+ header{padding:20px 28px;background:#161a22;border-bottom:1px solid #262b36}
+ h1{margin:0;font-size:20px}.sub{color:#8b93a1;font-size:13px;margin-top:4px}
+ .wrap{padding:24px 28px;max-width:1200px;margin:0 auto}
+ .cards{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+ .card{background:#161a22;border:1px solid #262b36;border-radius:10px;padding:16px 20px;min-width:170px}
+ .lbl{color:#8b93a1;font-size:12px;text-transform:uppercase}.val{font-size:24px;font-weight:600;margin-top:6px}
+ .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+ .panel{background:#161a22;border:1px solid #262b36;border-radius:10px;padding:18px}
+ .panel h2{font-size:14px;margin:0 0 12px;color:#c7cdd8}
+ table{width:100%;border-collapse:collapse;font-size:13px}
+ th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #262b36}
+ th:first-child,td:first-child{text-align:left}th{color:#8b93a1;position:sticky;top:0;background:#161a22}
+ @media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1>Curefit sales</h1><div class="sub">Period {{ start }} &rarr; {{ end }}</div></header>
+<div class="wrap">
+ <div class="cards">
+  {% for label, value in cards %}<div class="card"><div class="lbl">{{ label }}</div><div class="val">{{ value }}</div></div>{% endfor %}
+ </div>
+ <div class="grid">
+  <div class="panel"><h2>Revenue by center</h2><canvas id="revChart" height="220"></canvas></div>
+  <div class="panel"><h2>New vs repeat revenue</h2><canvas id="mixChart" height="220"></canvas></div>
+ </div>
+ <div class="panel"><h2>Per-center detail</h2><div style="overflow:auto;max-height:520px">
+  <table><thead><tr>{% for h in header %}<th>{{ h }}</th>{% endfor %}</tr></thead>
+  <tbody>{% for row in rows %}<tr>{% for v in row %}<td>{{ v|default_if_none:"" }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>
+ </div></div>
+</div>
+{{ chart|json_script:"chart" }}
+<script>
+const c = JSON.parse(document.getElementById('chart').textContent);
+const axes = {ticks: {color: '#8b93a1'}};
+new Chart(document.getElementById('revChart'), {type: 'bar', data: {labels: c.names,
+  datasets: [{label: 'Total revenue', data: c.total, backgroundColor: '#4f8cff'}]},
+  options: {plugins: {legend: {display: false}}, scales: {x: axes, y: axes}}});
+new Chart(document.getElementById('mixChart'), {type: 'bar', data: {labels: c.names,
+  datasets: [{label: 'New', data: c.new, backgroundColor: '#33c48d'},
+             {label: 'Repeat', data: c.repeat, backgroundColor: '#f5a623'}]},
+  options: {scales: {x: {stacked: true, ...axes}, y: {stacked: true, ...axes}}, plugins: {legend: {labels: {color: '#c7cdd8'}}}}});
+</script></body></html>

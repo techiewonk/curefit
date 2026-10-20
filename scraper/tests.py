@@ -5,6 +5,8 @@ import time
 
 from django.test import TransactionTestCase
 
+from centers.models import Center, KnownEmpty
+
 from scraper import engine
 from scraper.testing import FakeKronosMixin
 from scraper.models import (CardRow, GymMember, PerfMetric, SalesRecord, SectionResult, Session)
@@ -148,3 +150,51 @@ class EngineTests(FakeKronosMixin, TransactionTestCase):
         t.join(timeout=20)
         self.assertEqual(out["s"].status, Session.COMPLETE)
         self.assertEqual(len(self.calls), 4)
+
+    def test_report_columns_are_stable_and_dashboard_escapes_names(self):
+        Center.objects.filter(pk=1).update(name='</script><b>boom')
+        s = engine.run_session(self.new(["sales", "perf"]))
+        with open(os.path.join(s.folder, "sales_report.csv"), newline="", encoding="utf-8") as f:
+            header = next(csv.reader(f))
+        self.assertEqual(header, ["center_id", "center_name", "center_code", "start_date", "end_date", "user_id",
+                                  "name", "phone", "pack_name", "member_end_date", "active_last_30d", "renewed",
+                                  "revenue", "scraped_at"])
+        with open(os.path.join(s.folder, "dashboard.html"), encoding="utf-8") as f:
+            html = f.read()
+        self.assertNotIn("<b>boom", html)           # table cells are escaped
+        self.assertNotIn("</script><b>", html)      # and the embedded chart data cannot close the script tag
+        self.assertIn("&lt;/script&gt;&lt;b&gt;boom", html)
+
+    # ------------------------------------------------------------------ known-empty + adaptive
+    def test_known_empty_is_not_asked_again(self):
+        KnownEmpty.objects.create(center_id=2, report="sales")
+        s = engine.run_session(self.new(["sales"]))
+        self.assertNotIn(("sales", 2), self.calls)
+        r = SectionResult.objects.get(session=s, center_id=2, report="sales")
+        self.assertEqual((r.status, r.error), ("empty", "known empty: not asked"))
+        self.assertEqual(s.status, Session.COMPLETE)
+        self.assertEqual(s.coverage[0]["known_empty"], 1)
+
+    def test_recheck_known_asks_anyway(self):
+        KnownEmpty.objects.create(center_id=2, report="sales")
+        engine.run_session(self.new(["sales"]), recheck_known=True)
+        self.assertIn(("sales", 2), self.calls)
+
+    def test_empty_in_two_sessions_registers_the_center_as_known_empty(self):
+        self.mode["empty2"] = True
+        engine.run_session(self.new(["sales"]))
+        self.assertFalse(KnownEmpty.objects.exists())  # one empty result proves nothing
+        engine.run_session(self.new(["sales"]))
+        self.assertTrue(KnownEmpty.objects.filter(center_id=2, report="sales").exists())
+
+    def test_adaptive_run_slows_down_when_a_card_times_out(self):
+        self.mode["slow"] = ("gym",)
+        status = {}
+        engine.run_session(self.new(["sales", "gym"]), workers=2, status=status, adaptive=True)
+        self.assertEqual(status["workers"], 1)  # halved from 2 after the first timeout
+
+    def test_fixed_run_keeps_its_speed_whatever_happens(self):
+        self.mode["slow"] = ("gym",)
+        status = {}
+        engine.run_session(self.new(["sales", "gym"]), workers=2, status=status)
+        self.assertEqual(status["workers"], 2)

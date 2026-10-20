@@ -79,7 +79,8 @@ def enqueue(spec, sync=False):
 
     job = Job.objects.create(
         id=time.strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:4], session=session,
-        spec={"only": only, "workers": workers, "refresh": bool(spec.get("refresh"))})
+        spec={"only": only, "workers": workers, "refresh": bool(spec.get("refresh")),
+              "adaptive": spec.get("speed") == "adaptive", "recheck_known": bool(spec.get("recheck_known"))})
     async_task("scraper.tasks.run_job", job.id, sync=sync, task_name=f"scrape {session.session_id}")
     return job
 

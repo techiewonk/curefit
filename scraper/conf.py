@@ -6,7 +6,8 @@ from dataclasses import dataclass
 
 from constance import config
 
-SPEED_PROFILES = {"gentle": 1, "normal": 2, "fast": 4}
+# centers at a time; "adaptive" starts at 2 and adjusts itself (see throttle.py)
+SPEED_PROFILES = {"gentle": 1, "normal": 2, "fast": 4, "adaptive": 2}
 
 
 @dataclass(frozen=True)

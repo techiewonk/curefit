@@ -12,7 +12,8 @@ from scraper.models import Session
 from scraper.reports import GROUPS, REPORTS
 
 SPEED_CHOICES = [("gentle", "Gentle — 1 center at a time"), ("normal", "Normal — 2 at a time"),
-                 ("fast", "Fast — 4 at a time")]
+                 ("fast", "Fast — 4 at a time"),
+                 ("adaptive", "Adaptive — starts at 2, slows down or speeds up by itself")]
 
 
 def report_choices():
@@ -41,6 +42,8 @@ class RunForm(forms.Form):
                                      empty_label="Start a new session", widget=UnfoldAdminRadioSelectWidget)
     retry_empty = forms.BooleanField(required=False, label="Also retry empty results",
                                      widget=UnfoldBooleanSwitchWidget)
+    recheck_known = forms.BooleanField(required=False, label="Also re-check known-empty centers",
+                                       widget=UnfoldBooleanSwitchWidget)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -65,7 +68,7 @@ class RunForm(forms.Form):
         return {"start": d["start"].isoformat(), "end": d["end"].isoformat(), "list": d["centers"].name,
                 "only": None if every_report else d["reports"], "workers": self.workers,
                 "speed": d["speed"], "session": d["session"].pk if d["session"] else None,
-                "retry_empty": d["retry_empty"]}
+                "retry_empty": d["retry_empty"], "recheck_known": d["recheck_known"]}
 
 
 class OtpForm(forms.Form):
