@@ -74,8 +74,8 @@ def with_retry(fn, what, cfg, should_stop=None, on_busy=None):
     raise last or RuntimeError(f"{what}: no attempt was made (MAX_RETRIES is {cfg.max_retries})")
 
 
-def get_token(http, rep, center_id, start, end, cfg):
-    """Signed Metabase token for one center and dashboard (one Kronos call)."""
+def get_token(http, rep, center_id, start, end, cfg, should_stop=None, on_busy=None):
+    """Signed Metabase token for one center and dashboard (one Kronos call). should_stop / on_busy: see with_retry."""
 
     def do():
         payload = {
@@ -89,7 +89,7 @@ def get_token(http, rep, center_id, start, end, cfg):
         r.raise_for_status()
         return r.json()["iframeUrl"].split("/dashboard/")[1].split("?")[0]
 
-    return with_retry(do, "iframeUrl", cfg)
+    return with_retry(do, "iframeUrl", cfg, should_stop, on_busy)
 
 
 def embed_headers(token):

@@ -98,3 +98,15 @@ class GroupSeedTests(FakeKronosMixin, TransactionTestCase):
         migration.create_groups(apps, None)
         migration.create_groups(apps, None)  # repeating adds nothing
         self.assertEqual(list(CenterGroup.objects.values_list("name", flat=True)), ["GYMS", "HYBRIDS", "Gym Hybrid"])
+
+    def test_import_groups_skips_a_section_named_ungrouped(self):
+        from io import StringIO
+        sheet = tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False, encoding="utf-8")
+        sheet.write("GYMS,Jan\nCult Gym HSR,1\nUngrouped,Jan\nCult Gym Yemlur,2\n")
+        sheet.close()
+        self.addCleanup(os.remove, sheet.name)
+        out = StringIO()
+        call_command("import_groups", sheet.name, "--apply", stdout=out)
+        self.assertFalse(CenterGroup.objects.filter(name__iexact="ungrouped").exists())
+        self.assertEqual(self.ids("GYMS"), {1})
+        self.assertIn("reserved", out.getvalue())

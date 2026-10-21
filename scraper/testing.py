@@ -23,7 +23,7 @@ class FakeKronosMixin:
             mock.patch.object(conf.RunSettings, "pause", lambda self: None),
             mock.patch.object(login, "load_session", lambda: (object(), {})),
             mock.patch.object(kronos, "get_token",
-                              lambda http, rep, cid, s, e, cfg=None: f"{rep['dashboard']}:{cid}"),
+                              lambda http, rep, cid, s, e, cfg=None, **kw: f"{rep['dashboard']}:{cid}"),
             mock.patch.object(kronos, "warm_up", lambda mb, token, cfg=None: None),
             mock.patch.object(kronos, "get_rows", self.fake_rows),
         ):

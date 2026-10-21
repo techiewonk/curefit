@@ -163,7 +163,8 @@ def run_session(session, workers=1, status=None, refresh=False, only=None, adapt
                 with gate.slot(stop_now):
                     began = time.monotonic()
                     if fresh:
-                        state["token"] = kronos.get_token(http, rep, cid, start, end, cfg)
+                        state["token"] = kronos.get_token(http, rep, cid, start, end, cfg,
+                                                                 should_stop=stop_now, on_busy=gate.struggling)
                         kronos.warm_up(tmb, state["token"], cfg)
                     try:
                         rows_, cols_ = kronos.get_rows(tmb, rep, state["token"], first, last, cfg, session.granularity,

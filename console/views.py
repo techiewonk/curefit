@@ -287,9 +287,11 @@ class CoverageView(ConsolePage, TemplateView):
         chosen = lists.filter(name=self.request.GET.get("list")).first() or lists.filter(name="actual").first() \
             or lists.first()
         ids = list(chosen.centers.values_list("center_id", flat=True)) if chosen else []
+        counted = coverage.without_known_empty(ids)  # the gyms the counts below are about
         days = coverage.missing_by_day(ids)
         return super().get_context_data(
-            lists=lists, chosen=chosen, total=len(ids), days=days, centers=coverage.missing_by_center(ids),
+            lists=lists, chosen=chosen, total=len(counted), known_empty=len(ids) - len(counted), days=days,
+            centers=coverage.missing_by_center(ids),
             gap_days=sum(1 for d in days if d["missing"]), window=coverage.WINDOW_DAYS, **kwargs)
 
 

@@ -79,7 +79,7 @@ class EngineBehaviourTests(FakeKronosMixin, TransactionTestCase):
 
     def test_a_token_rejected_after_use_is_replaced_once(self):
         tokens = []
-        with mock.patch.object(kronos, "get_token", lambda http, rep, cid, s, e, cfg=None: tokens.append(cid) or
+        with mock.patch.object(kronos, "get_token", lambda http, rep, cid, s, e, cfg=None, **kw: tokens.append(cid) or
                                f"{rep['dashboard']}:{cid}"):
             seen = set()
 

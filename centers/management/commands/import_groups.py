@@ -44,6 +44,10 @@ class Command(BaseCommand):
         for row in rows:
             cell = row[0].strip() if row else ""
             if cell and len(row) > 1 and MONTH.match(row[1].strip()):  # a header row names the group
+                if cell.lower() == CenterGroup.RESERVED.lower():
+                    problems.append(f"section {cell!r}: the name is reserved for gyms in no group; its gyms are skipped")
+                    group = None
+                    continue
                 group = cell
                 order.append(cell)
             elif group and cell and cell.lower() != "month":

@@ -30,6 +30,7 @@
       </button>
       <span class="text-sm text-font-subtle-light dark:text-font-subtle-dark">
         {% if gap_days %}for {{ total }} gyms in the {{ chosen.name }} list{% else %}Every day of the window is stored for this list.{% endif %}
+        {% if known_empty %}({{ known_empty }} known-empty gym{{ known_empty|pluralize }} left out){% endif %}
       </span>
     </div>
   {% endcomponent %}
