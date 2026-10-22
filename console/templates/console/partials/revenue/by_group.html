@@ -1,0 +1,27 @@
+{% load unfold formats %}
+{# One row per group for the latest full month, then every gym once. #}
+{% component "unfold/components/card.html" with title="By group — "|add:latest_label %}
+  <div class="cf-scroll">
+    <table class="data-table w-full text-sm whitespace-nowrap">
+      <thead><tr><th class="text-left">Group</th><th class="text-right">Gyms</th><th class="text-right">Revenue</th>
+        <th class="text-right">Monthly average</th><th class="text-right">vs prev</th><th class="text-right">Target</th>
+        <th class="text-right">Achieved</th><th class="text-left">Top gym</th></tr></thead>
+      <tbody>
+      {% for g in data.summary %}
+        <tr><td class="font-medium"><a class="text-primary-600" href="?group={{ g.group|urlencode }}&from={{ from_ }}&to={{ to }}">{{ g.group }}</a></td>
+          <td class="text-right">{{ g.gyms }}</td>
+          <td class="text-right">{% if g.latest %}₹{{ g.latest|inr }}{% endif %}{% if g.partial %} <span class="text-orange-600 text-xs" title="A gym of this group was only partly fetched this month">(partial)</span>{% endif %}</td>
+          <td class="text-right">{% if g.average %}₹{{ g.average|inr }}{% endif %}</td>
+          <td class="text-right font-medium {% if g.mom_pct > 0 %}text-green-600{% elif g.mom_pct < 0 %}text-red-600{% endif %}">{% if g.mom_pct is not None %}{{ g.mom_pct }}%{% else %}-{% endif %}</td>
+          <td class="text-right">{% if g.target %}₹{{ g.target|inr }}{% else %}-{% endif %}</td>
+          <td class="text-right">{% if g.achievement is not None %}{{ g.achievement }}%{% else %}-{% endif %}</td>
+          <td>{{ g.best.name }}</td></tr>
+      {% endfor %}
+      </tbody>
+      <tfoot><tr>
+        <td>All gyms, each counted once</td><td class="text-right">{{ rows|length }}</td>
+        <td class="text-right">₹{{ data.total_latest|inr }}</td><td class="text-right">₹{{ data.total_average|inr }}</td><td colspan="4"></td></tr></tfoot>
+    </table>
+  </div>
+  <p class="cf-note mt-3">A gym in two groups counts in both groups, so the group rows can add up to more than the distinct total.</p>
+{% endcomponent %}

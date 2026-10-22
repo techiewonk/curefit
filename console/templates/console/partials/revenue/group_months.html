@@ -1,0 +1,31 @@
+{% load unfold formats %}
+{# Groups x the last 12 months, with the total of the groups and every gym once. #}
+{% component "unfold/components/card.html" with title="Groups by month — last 12 months" %}
+  <div class="cf-scroll">
+    <table class="data-table text-sm w-full whitespace-nowrap">
+      <thead>
+        <tr><th rowspan="2" class="text-left sticky">Group</th><th rowspan="2" class="text-right">Gyms</th>
+          <th colspan="{{ group_months.labels|length }}" class="text-center">Revenue</th>
+          <th rowspan="2" class="text-right">Average</th></tr>
+        <tr>{% for l in group_months.labels %}<th class="text-right">{{ l }}</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+      {% for g in group_months.rows %}
+        <tr><td class="font-medium sticky">{{ g.group }}</td><td class="text-right">{{ g.gyms }}</td>
+          {% for v in g.cells %}<td class="text-right">{{ v|inr|default:"-" }}</td>{% endfor %}
+          <td class="text-right font-semibold">{{ g.average|inr }}</td></tr>
+      {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><td class="sticky">Total of the groups</td><td></td>
+          {% for v in group_months.total %}<td class="text-right">{{ v|inr }}</td>{% endfor %}<td></td></tr>
+        <tr><td class="sticky">All gyms, each counted once</td><td></td>
+          {% for v in distinct_total %}<td class="text-right">{{ v|inr }}</td>{% endfor %}<td></td></tr>
+      </tfoot>
+    </table>
+  </div>
+  <div class="cf-links text-sm">
+    {% include "console/partials/revenue/downloads.html" with extra="part=groups&" %}
+    <span class="cf-note">A gym in two groups counts in both, so the total of the groups can exceed the last row, where every gym counts once. The current month is partial.</span>
+  </div>
+{% endcomponent %}

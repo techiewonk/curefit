@@ -22,3 +22,31 @@ class LoaderTests(TestCase):
             self.assertIn(needle, script)
         for needle in (".cf-loader-bar", ".cf-loader-overlay", "prefers-reduced-motion"):
             self.assertIn(needle, styles)
+
+
+class StylesTests(TestCase):
+    def test_the_app_styles_carry_a_version_so_a_change_is_fetched_again(self):
+        r = self.client.get(reverse("console:revenue"), headers={"Sec-Fetch-Site": "same-origin"})
+        self.assertRegex(r.content.decode(), r"console/wide\.css\?v=\d+")
+        self.assertRegex(r.content.decode(), r"console/datatable\.js\?v=\d+")
+
+    def test_every_class_in_the_templates_exists_in_a_stylesheet(self):
+        """Unfold ships a prebuilt stylesheet: a utility class it lacks does nothing unless wide.css defines it."""
+        import re
+        from pathlib import Path
+
+        import unfold
+        from django.conf import settings
+        css = (Path(unfold.__file__).parent / "static/unfold/css/styles.css").read_text(encoding="utf-8")
+        css += (settings.BASE_DIR / "console/static/console/wide.css").read_text(encoding="utf-8")
+        escape = lambda c: re.sub(r"([:\[\]/.!%#(),])", lambda m: chr(92) + m.group(1), c)  # noqa: E731
+        missing = set()
+        for page in (settings.BASE_DIR / "console/templates").rglob("*.html"):
+            for attr in re.findall(r'class="([^"{}]*)"', page.read_text(encoding="utf-8")):
+                for name in attr.split():
+                    forms = {"." + escape(name), "." + name}
+                    if name[0].isdigit():  # CSS writes a leading digit as an escape: 2xl -> xl
+                        forms.add("." + chr(92) + "3" + name[0] + escape(name[1:]))
+                    if not any(f in css for f in forms):
+                        missing.add(f"{page.name}: {name}")
+        self.assertEqual(sorted(missing), [])

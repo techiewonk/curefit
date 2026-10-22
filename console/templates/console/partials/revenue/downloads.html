@@ -1,0 +1,3 @@
+{# CSV / XLSX of a Revenue by group table. extra: "part=groups&" for the groups x months table, empty for the gyms. #}
+<a class="text-primary-600" href="{% url 'console:revenue_csv' %}?{{ extra }}group={{ group|urlencode }}&from={{ from_ }}&to={{ to }}">Download CSV</a>
+<a class="text-primary-600" href="{% url 'console:revenue_csv' %}?{{ extra }}group={{ group|urlencode }}&from={{ from_ }}&to={{ to }}&format=xlsx">Download XLSX</a>

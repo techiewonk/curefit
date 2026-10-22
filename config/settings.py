@@ -131,6 +131,17 @@ Q_CLUSTER = {
 from django.templatetags.static import static  # noqa: E402
 from django.urls import reverse_lazy  # noqa: E402
 
+
+def _versioned(path):
+    """The static URL plus the file's change time, so a browser fetches it again after every change (the storage
+    adds no hash to the name)."""
+    source = BASE_DIR / "console" / "static" / path
+    try:
+        return f"{static(path)}?v={int(source.stat().st_mtime)}"
+    except OSError:
+        return static(path)
+
+
 _ADMIN = lambda model: reverse_lazy(f"admin:{model}_changelist")  # noqa: E731
 
 # Settings editable in the admin (System → Settings). Read them with `constance.config.NAME`.
@@ -206,8 +217,8 @@ UNFOLD = {
     "SITE_HEADER": "Curefit Admin",
     "SITE_SYMBOL": "monitoring",
     "SHOW_HISTORY": False,
-    "STYLES": [lambda request: static("console/wide.css")],
-    "SCRIPTS": [lambda request: static("console/datatable.js"), lambda request: static("console/loader.js")],
+    "STYLES": [lambda request: _versioned("console/wide.css")],
+    "SCRIPTS": [lambda request: _versioned("console/datatable.js"), lambda request: _versioned("console/loader.js")],
     "SITE_FAVICONS": [{"rel": "icon", "sizes": "32x32", "type": "image/svg+xml",
                        "href": lambda request: static("console/favicon.svg")}],
     "DASHBOARD_CALLBACK": "console.dashboard.callback",

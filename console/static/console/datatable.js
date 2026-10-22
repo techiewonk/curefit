@@ -68,7 +68,7 @@
     prev.textContent = "← Previous"; next.textContent = "Next →";
     prev.className = next.className = "text-primary-600 cursor-pointer";
     [search, sizes, info, prev, next].forEach(function (el) { bar.appendChild(el); });
-    var holder = table.closest(".overflow-auto") || table;
+    var holder = table.closest(".cf-scroll, .overflow-auto") || table;
     holder.parentNode.insertBefore(bar, holder);
 
     var heads = columnHeaders(table);   // with grouped (two-level) headings: the bottom-most heading of each column

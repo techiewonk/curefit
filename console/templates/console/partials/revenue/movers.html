@@ -1,0 +1,22 @@
+{% load unfold %}
+{# The gyms that grew or fell most against the previous month. #}
+<div class="grid gap-4 lg:grid-cols-2">
+  {% component "unfold/components/card.html" with title="Biggest gains vs previous month" %}
+    <table class="cf-table w-full text-sm">
+      <thead><tr><th class="text-left">Gym</th><th class="text-right">vs prev</th></tr></thead>
+      <tbody>
+      {% for r in data.top_movers %}<tr><td>{{ r.name }}</td><td class="text-right font-medium text-green-600">{{ r.mom_pct }}%</td></tr>
+      {% empty %}<tr><td colspan="2">Not enough months yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  {% endcomponent %}
+  {% component "unfold/components/card.html" with title="Biggest drops vs previous month" %}
+    <table class="cf-table w-full text-sm">
+      <thead><tr><th class="text-left">Gym</th><th class="text-right">vs prev</th></tr></thead>
+      <tbody>
+      {% for r in data.bottom_movers %}<tr><td>{{ r.name }}</td><td class="text-right font-medium text-red-600">{{ r.mom_pct }}%</td></tr>
+      {% empty %}<tr><td colspan="2">Not enough months yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  {% endcomponent %}
+</div>
