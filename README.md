@@ -167,6 +167,12 @@ two centers (for example *Cult Gym Indiranagar*) is listed and left for you to a
     python manage.py import_groups 20oct.xls            # preview
     python manage.py import_groups 20oct.xls --apply    # one group per section of the sheet
 
+**Upload a group's gyms from a CSV** on the group's own form (*Center groups → Add* or open a group): pick a CSV with
+the center IDs in a column headed `ID` (a `Name` column beside it is only for you; *Download a sample CSV* is linked
+under the field), then choose **Add to the gyms below** or **Replace the gyms** and save. Gyms are matched by ID, so
+names never need to match. An ID that matches no center stops the save and is listed; text lines (a total, a note)
+are skipped and reported. One file per group.
+
 **Revenue by group** shows gyms × months of the Franchise Performance **Total Revenue** (run it with
 *Split by: month*): the monthly figures, average, rank for the latest full month, rank by average, change vs the
 previous month, monthly target and % achieved, with group totals at the top, then one table per group like the

@@ -1,10 +1,15 @@
+from django import forms
 from django.contrib import admin, messages
+from django.templatetags.static import static
+from django.utils.html import format_html
 from unfold.contrib.filters.admin import (AllValuesCheckboxFilter, AutocompleteSelectFilter, BooleanRadioFilter,
                                           RangeDateFilter, RangeDateTimeFilter, RangeNumericFilter)
 from unfold.decorators import action, display
+from unfold.widgets import UnfoldAdminFileFieldWidget, UnfoldAdminRadioSelectWidget
 
 from config.admin_base import ExportModelAdmin
 
+from . import group_csv
 from .models import Center, CenterGroup, CenterList, CenterSyncLog, KnownEmpty
 
 
@@ -122,14 +127,75 @@ class KnownEmptyAdmin(ExportModelAdmin):
     autocomplete_fields = ("center",)
 
 
+class CenterGroupForm(forms.ModelForm):
+    """The group form plus an optional CSV of its gyms (a column of center IDs)."""
+
+    gyms_csv = forms.FileField(
+        required=False, label="Gyms from a CSV file", widget=UnfoldAdminFileFieldWidget,
+        help_text="Optional. A CSV with the center IDs in a column headed \"ID\"; a Name column beside it is "
+                  "only for you. Unknown IDs stop the save and are listed.")
+    csv_mode = forms.ChoiceField(
+        label="The CSV's gyms", initial="add", widget=UnfoldAdminRadioSelectWidget,
+        choices=[("add", "Add to the gyms below"), ("replace", "Replace the gyms: the group gets exactly the file's gyms")])
+
+    class Meta:
+        model = CenterGroup
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["gyms_csv"].help_text = format_html(
+            '{} <a class="text-primary-600 underline" href="{}" download>Download a sample CSV</a>',
+            self.fields["gyms_csv"].help_text, static("centers/group_sample.csv"))
+
+    def clean_gyms_csv(self):
+        upload = self.cleaned_data.get("gyms_csv")
+        self.csv_ids, self.csv_problems = [], []
+        if not upload:
+            return upload
+        try:
+            ids, problems = group_csv.read_ids(upload)
+        except ValueError as e:
+            raise forms.ValidationError(str(e))
+        known = set(Center.objects.filter(center_id__in=ids).values_list("center_id", flat=True))
+        unknown = [i for i in ids if i not in known]
+        if unknown:
+            shown = ", ".join(map(str, unknown[:20])) + (f" and {len(unknown) - 20} more" if len(unknown) > 20 else "")
+            raise forms.ValidationError(f"{len(unknown)} ID{'s' if len(unknown) > 1 else ''} match no center: {shown}. "
+                                        "Fix the file (or run Centers → Update first) and upload it again.")
+        self.csv_ids, self.csv_problems = ids, problems
+        return upload
+
+
 @admin.register(CenterGroup)
 class CenterGroupAdmin(ExportModelAdmin):
-    """Make, rename or delete a group, and add or remove its gyms (type in the box to find a center)."""
+    """Make, rename or delete a group, and add or remove its gyms (type in the box to find a center,
+    or upload a CSV of center IDs)."""
 
+    form = CenterGroupForm
     list_display = ("name", "position", "center_count", "updated_at")
     list_editable = ("position",)
     search_fields = ("name",)
     autocomplete_fields = ("centers",)
+    fieldsets = [(None, {"fields": ["name", "position", "centers"]}),
+                 ("Upload gyms (CSV)", {"fields": ["gyms_csv", "csv_mode"]})]
+
+    def save_related(self, request, form, formsets, change):
+        super().save_related(request, form, formsets, change)  # the gyms picked in the box first
+        ids = getattr(form, "csv_ids", [])
+        if not ids:
+            return
+        group = form.instance
+        before = set(group.centers.values_list("center_id", flat=True))
+        if form.cleaned_data.get("csv_mode") == "replace":
+            group.centers.set(ids)
+        else:
+            group.centers.add(*ids)
+        after = set(group.centers.values_list("center_id", flat=True))
+        messages.success(request, f"{group.name}: {len(after - before)} gyms added and {len(before - after)} removed "
+                                  f"from the CSV ({len(ids)} IDs); the group now has {len(after)} gyms.")
+        for line in form.csv_problems[:10]:
+            messages.warning(request, f"Skipped {line}.")
 
     @display(description="Centers")
     def center_count(self, obj):
