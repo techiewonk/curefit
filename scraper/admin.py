@@ -5,13 +5,15 @@ from django import forms
 from django.contrib import admin, messages
 from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.db import transaction
+from django.db.models import Exists, OuterRef, Subquery
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.response import TemplateResponse
 from django.utils.html import format_html
+from django.utils import timezone
 from unfold.admin import ModelAdmin
 from unfold.contrib.filters.admin import (AllValuesCheckboxFilter, AutocompleteSelectFilter, BooleanRadioFilter,
-                                          ChoicesDropdownFilter, FieldTextFilter, RangeDateFilter, RangeNumericListFilter,
+                                          CheckboxFilter, ChoicesDropdownFilter, RadioFilter, FieldTextFilter, RangeDateFilter, RangeNumericListFilter,
                                           RangeDateTimeFilter, RangeNumericFilter, RelatedDropdownFilter)
 from unfold.admin import TabularInline
 from unfold.decorators import action, display
@@ -24,7 +26,7 @@ import datetime as dt
 
 from django.urls import reverse
 
-from . import autorun, coverage, customers, files, jobs, perfwide, sparkline
+from . import autorun, coverage, customers, files, jobs, packstate, perfwide, sparkline
 from .numbers import tidy
 from console.templatetags.formats import inr
 from .conf import SPEED_CHOICES
@@ -447,13 +449,57 @@ class PhoneInline(TabularInline):
         return False
 
 
+class PackNowFilter(CheckboxFilter):
+    """Where the pack stands today (see packstate): tick several to see them together."""
+
+    title = "Pack now"
+    parameter_name = "now"
+
+    def lookups(self, request, model_admin):
+        return packstate.CHOICES
+
+    def queryset(self, request, queryset):
+        picked = [v for v in (self.value() or []) if v in packstate.LABELS]
+        if not picked:
+            return queryset
+        where = packstate.q(picked[0])
+        for name in picked[1:]:
+            where |= packstate.q(name)
+        return queryset.filter(where)
+
+
+class FuturePackFilter(RadioFilter):
+    """Customers with a gym pack that starts after today: the members still to come."""
+
+    title = "Gym pack starting later"
+    parameter_name = "starts_later"
+
+    def lookups(self, request, model_admin):
+        return [("yes", "Yes"), ("no", "No")]
+
+    def queryset(self, request, queryset):
+        if self.value() not in ("yes", "no"):
+            return queryset
+        later = Exists(GymPack.objects.filter(user_id=OuterRef("user_id"), pack_start_date__gt=timezone.localdate()))
+        return queryset.filter(later if self.value() == "yes" else ~later)
+
+
+BADGE = ("inline-block font-semibold rounded-default text-[11px] uppercase whitespace-nowrap h-6 leading-6 px-2 "
+         "bg-primary-100 text-primary-700 dark:bg-primary-500/20 dark:text-primary-400")
+
+
+def _dated(day, css):
+    """A date, coloured when it needs attention (packstate.date_class)."""
+    return format_html('<span class="{}">{}</span>', css, day.strftime("%d %b %Y")) if css else day
+
+
 @admin.register(Customer)
 class CustomerAdmin(ExportModelAdmin):
     """Everyone seen in sales or gym data, one row per person, with the newest status and a lead label."""
 
-    list_display = ("name", "user_id", "phone_numbers", "center", "pack_name", "pack_end_date", "lead_badge",
-                    "member_status", "last_class_date", "purchases_link")
-    list_filter = [("lead_status", AllValuesCheckboxFilter), ("pack_end_date", RangeDateFilter),
+    list_display = ("name", "user_id", "phone_numbers", "center", "pack_name", "end_date", "lead_badge",
+                    "member_badge", "next_pack", "last_class_date", "purchases_link")
+    list_filter = [("lead_status", AllValuesCheckboxFilter), FuturePackFilter, ("pack_end_date", RangeDateFilter),
                    ("last_class_date", RangeDateFilter), ("last_amount", RangeNumericFilter),
                    ("center", AutocompleteSelectFilter), ("renewed", AllValuesCheckboxFilter),
                    ("active_last_30d", AllValuesCheckboxFilter), ("member_status", AllValuesCheckboxFilter),
@@ -472,10 +518,25 @@ class CustomerAdmin(ExportModelAdmin):
     def phone_numbers(self, obj):
         return ", ".join(p.phone for p in obj.phones.all())
 
-    @display(description="Lead", label={"active": "success", "expiring": "warning", "expired": "info",
-                                        "lapsed": "danger", "unknown": "info"})
+    @display(description="Lead", ordering="lead_status",
+             label={"Active": "success", "Expiring soon": "warning", "Expired recently": "danger", "Lapsed": "info"})
     def lead_badge(self, obj):
-        return obj.lead_status
+        return obj.get_lead_status_display()
+
+    @display(description="Member status", ordering="member_status", label={"Active": "success", "Paused": "warning"})
+    def member_badge(self, obj):
+        return obj.member_status or "-"
+
+    @display(description="Pack end date", ordering="pack_end_date")
+    def end_date(self, obj):
+        return _dated(obj.pack_end_date, packstate.date_class("end", obj.pack_end_date))
+
+    @display(description="Next pack starts", ordering="next_start")
+    def next_pack(self, obj):
+        """A gym pack that starts after today: a member still to come."""
+        if not obj.next_start:
+            return "-"
+        return format_html('<span class="{}">{}</span>', BADGE, obj.next_start.strftime("%d %b %Y"))
 
     @display(description="Purchases")
     def purchases_link(self, obj):
@@ -483,7 +544,9 @@ class CustomerAdmin(ExportModelAdmin):
                            '<a href="/admin/scraper/gymmember/?customer={0}">gym</a>', obj.pk)
 
     def get_queryset(self, request):
-        return super().get_queryset(request).prefetch_related("phones")
+        later = (GymPack.objects.filter(user_id=OuterRef("user_id"), pack_start_date__gt=timezone.localdate())
+                 .order_by("pack_start_date").values("pack_start_date")[:1])
+        return super().get_queryset(request).prefetch_related("phones").annotate(next_start=Subquery(later))
 
     @action(description="Recompute lead status from the pack end dates")
     def refresh_leads(self, request, queryset):
@@ -497,9 +560,9 @@ class CustomerAdmin(ExportModelAdmin):
 class GymPackAdmin(DataAdmin):
     """My Gym Member merged over every run: one row per member pack."""
 
-    list_display = ("center", "username", "user_id", "pack_name", "pack_start_date", "pack_end_date", "status",
-                    "last_class_date", "final_amount_paid", "scraped_at")
-    list_filter = [("center", AutocompleteSelectFilter), ("pack_end_date", RangeDateFilter),
+    list_display = ("center", "username", "user_id", "pack_name", "now_badge", "status_badge", "start_date",
+                    "end_date", "last_class_date", "final_amount_paid", "scraped_at")
+    list_filter = [PackNowFilter, ("center", AutocompleteSelectFilter), ("pack_end_date", RangeDateFilter),
                    ("pack_start_date", RangeDateFilter), ("purchase_date", RangeDateFilter),
                    ("last_class_date", RangeDateFilter), ("final_amount_paid", RangeNumericFilter),
                    ("status", AllValuesCheckboxFilter), ("new_vs_repeat", AllValuesCheckboxFilter),
@@ -509,6 +572,22 @@ class GymPackAdmin(DataAdmin):
     search_fields = ("username", "user_id", "center__name", "pack_name")
     list_select_related = ("center",)
     resource_classes = [GymPackResource]
+
+    @display(description="Pack now", label={label: packstate.COLOURS.get(key, "") for key, label in packstate.CHOICES})
+    def now_badge(self, obj):
+        return packstate.LABELS[packstate.state(obj.pack_start_date, obj.pack_end_date, obj.status)]
+
+    @display(description="Status", ordering="status", label={"Active": "success", "Paused": "warning"})
+    def status_badge(self, obj):
+        return obj.status or "-"
+
+    @display(description="Pack start date", ordering="pack_start_date")
+    def start_date(self, obj):
+        return _dated(obj.pack_start_date, packstate.date_class("start", obj.pack_start_date))
+
+    @display(description="Pack end date", ordering="pack_end_date")
+    def end_date(self, obj):
+        return _dated(obj.pack_end_date, packstate.date_class("end", obj.pack_end_date))
 
 
 @admin.register(SalesPack)

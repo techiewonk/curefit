@@ -226,6 +226,8 @@ UNFOLD = {
                 {"title": "All", "icon": "groups", "link": _ADMIN("scraper_gympack")},
                 {"title": "Per run / session", "icon": "history", "link": _ADMIN("scraper_gymmember")},
                 {"title": "Leads", "icon": "person_search", "link": _ADMIN("scraper_customer")},
+                {"title": "Starting later", "icon": "event_upcoming",
+                 "link": lambda request: f"{reverse_lazy('admin:scraper_gympack_changelist')}?now=upcoming"},
             ]},
             {"title": "Expired packs (sales)", "separator": True, "items": [
                 {"title": "All", "icon": "receipt_long", "link": _ADMIN("scraper_salespack")},
